@@ -352,26 +352,18 @@ namespace MarkdownLintVS.Linting.Rules
                 var startLine = list.Line;
                 var endLine = analysis.GetBlockEndLine(list);
 
-                // Check line before
-                if (startLine > 0 && !analysis.IsBlankLine(startLine - 1))
+                var needsBlankBefore = startLine > 0 && !analysis.IsBlankLine(startLine - 1);
+                var needsBlankAfter = endLine < analysis.LineCount - 1 && !analysis.IsBlankLine(endLine + 1);
+
+                // Report a single violation if either blank line is missing
+                if (needsBlankBefore || needsBlankAfter)
                 {
                     yield return CreateLineViolation(
                         startLine,
                         analysis.GetLine(startLine),
                         "Lists should be surrounded by blank lines",
                         severity,
-                        "Add blank line before list");
-                }
-
-                // Check line after
-                if (endLine < analysis.LineCount - 1 && !analysis.IsBlankLine(endLine + 1))
-                {
-                    yield return CreateLineViolation(
-                        endLine,
-                        analysis.GetLine(endLine),
-                        "Lists should be surrounded by blank lines",
-                        severity,
-                        "Add blank line after list");
+                        "Surround list with blank lines");
                 }
             }
         }

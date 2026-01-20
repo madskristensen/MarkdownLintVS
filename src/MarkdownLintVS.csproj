@@ -45,8 +45,29 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CodeFixes\Actions\AddBlankLineAfterAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddBlankLineBeforeAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddCodeBlockLanguageAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddFinalNewlineAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddImageAltTextAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddSpaceAfterHashAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddSpaceBeforeClosingHashAction.cs" />
+    <Compile Include="CodeFixes\Actions\FixReversedLinkAction.cs" />
+    <Compile Include="CodeFixes\Actions\MarkdownFixAction.cs" />
+    <Compile Include="CodeFixes\Actions\NormalizeListMarkerSpaceAction.cs" />
+    <Compile Include="CodeFixes\Actions\NormalizeWhitespaceAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveDollarSignAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveExtraBlankLinesAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveLeadingWhitespaceAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveSpaceInCodeSpanAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveSpaceInEmphasisAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveSpaceInLinkTextAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveTrailingPunctuationAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveTrailingWhitespaceAction.cs" />
+    <Compile Include="CodeFixes\Actions\ReplaceTabsWithSpacesAction.cs" />
+    <Compile Include="CodeFixes\Actions\SurroundWithBlankLinesAction.cs" />
+    <Compile Include="CodeFixes\Actions\WrapUrlInBracketsAction.cs" />
     <Compile Include="CodeFixes\FixAllActions.cs" />
-    <Compile Include="CodeFixes\MarkdownFixActions.cs" />
     <Compile Include="CodeFixes\MarkdownSuggestedActionsSource.cs" />
     <Compile Include="ErrorList\MarkdownDocumentListener.cs" />
     <Compile Include="ErrorList\MarkdownLintTableDataSource.cs" />

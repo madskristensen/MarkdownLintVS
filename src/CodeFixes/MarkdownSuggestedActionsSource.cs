@@ -3,6 +3,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MarkdownLintVS.CodeFixes.Actions;
 using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
@@ -98,9 +99,16 @@ namespace MarkdownLintVS.CodeFixes
             var actions = new List<ISuggestedAction>();
             var fixAllActions = new List<ISuggestedAction>();
             var seenRules = new HashSet<string>();
+            var seenRuleLines = new HashSet<(string RuleId, int LineNumber)>();
 
             foreach (LintViolation violation in violations)
             {
+                // Deduplicate actions by rule and line (e.g., multiple tabs on same line)
+                (string Id, int LineNumber) ruleLineKey = (violation.Rule.Id, violation.LineNumber);
+                if (seenRuleLines.Contains(ruleLineKey))
+                    continue;
+                seenRuleLines.Add(ruleLineKey);
+
                 ISuggestedAction action = CreateFixAction(violation, range.Snapshot);
                 if (action != null)
                 {
@@ -139,8 +147,9 @@ namespace MarkdownLintVS.CodeFixes
 
         private static readonly HashSet<string> _autoFixableRuleIds =
         [
-            "MD009", "MD010", "MD012", "MD018", "MD019", "MD022", "MD023", "MD027",
-            "MD031", "MD032", "MD058"
+            "MD009", "MD010", "MD011", "MD012", "MD014", "MD018", "MD019", "MD020",
+            "MD021", "MD022", "MD023", "MD026", "MD027", "MD030", "MD031", "MD032",
+            "MD034", "MD037", "MD038", "MD039", "MD040", "MD045", "MD047", "MD058"
         ];
 
         private bool IsAutoFixable(string ruleId)
@@ -198,9 +207,8 @@ namespace MarkdownLintVS.CodeFixes
                 case "MD009": // Trailing spaces
                     return new RemoveTrailingWhitespaceAction(snapshot, span);
 
-                case "MD010": // Hard tabs
-                    var tabSpan = new Span(line.Start + violation.ColumnStart, 1);
-                    return new ReplaceTabsWithSpacesAction(snapshot, tabSpan);
+                case "MD010": // Hard tabs - replace all tabs on the line
+                    return new ReplaceTabsWithSpacesAction(snapshot, span);
 
                 case "MD011": // Reversed links
                     var linkSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
@@ -208,6 +216,9 @@ namespace MarkdownLintVS.CodeFixes
 
                 case "MD012": // Multiple blank lines
                     return new RemoveExtraBlankLinesAction(snapshot, span);
+
+                case "MD014": // Dollar signs before commands
+                    return new RemoveDollarSignAction(snapshot, span);
 
                 case "MD018": // No space after hash
                     return new AddSpaceAfterHashAction(snapshot, span);
@@ -217,14 +228,22 @@ namespace MarkdownLintVS.CodeFixes
                 case "MD027": // Multiple spaces after blockquote
                     return new NormalizeWhitespaceAction(snapshot, span);
 
+                case "MD020": // No space inside closed atx
+                    return new AddSpaceBeforeClosingHashAction(snapshot, span);
+
                 case "MD022": // Blanks around headings
                 case "MD031": // Blanks around fences
-                case "MD032": // Blanks around lists
                 case "MD058": // Blanks around tables
-                    if (violation.Message.Contains("preceded") || violation.Message.Contains("before"))
+                    // Check FixDescription for "before"/"after" since Message is the same for both cases
+                    var fixDesc = violation.FixDescription ?? violation.Message;
+                    if (fixDesc.Contains("before"))
                         return new AddBlankLineBeforeAction(snapshot, span);
-                    else
+                    else if (fixDesc.Contains("after"))
                         return new AddBlankLineAfterAction(snapshot, span);
+                    return null;
+
+                case "MD032": // Blanks around lists
+                    return new SurroundWithBlankLinesAction(snapshot, span);
 
                 case "MD023": // Heading start left
                     return new RemoveLeadingWhitespaceAction(snapshot, span);
@@ -232,9 +251,24 @@ namespace MarkdownLintVS.CodeFixes
                 case "MD026": // Trailing punctuation
                     return new RemoveTrailingPunctuationAction(snapshot, span);
 
+                case "MD030": // Spaces after list markers
+                    return new NormalizeListMarkerSpaceAction(snapshot, span);
+
                 case "MD034": // Bare URLs
                     var urlSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
                     return new WrapUrlInBracketsAction(snapshot, urlSpan);
+
+                case "MD037": // Spaces inside emphasis
+                    var emphasisSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
+                    return new RemoveSpaceInEmphasisAction(snapshot, emphasisSpan);
+
+                case "MD038": // Spaces inside code span
+                    var codeSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
+                    return new RemoveSpaceInCodeSpanAction(snapshot, codeSpan);
+
+                case "MD039": // Spaces inside link text
+                    var linkTextSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
+                    return new RemoveSpaceInLinkTextAction(snapshot, linkTextSpan);
 
                 case "MD040": // Fenced code language
                     return new AddCodeBlockLanguageAction(snapshot, span);
