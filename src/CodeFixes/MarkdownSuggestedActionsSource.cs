@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using MarkdownLintVS.CodeFixes.Actions;
@@ -147,9 +148,10 @@ namespace MarkdownLintVS.CodeFixes
 
         private static readonly HashSet<string> _autoFixableRuleIds =
         [
-            "MD009", "MD010", "MD011", "MD012", "MD014", "MD018", "MD019", "MD020",
-            "MD021", "MD022", "MD023", "MD026", "MD027", "MD030", "MD031", "MD032",
-            "MD034", "MD037", "MD038", "MD039", "MD040", "MD045", "MD047", "MD058"
+            "MD004", "MD009", "MD010", "MD011", "MD012", "MD014", "MD018", "MD019", "MD020",
+            "MD021", "MD022", "MD023", "MD026", "MD027", "MD028", "MD029", "MD030", "MD031", "MD032",
+            "MD034", "MD035", "MD037", "MD038", "MD039", "MD040", "MD045", "MD047", "MD048",
+            "MD049", "MD050", "MD058"
         ];
 
         private bool IsAutoFixable(string ruleId)
@@ -204,6 +206,12 @@ namespace MarkdownLintVS.CodeFixes
 
             switch (violation.Rule.Id)
             {
+                case "MD004": // Unordered list style
+                    var expectedMarker = ExtractExpectedMarker(violation.Message);
+                    if (expectedMarker.HasValue)
+                        return new ChangeListMarkerAction(snapshot, span, expectedMarker.Value);
+                    return null;
+
                 case "MD009": // Trailing spaces
                     return new RemoveTrailingWhitespaceAction(snapshot, span);
 
@@ -227,6 +235,15 @@ namespace MarkdownLintVS.CodeFixes
                 case "MD021": // Multiple spaces in closed atx
                 case "MD027": // Multiple spaces after blockquote
                     return new NormalizeWhitespaceAction(snapshot, span);
+
+                case "MD028": // Blank line inside blockquote
+                    return new AddBlockquotePrefixAction(snapshot, span);
+
+                case "MD029": // Ordered list prefix
+                    var expectedNumber = ExtractExpectedNumber(violation.Message);
+                    if (expectedNumber.HasValue)
+                        return new FixOrderedListPrefixAction(snapshot, span, expectedNumber.Value);
+                    return null;
 
                 case "MD020": // No space inside closed atx
                     return new AddSpaceBeforeClosingHashAction(snapshot, span);
@@ -258,6 +275,12 @@ namespace MarkdownLintVS.CodeFixes
                     var urlSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
                     return new WrapUrlInBracketsAction(snapshot, urlSpan);
 
+                case "MD035": // Horizontal rule style
+                    var expectedHrStyle = ExtractExpectedStyle(violation.Message);
+                    if (!string.IsNullOrEmpty(expectedHrStyle))
+                        return new ChangeHorizontalRuleStyleAction(snapshot, span, expectedHrStyle);
+                    return null;
+
                 case "MD037": // Spaces inside emphasis
                     var emphasisSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
                     return new RemoveSpaceInEmphasisAction(snapshot, emphasisSpan);
@@ -277,6 +300,30 @@ namespace MarkdownLintVS.CodeFixes
                     var imgSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
                     return new AddImageAltTextAction(snapshot, imgSpan);
 
+                case "MD048": // Code fence style
+                    var fenceStyle = ExtractExpectedStyle(violation.Message);
+                    if (!string.IsNullOrEmpty(fenceStyle))
+                        return new ChangeCodeFenceStyleAction(snapshot, span, fenceStyle);
+                    return null;
+
+                case "MD049": // Emphasis style
+                    var emphasisStyle = ExtractExpectedStyle(violation.Message);
+                    if (!string.IsNullOrEmpty(emphasisStyle))
+                    {
+                        var emphSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
+                        return new ChangeEmphasisStyleAction(snapshot, emphSpan, emphasisStyle);
+                    }
+                    return null;
+
+                case "MD050": // Strong style
+                    var strongStyle = ExtractExpectedStyle(violation.Message);
+                    if (!string.IsNullOrEmpty(strongStyle))
+                    {
+                        var strongSpan = new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
+                        return new ChangeStrongStyleAction(snapshot, strongSpan, strongStyle);
+                    }
+                    return null;
+
                 case "MD047": // Single trailing newline
                     if (violation.Message.Contains("multiple"))
                         return new RemoveExtraBlankLinesAction(snapshot, new Span(snapshot.Length - 1, 1));
@@ -286,6 +333,37 @@ namespace MarkdownLintVS.CodeFixes
                 default:
                     return null;
             }
+        }
+
+        private static char? ExtractExpectedMarker(string message)
+        {
+            // Extract marker from messages like "expected 'asterisk'" or "should use asterisk"
+            if (message.Contains("asterisk")) return '*';
+            if (message.Contains("dash")) return '-';
+            if (message.Contains("plus")) return '+';
+            return null;
+        }
+
+        private static int? ExtractExpectedNumber(string message)
+        {
+            // Extract number from messages like "should be '1'" or "should be '2'"
+            Match match = System.Text.RegularExpressions.Regex.Match(message, @"should be '(\d+)'");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out var number))
+                return number;
+            return null;
+        }
+
+        private static string ExtractExpectedStyle(string message)
+        {
+            // Extract style from messages like "expected backtick", "expected asterisk", "expected ---"
+            if (message.Contains("backtick")) return "backtick";
+            if (message.Contains("tilde")) return "tilde";
+            if (message.Contains("asterisk")) return "asterisk";
+            if (message.Contains("underscore")) return "underscore";
+            if (message.Contains("---")) return "---";
+            if (message.Contains("***")) return "***";
+            if (message.Contains("___")) return "___";
+            return null;
         }
 
         public void Dispose()

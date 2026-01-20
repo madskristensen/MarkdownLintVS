@@ -1,7 +1,7 @@
-using Markdig.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Markdig.Syntax;
 
 namespace MarkdownLintVS.Linting.Rules
 {
@@ -45,9 +45,7 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD003");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex AtxPattern = new(@"^#{1,6}\s+\S", RegexOptions.Compiled);
-        private static readonly Regex AtxClosedPattern = new(@"^#{1,6}\s+.+\s+#{1,6}\s*$", RegexOptions.Compiled);
-        private static readonly Regex SetextUnderlinePattern = new(@"^(={3,}|-{3,})\s*$", RegexOptions.Compiled);
+        private static readonly Regex _atxClosedPattern = new(@"^#{1,6}\s+.+\s+#{1,6}\s*$", RegexOptions.Compiled);
 
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
@@ -63,7 +61,7 @@ namespace MarkdownLintVS.Linting.Rules
             foreach (HeadingBlock heading in analysis.GetHeadings())
             {
                 var line = analysis.GetLine(heading.Line);
-                var currentStyle = GetHeadingStyle(line, heading, analysis);
+                var currentStyle = GetHeadingStyle(line, heading);
 
                 if (style == "consistent")
                 {
@@ -95,14 +93,14 @@ namespace MarkdownLintVS.Linting.Rules
             }
         }
 
-        private string GetHeadingStyle(string line, HeadingBlock heading, MarkdownDocumentAnalysis analysis)
+        private string GetHeadingStyle(string line, HeadingBlock heading)
         {
             if (heading.IsSetext)
                 return "setext";
-            
-            if (AtxClosedPattern.IsMatch(line))
+
+            if (_atxClosedPattern.IsMatch(line))
                 return "atx_closed";
-            
+
             return "atx";
         }
     }
@@ -208,24 +206,24 @@ namespace MarkdownLintVS.Linting.Rules
 
         private char? GetExpectedMarker(string style)
         {
-            switch (style)
+            return style switch
             {
-                case "asterisk": return '*';
-                case "plus": return '+';
-                case "dash": return '-';
-                default: return null;
-            }
+                "asterisk" => '*',
+                "plus" => '+',
+                "dash" => '-',
+                _ => null,
+            };
         }
 
         private string GetMarkerName(char marker)
         {
-            switch (marker)
+            return marker switch
             {
-                case '*': return "asterisk";
-                case '+': return "plus";
-                case '-': return "dash";
-                default: return marker.ToString();
-            }
+                '*' => "asterisk",
+                '+' => "plus",
+                '-' => "dash",
+                _ => marker.ToString(),
+            };
         }
     }
 
@@ -258,7 +256,7 @@ namespace MarkdownLintVS.Linting.Rules
             yield break;
         }
 
-        private IEnumerable<LintViolation> AnalyzeList(ListBlock list, MarkdownDocumentAnalysis analysis, 
+        private IEnumerable<LintViolation> AnalyzeList(ListBlock list, MarkdownDocumentAnalysis analysis,
             DiagnosticSeverity severity, Dictionary<int, int> levelIndents, int level)
         {
             foreach (Block item in list)

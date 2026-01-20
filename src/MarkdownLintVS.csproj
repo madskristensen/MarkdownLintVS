@@ -47,11 +47,18 @@
   <ItemGroup>
     <Compile Include="CodeFixes\Actions\AddBlankLineAfterAction.cs" />
     <Compile Include="CodeFixes\Actions\AddBlankLineBeforeAction.cs" />
+    <Compile Include="CodeFixes\Actions\AddBlockquotePrefixAction.cs" />
     <Compile Include="CodeFixes\Actions\AddCodeBlockLanguageAction.cs" />
     <Compile Include="CodeFixes\Actions\AddFinalNewlineAction.cs" />
     <Compile Include="CodeFixes\Actions\AddImageAltTextAction.cs" />
     <Compile Include="CodeFixes\Actions\AddSpaceAfterHashAction.cs" />
     <Compile Include="CodeFixes\Actions\AddSpaceBeforeClosingHashAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeCodeFenceStyleAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeEmphasisStyleAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeHorizontalRuleStyleAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeListMarkerAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeStrongStyleAction.cs" />
+    <Compile Include="CodeFixes\Actions\FixOrderedListPrefixAction.cs" />
     <Compile Include="CodeFixes\Actions\FixReversedLinkAction.cs" />
     <Compile Include="CodeFixes\Actions\MarkdownFixAction.cs" />
     <Compile Include="CodeFixes\Actions\NormalizeListMarkerSpaceAction.cs" />
