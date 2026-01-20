@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
+using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
@@ -46,8 +47,15 @@ namespace MarkdownLintVS.Tagging
             _currentResults = [];
 
             _buffer.Changed += OnBufferChanged;
+            RuleOptions.Saved += OnOptionsSaved;
 
             // Initial analysis
+            Analyze();
+        }
+
+        private void OnOptionsSaved(RuleOptions options)
+        {
+            // Revalidate when options change
             Analyze();
         }
 
@@ -117,17 +125,13 @@ namespace MarkdownLintVS.Tagging
 
         private string GetErrorType(Linting.DiagnosticSeverity severity)
         {
-            switch (severity)
+            return severity switch
             {
-                case Linting.DiagnosticSeverity.Error:
-                    return Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.SyntaxError;
-                case Linting.DiagnosticSeverity.Warning:
-                    return Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Warning;
-                case Linting.DiagnosticSeverity.Suggestion:
-                    return Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Suggestion;
-                default:
-                    return Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.HintedSuggestion;
-            }
+                Linting.DiagnosticSeverity.Error => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.SyntaxError,
+                Linting.DiagnosticSeverity.Warning => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Warning,
+                Linting.DiagnosticSeverity.Suggestion => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Suggestion,
+                _ => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.HintedSuggestion,
+            };
         }
 
         private string GetFilePath()
@@ -144,6 +148,7 @@ namespace MarkdownLintVS.Tagging
             if (!_isDisposed)
             {
                 _buffer.Changed -= OnBufferChanged;
+                RuleOptions.Saved -= OnOptionsSaved;
                 _isDisposed = true;
             }
         }

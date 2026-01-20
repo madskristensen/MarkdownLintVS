@@ -242,10 +242,12 @@ namespace MarkdownLintVS.Linting
                     return config;
             }
 
-            // Return default configuration
+            // No .editorconfig setting found - use options page as fallback
+            var enabledFromOptions = Options.RuleOptionsProvider.IsRuleEnabled(rule.Id);
+
             return new RuleConfiguration
             {
-                Enabled = rule.EnabledByDefault,
+                Enabled = enabledFromOptions && rule.EnabledByDefault,
                 Severity = rule.DefaultSeverity
             };
         }

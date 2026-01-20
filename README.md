@@ -13,7 +13,8 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Quick fixes** - Press `Ctrl+.` for automatic fixes (light bulb suggestions)  
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
-✅ **50+ rules** - Comprehensive coverage based on markdownlint standards  
+✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules
+✅ **50+ rules** - Comprehensive coverage based on markdownlint standards
 
 ## Installation
 
@@ -36,7 +37,33 @@ Once installed, the extension works automatically on any `.md` file. It is compa
 
 ## Configuration
 
-Rules can be configured in your `.editorconfig` file. All rules use the `md_` prefix.
+Rules can be configured in two ways:
+
+1. **Options Page** - Toggle rules on/off via **Tools → Options → Markdown Lint → Rules**
+2. **EditorConfig** - Configure rules per-project using `.editorconfig` files
+
+EditorConfig settings take precedence over the Options page. If no EditorConfig rule exists for a specific rule, the Options page setting is used.
+
+### Options Page
+
+Go to **Tools → Options → Markdown Lint → Rules** to access all rule settings organized by category:
+
+| Category | Rules |
+|----------|-------|
+| 1. Headings | MD001, MD003, MD018-MD026, MD041 |
+| 2. Lists | MD004, MD005, MD007, MD029, MD030, MD032 |
+| 3. Whitespace | MD009, MD010, MD012, MD013, MD047 |
+| 4. Code Blocks | MD014, MD031, MD040, MD046, MD048 |
+| 5. Links | MD011, MD034, MD039, MD042, MD045, MD051-MD054 |
+| 6. Inline | MD033, MD035-MD038, MD049, MD050 |
+| 7. Blockquotes | MD027, MD028 |
+| 8. Tables | MD055, MD056, MD058 |
+
+Changes take effect immediately when you click OK or Apply - all open markdown files are automatically revalidated.
+
+### EditorConfig
+
+Rules can also be configured in your `.editorconfig` file. All rules use the `md_` prefix.
 
 ### Example .editorconfig
 
@@ -95,7 +122,7 @@ md_no_trailing_spaces = false
 | `md_no_hard_tabs` | MD010 | Hard tabs not allowed |
 | `md_no_reversed_links` | MD011 | Reversed link syntax |
 | `md_no_multiple_blanks` | MD012 | Multiple consecutive blank lines |
-| `md_line_length` | MD013 | Line length (default: 80 characters) |
+| `md_line_length` | MD013 | Line length (default: 80 characters, disabled by default) |
 | `md_commands_show_output` | MD014 | Dollar signs used before commands without showing output |
 | `md_no_missing_space_atx` | MD018 | No space after hash on atx style heading |
 | `md_no_multiple_space_atx` | MD019 | Multiple spaces after hash on atx style heading |
@@ -112,15 +139,15 @@ md_no_trailing_spaces = false
 | `md_list_marker_space` | MD030 | Spaces after list markers |
 | `md_blanks_around_fences` | MD031 | Fenced code blocks should be surrounded by blank lines |
 | `md_blanks_around_lists` | MD032 | Lists should be surrounded by blank lines |
-| `md_no_inline_html` | MD033 | Inline HTML not allowed |
+| `md_no_inline_html` | MD033 | Inline HTML not allowed (disabled by default) |
 | `md_no_bare_urls` | MD034 | Bare URL used |
 | `md_hr_style` | MD035 | Horizontal rule style (consistent, ---, ***, ___) |
-| `md_no_emphasis_as_heading` | MD036 | Emphasis used instead of a heading |
+| `md_no_emphasis_as_heading` | MD036 | Emphasis used instead of a heading (disabled by default) |
 | `md_no_space_in_emphasis` | MD037 | Spaces inside emphasis markers |
 | `md_no_space_in_code` | MD038 | Spaces inside code span elements |
 | `md_no_space_in_links` | MD039 | Spaces inside link text |
 | `md_fenced_code_language` | MD040 | Fenced code blocks should have a language specified |
-| `md_first_line_heading` | MD041 | First line in a file should be a top-level heading |
+| `md_first_line_heading` | MD041 | First line in a file should be a top-level heading (disabled by default) |
 | `md_no_empty_links` | MD042 | No empty links |
 | `md_required_headings` | MD043 | Required heading structure (disabled by default) |
 | `md_proper_names` | MD044 | Proper names should have correct capitalization (disabled by default) |
