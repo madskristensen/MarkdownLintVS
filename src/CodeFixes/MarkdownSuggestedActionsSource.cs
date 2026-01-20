@@ -139,7 +139,8 @@ namespace MarkdownLintVS.CodeFixes
 
         private static readonly HashSet<string> _autoFixableRuleIds =
         [
-            "MD009", "MD010", "MD012", "MD018", "MD019", "MD023", "MD027"
+            "MD009", "MD010", "MD012", "MD018", "MD019", "MD022", "MD023", "MD027",
+            "MD031", "MD032", "MD058"
         ];
 
         private bool IsAutoFixable(string ruleId)
@@ -165,9 +166,9 @@ namespace MarkdownLintVS.CodeFixes
                 ITextSnapshotLine line = range.Snapshot.GetLineFromLineNumber(lineNumber);
 
                 // Clamp column values to valid range within the line
-                int columnStart = Math.Max(0, Math.Min(violation.ColumnStart, line.Length));
-                int columnEnd = Math.Max(columnStart, Math.Min(violation.ColumnEnd, line.Length));
-                int spanLength = Math.Max(1, columnEnd - columnStart);
+                var columnStart = Math.Max(0, Math.Min(violation.ColumnStart, line.Length));
+                var columnEnd = Math.Max(columnStart, Math.Min(violation.ColumnEnd, line.Length));
+                var spanLength = Math.Max(1, columnEnd - columnStart);
 
                 // Ensure the span doesn't exceed the snapshot length
                 int start = line.Start + columnStart;

@@ -1,21 +1,20 @@
-using Microsoft.VisualStudio.Imaging.Interop;
-using Microsoft.VisualStudio.Language.Intellisense;
-using Microsoft.VisualStudio.Text;
-using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Imaging.Interop;
+using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes
 {
     /// <summary>
     /// Base class for markdown lint fix actions.
     /// </summary>
-    public abstract class MarkdownFixAction : ISuggestedAction
+    public abstract class MarkdownFixAction(ITextSnapshot snapshot, Span span) : ISuggestedAction
     {
-        protected readonly ITextSnapshot Snapshot;
-        protected readonly Span Span;
+        protected readonly ITextSnapshot Snapshot = snapshot;
+        protected readonly Span Span = span;
 
         public abstract string DisplayText { get; }
         public virtual string IconAutomationText => null;
@@ -23,12 +22,6 @@ namespace MarkdownLintVS.CodeFixes
         public virtual string InputGestureText => null;
         public virtual bool HasActionSets => false;
         public virtual bool HasPreview => true;
-
-        protected MarkdownFixAction(ITextSnapshot snapshot, Span span)
-        {
-            Snapshot = snapshot;
-            Span = span;
-        }
 
         public Task<IEnumerable<SuggestedActionSet>> GetActionSetsAsync(CancellationToken cancellationToken)
         {
@@ -39,7 +32,7 @@ namespace MarkdownLintVS.CodeFixes
         {
             ITrackingSpan trackingSpan = Snapshot.CreateTrackingSpan(Span, SpanTrackingMode.EdgeExclusive);
             var previewText = GetFixedText();
-            
+
             return Task.FromResult<object>(previewText);
         }
 
@@ -61,14 +54,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to remove trailing whitespace from a line.
     /// </summary>
-    public class RemoveTrailingWhitespaceAction : MarkdownFixAction
+    public class RemoveTrailingWhitespaceAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove trailing whitespace";
-
-        public RemoveTrailingWhitespaceAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -93,44 +81,31 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to replace tabs with spaces.
     /// </summary>
-    public class ReplaceTabsWithSpacesAction : MarkdownFixAction
+    public class ReplaceTabsWithSpacesAction(ITextSnapshot snapshot, Span span, int spacesPerTab = 4) : MarkdownFixAction(snapshot, span)
     {
-        private readonly int _spacesPerTab;
-
-        public override string DisplayText => $"Replace tab with {_spacesPerTab} spaces";
-
-        public ReplaceTabsWithSpacesAction(ITextSnapshot snapshot, Span span, int spacesPerTab = 4)
-            : base(snapshot, span)
-        {
-            _spacesPerTab = spacesPerTab;
-        }
+        public override string DisplayText => $"Replace tab with {spacesPerTab} spaces";
 
         public override void Invoke(CancellationToken cancellationToken)
         {
             using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
             {
-                edit.Replace(Span, new string(' ', _spacesPerTab));
+                edit.Replace(Span, new string(' ', spacesPerTab));
                 edit.Apply();
             }
         }
 
         protected override string GetFixedText()
         {
-            return new string(' ', _spacesPerTab);
+            return new string(' ', spacesPerTab);
         }
     }
 
     /// <summary>
     /// Fix action to add a blank line before content.
     /// </summary>
-    public class AddBlankLineBeforeAction : MarkdownFixAction
+    public class AddBlankLineBeforeAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add blank line before";
-
-        public AddBlankLineBeforeAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -153,14 +128,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to add a blank line after content.
     /// </summary>
-    public class AddBlankLineAfterAction : MarkdownFixAction
+    public class AddBlankLineAfterAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add blank line after";
-
-        public AddBlankLineAfterAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -183,14 +153,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to remove extra blank lines.
     /// </summary>
-    public class RemoveExtraBlankLinesAction : MarkdownFixAction
+    public class RemoveExtraBlankLinesAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove extra blank lines";
-
-        public RemoveExtraBlankLinesAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -213,21 +178,16 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to add space after heading hash.
     /// </summary>
-    public class AddSpaceAfterHashAction : MarkdownFixAction
+    public class AddSpaceAfterHashAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add space after #";
-
-        public AddSpaceAfterHashAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText();
             var hashEnd = text.LastIndexOf('#') + 1;
-            
+
             // Find where hashes end
             for (var i = 0; i < text.Length; i++)
             {
@@ -250,7 +210,7 @@ namespace MarkdownLintVS.CodeFixes
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText();
             var hashEnd = 0;
-            
+
             for (var i = 0; i < text.Length; i++)
             {
                 if (text[i] != '#')
@@ -267,14 +227,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to remove multiple spaces (normalize to single space).
     /// </summary>
-    public class NormalizeWhitespaceAction : MarkdownFixAction
+    public class NormalizeWhitespaceAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Use single space";
-
-        public NormalizeWhitespaceAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -300,14 +255,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to remove leading whitespace from a heading.
     /// </summary>
-    public class RemoveLeadingWhitespaceAction : MarkdownFixAction
+    public class RemoveLeadingWhitespaceAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove leading whitespace";
-
-        public RemoveLeadingWhitespaceAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -332,20 +282,15 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to remove trailing punctuation from a heading.
     /// </summary>
-    public class RemoveTrailingPunctuationAction : MarkdownFixAction
+    public class RemoveTrailingPunctuationAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove trailing punctuation";
-
-        public RemoveTrailingPunctuationAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText().TrimEnd();
-            
+
             // Remove trailing punctuation
             while (text.Length > 0 && ".,;:!。，；：！".Contains(text[text.Length - 1].ToString()))
             {
@@ -363,7 +308,7 @@ namespace MarkdownLintVS.CodeFixes
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText().TrimEnd();
-            
+
             while (text.Length > 0 && ".,;:!。，；：！".Contains(text[text.Length - 1].ToString()))
             {
                 text = text.Substring(0, text.Length - 1).TrimEnd();
@@ -376,14 +321,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to add a newline at end of file.
     /// </summary>
-    public class AddFinalNewlineAction : MarkdownFixAction
+    public class AddFinalNewlineAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add newline at end of file";
-
-        public AddFinalNewlineAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -403,14 +343,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to wrap a bare URL in angle brackets.
     /// </summary>
-    public class WrapUrlInBracketsAction : MarkdownFixAction
+    public class WrapUrlInBracketsAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Wrap URL in angle brackets";
-
-        public WrapUrlInBracketsAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -432,19 +367,14 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to add alt text to an image.
     /// </summary>
-    public class AddImageAltTextAction : MarkdownFixAction
+    public class AddImageAltTextAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add alt text placeholder";
-
-        public AddImageAltTextAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
             var text = Snapshot.GetText(Span);
-            
+
             // Find the empty brackets and add placeholder
             var fixedText = text.Replace("![](", "![image](");
 
@@ -465,14 +395,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to add language to a fenced code block.
     /// </summary>
-    public class AddCodeBlockLanguageAction : MarkdownFixAction
+    public class AddCodeBlockLanguageAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add language identifier";
-
-        public AddCodeBlockLanguageAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {
@@ -482,7 +407,7 @@ namespace MarkdownLintVS.CodeFixes
             var indent = text.Length - fence.Length;
             var fenceChar = fence[0];
             var fenceLength = 0;
-            
+
             for (var i = 0; i < fence.Length && fence[i] == fenceChar; i++)
                 fenceLength++;
 
@@ -506,14 +431,9 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to swap reversed link syntax.
     /// </summary>
-    public class FixReversedLinkAction : MarkdownFixAction
+    public class FixReversedLinkAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Fix reversed link syntax";
-
-        public FixReversedLinkAction(ITextSnapshot snapshot, Span span)
-            : base(snapshot, span)
-        {
-        }
 
         public override void Invoke(CancellationToken cancellationToken)
         {

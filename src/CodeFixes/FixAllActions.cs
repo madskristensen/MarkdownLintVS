@@ -1,38 +1,26 @@
-using MarkdownLintVS.Linting;
-using Microsoft.VisualStudio.Imaging.Interop;
-using Microsoft.VisualStudio.Language.Intellisense;
-using Microsoft.VisualStudio.Text;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using MarkdownLintVS.Linting;
+using Microsoft.VisualStudio.Imaging.Interop;
+using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes
 {
     /// <summary>
     /// Fix action to fix all instances of a specific rule in the document.
     /// </summary>
-    public class FixAllInDocumentAction : ISuggestedAction
+    public class FixAllInDocumentAction(ITextSnapshot snapshot, string ruleId, string filePath) : ISuggestedAction
     {
-        private readonly ITextSnapshot _snapshot;
-        private readonly string _ruleId;
-        private readonly string _filePath;
-
-        public string DisplayText => $"Fix all {_ruleId} violations in document";
+        public string DisplayText => $"Fix all {ruleId} violations in document";
         public string IconAutomationText => null;
         public ImageMoniker IconMoniker => default;
         public string InputGestureText => null;
         public bool HasActionSets => false;
         public bool HasPreview => false;
-
-        public FixAllInDocumentAction(ITextSnapshot snapshot, string ruleId, string filePath)
-        {
-            _snapshot = snapshot;
-            _ruleId = ruleId;
-            _filePath = filePath;
-        }
 
         public Task<IEnumerable<SuggestedActionSet>> GetActionSetsAsync(CancellationToken cancellationToken)
         {
@@ -46,10 +34,10 @@ namespace MarkdownLintVS.CodeFixes
 
         public void Invoke(CancellationToken cancellationToken)
         {
-            var text = _snapshot.GetText();
+            var text = snapshot.GetText();
             var violations = Linting.MarkdownLintAnalyzer.Instance
-                .Analyze(text, _filePath)
-                .Where(v => v.Rule.Id == _ruleId)
+                .Analyze(text, filePath)
+                .Where(v => v.Rule.Id == ruleId)
                 .OrderByDescending(v => v.LineNumber) // Process from bottom to top
                 .ThenByDescending(v => v.ColumnStart)
                 .ToList();
@@ -57,7 +45,7 @@ namespace MarkdownLintVS.CodeFixes
             if (violations.Count == 0)
                 return;
 
-            using (ITextEdit edit = _snapshot.TextBuffer.CreateEdit())
+            using (ITextEdit edit = snapshot.TextBuffer.CreateEdit())
             {
                 foreach (LintViolation violation in violations)
                 {
@@ -67,15 +55,15 @@ namespace MarkdownLintVS.CodeFixes
             }
         }
 
-        private void ApplyFix(ITextEdit edit, Linting.LintViolation violation)
+        private void ApplyFix(ITextEdit edit, LintViolation violation)
         {
-            if (violation.LineNumber >= _snapshot.LineCount)
+            if (violation.LineNumber >= snapshot.LineCount)
                 return;
 
-            ITextSnapshotLine line = _snapshot.GetLineFromLineNumber(violation.LineNumber);
+            ITextSnapshotLine line = snapshot.GetLineFromLineNumber(violation.LineNumber);
             var lineText = line.GetText();
 
-            switch (_ruleId)
+            switch (ruleId)
             {
                 case "MD009": // Trailing spaces
                     var trimmed = lineText.TrimEnd();
@@ -143,6 +131,20 @@ namespace MarkdownLintVS.CodeFixes
                         edit.Replace(start, length, " ");
                     }
                     break;
+
+                case "MD022": // Blanks around headings
+                case "MD031": // Blanks around fences
+                case "MD032": // Blanks around lists
+                case "MD058": // Blanks around tables
+                    if (violation.Message.Contains("preceded") || violation.Message.Contains("before"))
+                    {
+                        edit.Insert(line.Start, Environment.NewLine);
+                    }
+                    else
+                    {
+                        edit.Insert(line.EndIncludingLineBreak, Environment.NewLine);
+                    }
+                    break;
             }
         }
 
@@ -160,34 +162,14 @@ namespace MarkdownLintVS.CodeFixes
     /// <summary>
     /// Fix action to fix all auto-fixable violations in the document.
     /// </summary>
-    public class FixAllAutoFixableAction : ISuggestedAction
+    public class FixAllAutoFixableAction(ITextSnapshot snapshot, string filePath) : ISuggestedAction
     {
-        private readonly ITextSnapshot _snapshot;
-        private readonly string _filePath;
-
-        private static readonly HashSet<string> AutoFixableRules =
-        [
-            "MD009", // Trailing spaces
-            "MD010", // Hard tabs
-            "MD012", // Multiple blank lines
-            "MD018", // No space after hash
-            "MD019", // Multiple spaces after hash
-            "MD023", // Heading start left
-            "MD027", // Multiple spaces after blockquote
-        ];
-
         public string DisplayText => "Fix all auto-fixable violations in document";
         public string IconAutomationText => null;
         public ImageMoniker IconMoniker => default;
         public string InputGestureText => null;
         public bool HasActionSets => false;
         public bool HasPreview => false;
-
-        public FixAllAutoFixableAction(ITextSnapshot snapshot, string filePath)
-        {
-            _snapshot = snapshot;
-            _filePath = filePath;
-        }
 
         public Task<IEnumerable<SuggestedActionSet>> GetActionSetsAsync(CancellationToken cancellationToken)
         {
@@ -201,7 +183,7 @@ namespace MarkdownLintVS.CodeFixes
 
         public void Invoke(CancellationToken cancellationToken)
         {
-            var text = _snapshot.GetText();
+            var text = snapshot.GetText();
             List<string> lines = [.. text.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)];
             var modified = false;
 
@@ -295,13 +277,39 @@ namespace MarkdownLintVS.CodeFixes
                 }
             }
 
+            // Fix MD022, MD031, MD032, MD058 - Blanks around headings/fences/lists/tables
+            // Need to analyze violations to know which lines need blank lines
+            var currentText = string.Join(Environment.NewLine, lines);
+            var blankLineViolations = MarkdownLintAnalyzer.Instance
+                .Analyze(currentText, filePath)
+                .Where(v => v.Rule.Id == "MD022" || v.Rule.Id == "MD031" ||
+                           v.Rule.Id == "MD032" || v.Rule.Id == "MD058")
+                .OrderByDescending(v => v.LineNumber)
+                .ToList();
+
+            foreach (LintViolation violation in blankLineViolations)
+            {
+                if (violation.LineNumber < 0 || violation.LineNumber >= lines.Count)
+                    continue;
+
+                if (violation.Message.Contains("preceded") || violation.Message.Contains("before"))
+                {
+                    lines.Insert(violation.LineNumber, string.Empty);
+                }
+                else
+                {
+                    lines.Insert(violation.LineNumber + 1, string.Empty);
+                }
+                modified = true;
+            }
+
             if (modified)
             {
                 var newText = string.Join(Environment.NewLine, lines);
-                
-                using (ITextEdit edit = _snapshot.TextBuffer.CreateEdit())
+
+                using (ITextEdit edit = snapshot.TextBuffer.CreateEdit())
                 {
-                    edit.Replace(new Span(0, _snapshot.Length), newText);
+                    edit.Replace(new Span(0, snapshot.Length), newText);
                     edit.Apply();
                 }
             }
