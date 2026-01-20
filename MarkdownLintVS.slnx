@@ -4,6 +4,7 @@
     <Platform Name="arm64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="test/MarkdownLintVS.Test.csproj" Id="2124e74c-0934-48cd-8bd7-128cd66e4db5" />
   <Project Path="src/MarkdownLintVS.csproj" Id="a7efa780-6359-49ff-a189-4eb917d22f36">
     <Platform Solution="*|arm64" Project="arm64" />
     <Platform Solution="*|x86" Project="x86" />
