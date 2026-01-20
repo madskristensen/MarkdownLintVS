@@ -1,8 +1,8 @@
-using Markdig.Syntax;
-using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 
 namespace MarkdownLintVS.Linting.Rules
 {
@@ -43,16 +43,16 @@ namespace MarkdownLintVS.Linting.Rules
 
             foreach (HtmlInline htmlInline in analysis.GetHtmlInlines())
             {
-                (int Line, int Column) pos = analysis.GetPositionFromOffset(htmlInline.Span.Start);
-                var line = analysis.GetLine(pos.Line);
+                (var Line, var Column) = analysis.GetPositionFromOffset(htmlInline.Span.Start);
+                var line = analysis.GetLine(Line);
                 var element = ExtractElementName(htmlInline.Tag);
 
                 if (string.IsNullOrEmpty(element) || !allowedElements.Contains(element.ToLowerInvariant()))
                 {
                     yield return CreateViolation(
-                        pos.Line,
-                        pos.Column,
-                        pos.Column + htmlInline.Tag.Length,
+                        Line,
+                        Column,
+                        Column + htmlInline.Tag.Length,
                         $"Inline HTML: {element ?? "html"}",
                         severity,
                         "Use Markdown syntax instead");
@@ -78,7 +78,7 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD034");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex BareUrlPattern = new(
+        private static readonly Regex _bareUrlPattern = new(
             @"(?<![(<])(https?://[^\s\)>\]]+)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -93,7 +93,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 var line = analysis.GetLine(i);
-                MatchCollection matches = BareUrlPattern.Matches(line);
+                MatchCollection matches = _bareUrlPattern.Matches(line);
 
                 foreach (Match match in matches)
                 {
@@ -182,6 +182,14 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD036");
         public override RuleInfo Info => _info;
 
+        private static readonly Regex _boldPattern = new(
+            @"^(\*\*|__)(.+)\1$",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _italicPattern = new(
+            @"^(\*|_)([^*_]+)\1$",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -221,12 +229,12 @@ namespace MarkdownLintVS.Linting.Rules
             }
         }
 
-        private bool IsEntireLineEmphasis(string line, out string content)
+        private static bool IsEntireLineEmphasis(string line, out string content)
         {
             content = null;
 
             // Bold: **text** or __text__
-            Match boldMatch = Regex.Match(line, @"^(\*\*|__)(.+)\1$");
+            Match boldMatch = _boldPattern.Match(line);
             if (boldMatch.Success)
             {
                 content = boldMatch.Groups[2].Value;
@@ -234,7 +242,7 @@ namespace MarkdownLintVS.Linting.Rules
             }
 
             // Italic: *text* or _text_
-            Match italicMatch = Regex.Match(line, @"^(\*|_)([^*_]+)\1$");
+            Match italicMatch = _italicPattern.Match(line);
             if (italicMatch.Success)
             {
                 content = italicMatch.Groups[2].Value;
@@ -253,10 +261,6 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD037");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex SpaceInEmphasisPattern = new(
-            @"(\*+|_+)\s+[^*_]+\s+\1|(\*+|_+)\s+[^*_]+\1|\1[^*_]+\s+(\*+|_+)",
-            RegexOptions.Compiled);
-
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -264,36 +268,36 @@ namespace MarkdownLintVS.Linting.Rules
         {
             foreach (EmphasisInline emphasis in analysis.GetEmphasis())
             {
-                (int Line, int Column) pos = analysis.GetPositionFromOffset(emphasis.Span.Start);
-                var line = analysis.GetLine(pos.Line);
-                
+                (var Line, var Column) = analysis.GetPositionFromOffset(emphasis.Span.Start);
+                var line = analysis.GetLine(Line);
+
                 // Get the actual text of the emphasis
                 var start = emphasis.Span.Start;
                 var end = emphasis.Span.End;
                 if (start >= 0 && end < analysis.Text.Length)
                 {
                     var text = analysis.Text.Substring(start, end - start + 1);
-                    
+
                     // Check for spaces after opening marker
                     var delimLength = emphasis.DelimiterCount;
                     if (text.Length > delimLength && text[delimLength] == ' ')
                     {
                         yield return CreateViolation(
-                            pos.Line,
-                            pos.Column,
-                            pos.Column + text.Length,
+                            Line,
+                            Column,
+                            Column + text.Length,
                             "Spaces inside emphasis markers",
                             severity,
                             "Remove space after opening marker");
                     }
-                    
+
                     // Check for spaces before closing marker
                     if (text.Length > delimLength && text[text.Length - delimLength - 1] == ' ')
                     {
                         yield return CreateViolation(
-                            pos.Line,
-                            pos.Column,
-                            pos.Column + text.Length,
+                            Line,
+                            Column,
+                            Column + text.Length,
                             "Spaces inside emphasis markers",
                             severity,
                             "Remove space before closing marker");
@@ -319,11 +323,11 @@ namespace MarkdownLintVS.Linting.Rules
             foreach (CodeInline codeSpan in analysis.GetCodeSpans())
             {
                 var content = codeSpan.Content;
-                
+
                 // Single space inside is allowed for escaping backticks
                 if (content == " ")
                     continue;
-                
+
                 var hasLeadingSpace = content.StartsWith(" ");
                 var hasTrailingSpace = content.EndsWith(" ");
 
@@ -333,11 +337,11 @@ namespace MarkdownLintVS.Linting.Rules
                     if (content.Contains("`"))
                         continue;
 
-                    (int Line, int Column) pos = analysis.GetPositionFromOffset(codeSpan.Span.Start);
+                    (var Line, var Column) = analysis.GetPositionFromOffset(codeSpan.Span.Start);
                     yield return CreateViolation(
-                        pos.Line,
-                        pos.Column,
-                        pos.Column + codeSpan.Span.Length,
+                        Line,
+                        Column,
+                        Column + codeSpan.Span.Length,
                         "Spaces inside code span elements",
                         severity,
                         "Remove spaces inside backticks");
@@ -366,14 +370,14 @@ namespace MarkdownLintVS.Linting.Rules
 
                 // Get link text
                 var linkText = GetLinkText(link);
-                
+
                 if (linkText.StartsWith(" ") || linkText.EndsWith(" "))
                 {
-                    (int Line, int Column) pos = analysis.GetPositionFromOffset(link.Span.Start);
+                    (var Line, var Column) = analysis.GetPositionFromOffset(link.Span.Start);
                     yield return CreateViolation(
-                        pos.Line,
-                        pos.Column,
-                        pos.Column + link.Span.Length,
+                        Line,
+                        Column,
+                        Column + link.Span.Length,
                         "Spaces inside link text",
                         severity,
                         "Remove spaces inside brackets");

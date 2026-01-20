@@ -148,11 +148,11 @@ namespace MarkdownLintVS.Linting.Rules
 
                 if (hasEmptyUrl)
                 {
-                    (int Line, int Column) pos = analysis.GetPositionFromOffset(link.Span.Start);
+                    (var Line, var Column) = analysis.GetPositionFromOffset(link.Span.Start);
                     yield return CreateViolation(
-                        pos.Line,
-                        pos.Column,
-                        pos.Column + link.Span.Length,
+                        Line,
+                        Column,
+                        Column + link.Span.Length,
                         "No empty links",
                         severity,
                         "Add link destination");
@@ -180,11 +180,11 @@ namespace MarkdownLintVS.Linting.Rules
 
                 if (string.IsNullOrWhiteSpace(altText))
                 {
-                    (int Line, int Column) pos = analysis.GetPositionFromOffset(link.Span.Start);
+                    (var Line, var Column) = analysis.GetPositionFromOffset(link.Span.Start);
                     yield return CreateViolation(
-                        pos.Line,
-                        pos.Column,
-                        pos.Column + link.Span.Length,
+                        Line,
+                        Column,
+                        Column + link.Span.Length,
                         "Images should have alternate text (alt text)",
                         severity,
                         "Add alt text to image");

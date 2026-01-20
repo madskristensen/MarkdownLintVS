@@ -1,8 +1,7 @@
-using Markdig.Syntax;
-using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Markdig.Syntax;
 
 namespace MarkdownLintVS.Linting.Rules
 {
@@ -14,7 +13,7 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD027");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex MultipleSpaceBlockquotePattern = new(
+        private static readonly Regex _multipleSpaceBlockquotePattern = new(
             @"^(\s*>)+\s{2,}",
             RegexOptions.Compiled);
 
@@ -29,7 +28,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 var line = analysis.GetLine(i);
-                if (MultipleSpaceBlockquotePattern.IsMatch(line))
+                if (_multipleSpaceBlockquotePattern.IsMatch(line))
                 {
                     yield return CreateLineViolation(
                         i,
@@ -97,7 +96,7 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD029");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex OrderedListPattern = new(
+        private static readonly Regex _orderedListPattern = new(
             @"^\s*(\d+)\.\s",
             RegexOptions.Compiled);
 
@@ -121,7 +120,7 @@ namespace MarkdownLintVS.Linting.Rules
                     if (item is ListItemBlock listItem)
                     {
                         var line = analysis.GetLine(listItem.Line);
-                        Match match = OrderedListPattern.Match(line);
+                        Match match = _orderedListPattern.Match(line);
                         if (match.Success)
                         {
                             var number = int.Parse(match.Groups[1].Value);
@@ -182,6 +181,10 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD030");
         public override RuleInfo Info => _info;
 
+        private static readonly Regex _orderedListMarkerPattern = new(
+            @"^\d+\.",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -195,8 +198,8 @@ namespace MarkdownLintVS.Linting.Rules
             foreach (ListBlock list in analysis.GetLists())
             {
                 var isOrdered = list.IsOrdered;
-                var isMulti = HasMultiParagraphItems(list, analysis);
-                var expectedSpaces = isOrdered 
+                var isMulti = HasMultiParagraphItems(list);
+                var expectedSpaces = isOrdered
                     ? (isMulti ? olMulti : olSingle)
                     : (isMulti ? ulMulti : ulSingle);
 
@@ -220,7 +223,7 @@ namespace MarkdownLintVS.Linting.Rules
             }
         }
 
-        private bool HasMultiParagraphItems(ListBlock list, MarkdownDocumentAnalysis analysis)
+        private static bool HasMultiParagraphItems(ListBlock list)
         {
             foreach (Block item in list)
             {
@@ -239,14 +242,14 @@ namespace MarkdownLintVS.Linting.Rules
             return false;
         }
 
-        private int CountSpacesAfterMarker(string line, bool isOrdered)
+        private static int CountSpacesAfterMarker(string line, bool isOrdered)
         {
             var trimmed = line.TrimStart();
             int markerEnd;
 
             if (isOrdered)
             {
-                Match match = Regex.Match(trimmed, @"^\d+\.");
+                Match match = _orderedListMarkerPattern.Match(trimmed);
                 if (!match.Success) return 1;
                 markerEnd = match.Length;
             }

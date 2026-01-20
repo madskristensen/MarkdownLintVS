@@ -15,6 +15,12 @@ namespace MarkdownLintVS.Linting
         private readonly MarkdownDocument _document;
         private readonly MarkdownPipeline _pipeline;
 
+        // Precomputed caches for O(1) lookups
+        private readonly int[] _lineStartOffsets;
+        private readonly HashSet<int> _codeBlockLines;
+        private readonly HashSet<int> _htmlBlockLines;
+        private readonly int _frontMatterEndLine;
+
         public string Text => _text;
         public string[] Lines => _lines;
         public MarkdownDocument Document => _document;
@@ -23,7 +29,7 @@ namespace MarkdownLintVS.Linting
         public MarkdownDocumentAnalysis(string text)
         {
             _text = text ?? string.Empty;
-            _lines = SplitLines(_text);
+            (_lines, _lineStartOffsets) = SplitLinesWithOffsets(_text);
 
             _pipeline = new MarkdownPipelineBuilder()
                 .UseAdvancedExtensions()
@@ -31,15 +37,23 @@ namespace MarkdownLintVS.Linting
                 .Build();
 
             _document = Markdown.Parse(_text, _pipeline);
+
+            // Precompute expensive lookups once
+            _codeBlockLines = BuildCodeBlockLinesCache();
+            _htmlBlockLines = BuildHtmlBlockLinesCache();
+            _frontMatterEndLine = ComputeFrontMatterEndLine();
         }
 
-        private static string[] SplitLines(string text)
+        private static (string[] Lines, int[] LineStartOffsets) SplitLinesWithOffsets(string text)
         {
             if (string.IsNullOrEmpty(text))
-                return [string.Empty];
+                return ([string.Empty], [0]);
 
             var lines = new List<string>();
+            var offsets = new List<int>();
             var start = 0;
+
+            offsets.Add(0); // First line starts at offset 0
 
             for (var i = 0; i < text.Length; i++)
             {
@@ -50,6 +64,8 @@ namespace MarkdownLintVS.Linting
                         end--;
                     lines.Add(text.Substring(start, end - start));
                     start = i + 1;
+                    if (start <= text.Length)
+                        offsets.Add(start);
                 }
             }
 
@@ -62,7 +78,74 @@ namespace MarkdownLintVS.Linting
                 lines.Add(text.Substring(start, end - start));
             }
 
-            return [.. lines];
+            return ([.. lines], [.. offsets]);
+        }
+
+        private HashSet<int> BuildCodeBlockLinesCache()
+        {
+            var codeLines = new HashSet<int>();
+            foreach (CodeBlock codeBlock in _document.Descendants<CodeBlock>())
+            {
+                var startLine = codeBlock.Line;
+                var endLine = GetLineFromOffset(codeBlock.Span.End);
+                for (var line = startLine; line <= endLine; line++)
+                {
+                    codeLines.Add(line);
+                }
+            }
+            return codeLines;
+        }
+
+        private HashSet<int> BuildHtmlBlockLinesCache()
+        {
+            var htmlLines = new HashSet<int>();
+            foreach (HtmlBlock htmlBlock in _document.Descendants<HtmlBlock>())
+            {
+                var startLine = htmlBlock.Line;
+                var endLine = GetLineFromOffset(htmlBlock.Span.End);
+                for (var line = startLine; line <= endLine; line++)
+                {
+                    htmlLines.Add(line);
+                }
+            }
+            return htmlLines;
+        }
+
+        private int ComputeFrontMatterEndLine()
+        {
+            // Check for YAML front matter (starts with --- on line 0)
+            if (_lines.Length > 0 && _lines[0].Trim() == "---")
+            {
+                for (var i = 1; i < _lines.Length; i++)
+                {
+                    if (_lines[i].Trim() == "---" || _lines[i].Trim() == "...")
+                    {
+                        return i;
+                    }
+                }
+            }
+            return -1; // No front matter
+        }
+
+        private int GetLineFromOffset(int offset)
+        {
+            if (offset < 0 || _lineStartOffsets.Length == 0)
+                return 0;
+
+            // Binary search for the line containing this offset
+            var lo = 0;
+            var hi = _lineStartOffsets.Length - 1;
+
+            while (lo < hi)
+            {
+                var mid = lo + (hi - lo + 1) / 2;
+                if (_lineStartOffsets[mid] <= offset)
+                    lo = mid;
+                else
+                    hi = mid - 1;
+            }
+
+            return lo;
         }
 
         public string GetLine(int lineNumber)
@@ -144,38 +227,17 @@ namespace MarkdownLintVS.Linting
 
         public bool IsLineInCodeBlock(int lineNumber)
         {
-            foreach (CodeBlock codeBlock in _document.Descendants<CodeBlock>())
-            {
-                if (lineNumber >= codeBlock.Line && lineNumber <= GetBlockEndLine(codeBlock))
-                    return true;
-            }
-            return false;
+            return _codeBlockLines.Contains(lineNumber);
         }
 
         public bool IsLineInHtmlBlock(int lineNumber)
         {
-            foreach (HtmlBlock htmlBlock in _document.Descendants<HtmlBlock>())
-            {
-                if (lineNumber >= htmlBlock.Line && lineNumber <= GetBlockEndLine(htmlBlock))
-                    return true;
-            }
-            return false;
+            return _htmlBlockLines.Contains(lineNumber);
         }
 
         public bool IsLineInFrontMatter(int lineNumber)
         {
-            // Check for YAML front matter (starts with --- on line 0)
-            if (_lines.Length > 0 && _lines[0].Trim() == "---")
-            {
-                for (var i = 1; i < _lines.Length; i++)
-                {
-                    if (_lines[i].Trim() == "---" || _lines[i].Trim() == "...")
-                    {
-                        return lineNumber >= 0 && lineNumber <= i;
-                    }
-                }
-            }
-            return false;
+            return _frontMatterEndLine >= 0 && lineNumber >= 0 && lineNumber <= _frontMatterEndLine;
         }
 
         public int GetBlockEndLine(Block block)
@@ -183,51 +245,26 @@ namespace MarkdownLintVS.Linting
             if (block.Span.End < 0)
                 return block.Line;
 
-            var pos = 0;
-            var line = 0;
-            while (pos < _text.Length && pos < block.Span.End)
-            {
-                if (_text[pos] == '\n')
-                    line++;
-                pos++;
-            }
-            return line;
+            return GetLineFromOffset(block.Span.End);
         }
 
         public (int Line, int Column) GetPositionFromOffset(int offset)
         {
-            var line = 0;
-            var column = 0;
+            if (offset < 0 || _lineStartOffsets.Length == 0)
+                return (0, 0);
 
-            for (var i = 0; i < Math.Min(offset, _text.Length); i++)
-            {
-                if (_text[i] == '\n')
-                {
-                    line++;
-                    column = 0;
-                }
-                else
-                {
-                    column++;
-                }
-            }
+            var line = GetLineFromOffset(offset);
+            var column = offset - _lineStartOffsets[line];
 
             return (line, column);
         }
 
         public int GetOffsetFromPosition(int line, int column)
         {
-            var offset = 0;
-            var currentLine = 0;
+            if (line < 0 || line >= _lineStartOffsets.Length)
+                return 0;
 
-            while (currentLine < line && offset < _text.Length)
-            {
-                if (_text[offset] == '\n')
-                    currentLine++;
-                offset++;
-            }
-
-            return offset + column;
+            return _lineStartOffsets[line] + column;
         }
 
         public bool IsBlankLine(int lineNumber)

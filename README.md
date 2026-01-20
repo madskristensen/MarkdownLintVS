@@ -1,8 +1,8 @@
 # Markdown Lint for Visual Studio
 
 [![Build](https://github.com/madskristensen/MarkdownLintVS/actions/workflows/build.yaml/badge.svg)](https://github.com/madskristensen/MarkdownLintVS/actions/workflows/build.yaml)
-[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/MadsKristensen.MarkdownLintVS?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLintVS)
-[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/MadsKristensen.MarkdownLintVS)](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLintVS)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/MadsKristensen.MarkdownLintS?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLint)
+[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/MadsKristensen.MarkdownLint)](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLint)
 
 A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD058).
 
@@ -22,7 +22,7 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 3. Search for "**Markdown Lint**"
 4. Click **Download** and restart Visual Studio
 
-Or download directly from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLintVS).
+Or download directly from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLint).
 
 ## Getting Started
 

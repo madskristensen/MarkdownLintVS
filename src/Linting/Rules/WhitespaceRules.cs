@@ -116,7 +116,7 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD011");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex ReversedLinkPattern = new(
+        private static readonly Regex _reversedLinkPattern = new(
             @"\([^)]+\)\[[^\]]+\]",
             RegexOptions.Compiled);
 
@@ -131,7 +131,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 var line = analysis.GetLine(i);
-                MatchCollection matches = ReversedLinkPattern.Matches(line);
+                MatchCollection matches = _reversedLinkPattern.Matches(line);
 
                 foreach (Match match in matches)
                 {
@@ -200,6 +200,10 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD013");
         public override RuleInfo Info => _info;
 
+        private static readonly Regex _urlPattern = new(
+            @"https?://[^\s\)]+",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -254,15 +258,14 @@ namespace MarkdownLintVS.Linting.Rules
             }
         }
 
-        private int GetEffectiveLength(string line, bool strict)
+        private static int GetEffectiveLength(string line, bool strict)
         {
             if (strict)
                 return line.Length;
 
             // In non-strict mode, don't count URLs
             var length = line.Length;
-            var urlPattern = new Regex(@"https?://[^\s\)]+");
-            foreach (Match match in urlPattern.Matches(line))
+            foreach (Match match in _urlPattern.Matches(line))
             {
                 length -= match.Length;
             }
@@ -278,7 +281,7 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD014");
         public override RuleInfo Info => _info;
 
-        private static readonly Regex DollarCommandPattern = new(
+        private static readonly Regex _dollarCommandPattern = new(
             @"^\s*\$\s+",
             RegexOptions.Compiled);
 
@@ -297,7 +300,7 @@ namespace MarkdownLintVS.Linting.Rules
                 for (var i = startLine + 1; i < endLine; i++)
                 {
                     var line = analysis.GetLine(i);
-                    if (DollarCommandPattern.IsMatch(line))
+                    if (_dollarCommandPattern.IsMatch(line))
                     {
                         dollarLines.Add(i);
                     }
