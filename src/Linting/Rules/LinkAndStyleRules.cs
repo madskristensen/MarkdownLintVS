@@ -252,8 +252,16 @@ namespace MarkdownLintVS.Linting.Rules
                     {
                         var label = match.Groups[1].Value;
 
-                        // Skip if it's part of a full reference
+                        // Skip if it's part of a full reference [text][label] - check if followed by [
                         if (line.Length > match.Index + match.Length && line[match.Index + match.Length] == '[')
+                            continue;
+
+                        // Skip if it's the label part of a full reference [text][label] - check if preceded by ]
+                        if (match.Index > 0 && line[match.Index - 1] == ']')
+                            continue;
+
+                        // Skip task list checkboxes: [ ], [x], [X]
+                        if (label == " " || label.Equals("x", StringComparison.OrdinalIgnoreCase))
                             continue;
 
                         if (!definedLabels.Contains(label.ToLowerInvariant()))

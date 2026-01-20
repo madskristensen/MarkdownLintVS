@@ -36,7 +36,17 @@ namespace MarkdownLintVS.CodeFixes.Actions
             return Task.FromResult<object>(previewText);
         }
 
-        public abstract void Invoke(CancellationToken cancellationToken);
+        public void Invoke(CancellationToken cancellationToken)
+        {
+            using ITextEdit edit = Snapshot.TextBuffer.CreateEdit();
+            ApplyFix(edit);
+            edit.Apply();
+        }
+
+        /// <summary>
+        /// Applies the fix to the given edit. Used by both Invoke and FixAll operations.
+        /// </summary>
+        public abstract void ApplyFix(ITextEdit edit);
 
         protected abstract string GetFixedText();
 
@@ -46,8 +56,6 @@ namespace MarkdownLintVS.CodeFixes.Actions
             return false;
         }
 
-        public void Dispose()
-        {
-        }
+        void IDisposable.Dispose() { }
     }
 }

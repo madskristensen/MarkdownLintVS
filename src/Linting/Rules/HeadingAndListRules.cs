@@ -244,16 +244,16 @@ namespace MarkdownLintVS.Linting.Rules
 
             foreach (ListBlock list in analysis.GetLists())
             {
+                // Only analyze top-level lists (nested lists are handled recursively)
+                if (list.Parent is ListItemBlock)
+                    continue;
+
                 levelIndents.Clear();
-                AnalyzeList(list, analysis, severity, levelIndents, 0);
+                foreach (var violation in AnalyzeList(list, analysis, severity, levelIndents, 0))
+                {
+                    yield return violation;
+                }
             }
-
-            foreach (KeyValuePair<int, int> entry in levelIndents)
-            {
-                // This is handled within AnalyzeList for real violations
-            }
-
-            yield break;
         }
 
         private IEnumerable<LintViolation> AnalyzeList(ListBlock list, MarkdownDocumentAnalysis analysis,

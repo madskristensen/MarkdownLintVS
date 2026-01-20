@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -11,29 +10,15 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Remove spaces inside emphasis";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
-            var text = Snapshot.GetText(Span);
-            var fixedText = RemoveSpacesInEmphasis(text);
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(Span, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(Span, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
-            return RemoveSpacesInEmphasis(Snapshot.GetText(Span));
-        }
-
-        private static string RemoveSpacesInEmphasis(string text)
-        {
-            // Handle *text* or _text_ with spaces
-            // Remove space after opening marker
+            var text = Snapshot.GetText(Span);
             text = Regex.Replace(text, @"(\*+|_+)\s+", "$1");
-            // Remove space before closing marker
             text = Regex.Replace(text, @"\s+(\*+|_+)$", "$1");
             return text;
         }

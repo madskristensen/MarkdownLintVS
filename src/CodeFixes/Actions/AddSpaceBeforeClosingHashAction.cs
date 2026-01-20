@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -11,29 +10,17 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add space before closing #";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var text = line.GetText();
-            var fixedText = AddSpaceBeforeClosingHash(text);
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return AddSpaceBeforeClosingHash(line.GetText());
-        }
+            var text = line.GetText();
 
-        private static string AddSpaceBeforeClosingHash(string text)
-        {
-            // Find closing hashes and add space before them
-            // Pattern: content followed by # at end (without space)
             Match match = Regex.Match(text, @"^(#{1,6}\s+.+?)(\s*)(#{1,6})\s*$");
             if (match.Success)
             {

@@ -193,4 +193,27 @@ public sealed class MarkdownDocumentAnalysisTests
 
         Assert.HasCount(2, breaks);
     }
+
+    [TestMethod]
+    public void WhenDocumentHasLinkReferenceDefinitionsThenGetLinkReferenceDefinitionsReturnsAll()
+    {
+        var markdown = "[link][label]\n\n[label]: https://example.com\n[other]: https://other.com";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var definitions = analysis.GetLinkReferenceDefinitions().ToList();
+
+        Assert.HasCount(2, definitions);
+    }
+
+    [TestMethod]
+    public void WhenDocumentHasSingleLinkReferenceDefinitionThenGetLinkReferenceDefinitionsReturnsIt()
+    {
+        var markdown = "[label]: https://example.com";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var definitions = analysis.GetLinkReferenceDefinitions().ToList();
+
+        Assert.HasCount(1, definitions);
+        Assert.AreEqual("label", definitions[0].Label);
+    }
 }

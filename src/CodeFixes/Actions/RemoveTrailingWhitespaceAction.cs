@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,17 +9,10 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Remove trailing whitespace";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var lineText = line.GetText();
-            var trimmedText = lineText.TrimEnd();
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, trimmedText);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()

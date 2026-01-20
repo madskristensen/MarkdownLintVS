@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -11,32 +10,16 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Fix reversed link syntax";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
-            var text = Snapshot.GetText(Span);
-            var fixedText = FixReversedLink(text);
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(Span, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(Span, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
-            return FixReversedLink(Snapshot.GetText(Span));
-        }
-
-        private static string FixReversedLink(string text)
-        {
-            // Convert (url)[text] to [text](url)
+            var text = Snapshot.GetText(Span);
             Match match = Regex.Match(text, @"\(([^)]+)\)\[([^\]]+)\]");
-            if (match.Success)
-            {
-                return $"[{match.Groups[2].Value}]({match.Groups[1].Value})";
-            }
-            return text;
+            return match.Success ? $"[{match.Groups[2].Value}]({match.Groups[1].Value})" : text;
         }
     }
 }

@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,32 +9,17 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add '>' prefix to blank line";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var fixedText = AddBlockquotePrefix(line.GetText());
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return AddBlockquotePrefix(line.GetText());
-        }
-
-        private static string AddBlockquotePrefix(string text)
-        {
-            // If line is blank or only whitespace, add blockquote prefix
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return ">";
-            }
-            return text;
+            var text = line.GetText();
+            return string.IsNullOrWhiteSpace(text) ? ">" : text;
         }
     }
 }

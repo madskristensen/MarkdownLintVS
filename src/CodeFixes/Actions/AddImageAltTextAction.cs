@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,24 +9,14 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add alt text placeholder";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
-            var text = Snapshot.GetText(Span);
-
-            // Find the empty brackets and add placeholder
-            var fixedText = text.Replace("![](", "![image](");
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(Span, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(Span, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
-            var text = Snapshot.GetText(Span);
-            return text.Replace("![](", "![image](");
+            return Snapshot.GetText(Span).Replace("![](", "![image](");
         }
     }
 }

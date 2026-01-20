@@ -1,5 +1,6 @@
 using System.ComponentModel.Composition;
 using System.Linq;
+using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
@@ -8,6 +9,7 @@ namespace MarkdownLintVS.ErrorList
 {
     /// <summary>
     /// Listens for document changes and updates the error list.
+    /// Uses shared MarkdownAnalysisCache to avoid duplicate parsing.
     /// </summary>
     [Export(typeof(ITextViewCreationListener))]
     [ContentType("markdown")]
@@ -17,10 +19,13 @@ namespace MarkdownLintVS.ErrorList
         [Import]
         internal MarkdownLintTableDataSource TableDataSource { get; set; }
 
+        [Import]
+        internal MarkdownAnalysisCache AnalysisCache { get; set; }
+
         public void TextViewCreated(ITextView textView)
         {
             var filePath = GetFilePath(textView);
-            var handler = new DocumentHandler(textView, TableDataSource, filePath);
+            var handler = new DocumentHandler(textView, TableDataSource, AnalysisCache, filePath);
             textView.Closed += (s, e) => handler.Dispose();
         }
 
@@ -36,19 +41,26 @@ namespace MarkdownLintVS.ErrorList
 
     /// <summary>
     /// Handles document events for a specific text view.
+    /// Listens to shared analysis cache for results.
     /// </summary>
     internal class DocumentHandler : IDisposable
     {
         private readonly ITextView _textView;
         private readonly MarkdownLintTableDataSource _tableDataSource;
+        private readonly MarkdownAnalysisCache _analysisCache;
         private readonly string _filePath;
         private readonly System.Timers.Timer _debounceTimer;
         private bool _disposed;
 
-        public DocumentHandler(ITextView textView, MarkdownLintTableDataSource tableDataSource, string filePath)
+        public DocumentHandler(
+            ITextView textView,
+            MarkdownLintTableDataSource tableDataSource,
+            MarkdownAnalysisCache analysisCache,
+            string filePath)
         {
             _textView = textView;
             _tableDataSource = tableDataSource;
+            _analysisCache = analysisCache;
             _filePath = filePath;
 
             _debounceTimer = new System.Timers.Timer(500)
@@ -58,9 +70,10 @@ namespace MarkdownLintVS.ErrorList
             _debounceTimer.Elapsed += OnDebounceTimerElapsed;
 
             _textView.TextBuffer.Changed += OnTextBufferChanged;
+            _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
 
-            // Initial analysis
-            AnalyzeDocument();
+            // Initial analysis - request from cache
+            RequestAnalysis();
         }
 
         private void OnTextBufferChanged(object sender, TextContentChangedEventArgs e)
@@ -72,25 +85,25 @@ namespace MarkdownLintVS.ErrorList
 
         private void OnDebounceTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            AnalyzeDocument();
+            RequestAnalysis();
         }
 
-        private void AnalyzeDocument()
+        private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
+        {
+            if (e.Buffer != _textView.TextBuffer)
+                return;
+
+            // Update error list with new results
+            _tableDataSource?.UpdateErrors(_filePath, e.Violations);
+        }
+
+        private void RequestAnalysis()
         {
             if (_disposed)
                 return;
 
-            try
-            {
-                var text = _textView.TextBuffer.CurrentSnapshot.GetText();
-                var violations = Linting.MarkdownLintAnalyzer.Instance.Analyze(text, _filePath).ToList();
-
-                _tableDataSource?.UpdateErrors(_filePath, violations);
-            }
-            catch (Exception ex)
-            {
-                ex.Log("Error List analysis failed");
-            }
+            // The cache will analyze and notify via AnalysisUpdated event
+            _analysisCache.InvalidateAndAnalyze(_textView.TextBuffer, _filePath);
         }
 
         public void Dispose()
@@ -101,6 +114,7 @@ namespace MarkdownLintVS.ErrorList
                 _debounceTimer.Stop();
                 _debounceTimer.Dispose();
                 _textView.TextBuffer.Changed -= OnTextBufferChanged;
+                _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
                 _tableDataSource?.ClearErrors(_filePath);
             }
         }

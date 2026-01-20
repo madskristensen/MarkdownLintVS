@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,7 +9,13 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add language identifier";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
+        {
+            ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
+            edit.Replace(line.Start, line.Length, GetFixedText());
+        }
+
+        protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText();
@@ -22,20 +27,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
             for (var i = 0; i < fence.Length && fence[i] == fenceChar; i++)
                 fenceLength++;
 
-            var newText = new string(' ', indent) + new string(fenceChar, fenceLength) + "text";
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, newText);
-                edit.Apply();
-            }
-        }
-
-        protected override string GetFixedText()
-        {
-            ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var text = line.GetText();
-            return text.TrimEnd() + "text";
+            return new string(' ', indent) + new string(fenceChar, fenceLength) + "text";
         }
     }
 }

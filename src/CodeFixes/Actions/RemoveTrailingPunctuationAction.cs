@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -12,27 +11,16 @@ namespace MarkdownLintVS.CodeFixes.Actions
 
         public override string DisplayText => "Remove trailing punctuation";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var text = RemovePunctuation(line.GetText());
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, text);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return RemovePunctuation(line.GetText());
-        }
-
-        private static string RemovePunctuation(string text)
-        {
-            text = text.TrimEnd();
+            var text = line.GetText().TrimEnd();
             while (text.Length > 0 && PunctuationChars.Contains(text[text.Length - 1].ToString()))
             {
                 text = text.Substring(0, text.Length - 1).TrimEnd();

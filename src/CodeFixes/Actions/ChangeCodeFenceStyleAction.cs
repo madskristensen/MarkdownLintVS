@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -19,29 +18,19 @@ namespace MarkdownLintVS.CodeFixes.Actions
 
         public override string DisplayText => $"Change code fence to {targetStyle}";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var fixedText = ChangeFenceStyle(line.GetText());
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return ChangeFenceStyle(line.GetText());
-        }
+            var text = line.GetText();
 
-        private string ChangeFenceStyle(string text)
-        {
             if (targetStyle == "backtick")
             {
-                // Change ~~~ to ```
                 return _tildeFencePattern.Replace(text, m =>
                 {
                     var indent = m.Groups[1].Value;
@@ -51,7 +40,6 @@ namespace MarkdownLintVS.CodeFixes.Actions
             }
             else
             {
-                // Change ``` to ~~~
                 return _backtickFencePattern.Replace(text, m =>
                 {
                     var indent = m.Groups[1].Value;

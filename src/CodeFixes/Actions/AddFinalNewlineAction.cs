@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -11,13 +10,9 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add newline at end of file";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Insert(Snapshot.Length, Environment.NewLine);
-                edit.Apply();
-            }
+            edit.Insert(Snapshot.Length, Environment.NewLine);
         }
 
         protected override string GetFixedText()

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
+using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Tagging;
@@ -16,6 +17,9 @@ namespace MarkdownLintVS.Tagging
     [TagType(typeof(IErrorTag))]
     public class MarkdownLintTaggerProvider : ITaggerProvider
     {
+        [Import]
+        internal MarkdownAnalysisCache AnalysisCache { get; set; }
+
         public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag
         {
             if (buffer == null)
@@ -23,16 +27,19 @@ namespace MarkdownLintVS.Tagging
 
             return buffer.Properties.GetOrCreateSingletonProperty(
                 typeof(MarkdownLintTagger),
-                () => new MarkdownLintTagger(buffer)) as ITagger<T>;
+                () => new MarkdownLintTagger(buffer, AnalysisCache)) as ITagger<T>;
         }
     }
 
     /// <summary>
     /// Tagger that provides error tags for markdown lint violations.
+    /// Uses shared MarkdownAnalysisCache to avoid duplicate parsing.
     /// </summary>
     public class MarkdownLintTagger : ITagger<IErrorTag>, IDisposable
     {
         private readonly ITextBuffer _buffer;
+        private readonly MarkdownAnalysisCache _analysisCache;
+        private readonly string _filePath;
         private ITextSnapshot _currentSnapshot;
         private List<LintResult> _currentResults;
         private bool _isDisposed;
@@ -40,62 +47,57 @@ namespace MarkdownLintVS.Tagging
 
         public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
-        public MarkdownLintTagger(ITextBuffer buffer)
+        public MarkdownLintTagger(ITextBuffer buffer, MarkdownAnalysisCache analysisCache)
         {
             _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
+            _analysisCache = analysisCache ?? throw new ArgumentNullException(nameof(analysisCache));
             _currentSnapshot = buffer.CurrentSnapshot;
             _currentResults = [];
+            _filePath = GetFilePath();
 
             _buffer.Changed += OnBufferChanged;
             RuleOptions.Saved += OnOptionsSaved;
+            _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
 
             // Initial analysis
-            Analyze();
+            RequestAnalysis();
         }
 
         private void OnOptionsSaved(RuleOptions options)
         {
             // Revalidate when options change
-            Analyze();
+            RequestAnalysis();
         }
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
         {
-            // Debounce - only analyze after typing stops
             _currentSnapshot = e.After;
-            Analyze();
+            RequestAnalysis();
         }
 
-        private void Analyze()
+        private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
         {
-            ITextSnapshot snapshot = _currentSnapshot;
-            var text = snapshot.GetText();
-            var filePath = GetFilePath();
+            if (e.Buffer != _buffer)
+                return;
 
-            System.Threading.Tasks.Task.Run(() =>
+            ITextSnapshot snapshot = e.Snapshot;
+            var results = e.Violations.Select(v => new LintResult(v, snapshot)).ToList();
+
+            lock (_lock)
             {
-                try
+                if (snapshot.Version.VersionNumber >= _currentSnapshot.Version.VersionNumber)
                 {
-                    var violations = Linting.MarkdownLintAnalyzer.Instance.Analyze(text, filePath).ToList();
-                    var results = violations.Select(v => new LintResult(v, snapshot)).ToList();
+                    _currentResults = results;
 
-                    lock (_lock)
-                    {
-                        if (snapshot.Version.VersionNumber >= _currentSnapshot.Version.VersionNumber)
-                        {
-                            _currentResults = results;
+                    TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
+                        new SnapshotSpan(snapshot, 0, snapshot.Length)));
+                }
+            }
+        }
 
-                            // Raise tags changed on UI thread
-                            TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
-                                new SnapshotSpan(snapshot, 0, snapshot.Length)));
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ex.Log("Markdown lint analysis failed");
-                }
-            });
+        private void RequestAnalysis()
+        {
+            _analysisCache.InvalidateAndAnalyze(_buffer, _filePath);
         }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
@@ -149,6 +151,7 @@ namespace MarkdownLintVS.Tagging
             {
                 _buffer.Changed -= OnBufferChanged;
                 RuleOptions.Saved -= OnOptionsSaved;
+                _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
                 _isDisposed = true;
             }
         }

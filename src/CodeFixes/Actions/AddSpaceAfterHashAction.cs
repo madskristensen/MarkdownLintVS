@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,45 +9,30 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add space after #";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText();
-            var hashEnd = text.LastIndexOf('#') + 1;
-
-            // Find where hashes end
-            for (var i = 0; i < text.Length; i++)
-            {
-                if (text[i] != '#')
-                {
-                    hashEnd = i;
-                    break;
-                }
-            }
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Insert(line.Start + hashEnd, " ");
-                edit.Apply();
-            }
+            var hashEnd = FindHashEnd(text);
+            edit.Insert(line.Start + hashEnd, " ");
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             var text = line.GetText();
-            var hashEnd = 0;
+            var hashEnd = FindHashEnd(text);
+            return text.Substring(0, hashEnd) + " " + text.Substring(hashEnd);
+        }
 
+        private static int FindHashEnd(string text)
+        {
             for (var i = 0; i < text.Length; i++)
             {
                 if (text[i] != '#')
-                {
-                    hashEnd = i;
-                    break;
-                }
+                    return i;
             }
-
-            return text.Substring(0, hashEnd) + " " + text.Substring(hashEnd);
+            return text.Length;
         }
     }
 }

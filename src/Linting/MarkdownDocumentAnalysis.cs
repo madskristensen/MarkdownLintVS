@@ -222,7 +222,25 @@ namespace MarkdownLintVS.Linting
 
         public IEnumerable<LinkReferenceDefinition> GetLinkReferenceDefinitions()
         {
-            return _document.Descendants<LinkReferenceDefinition>();
+            // LinkReferenceDefinitions in Markdig are stored in LinkReferenceDefinitionGroup blocks
+            // which are children of the document
+            foreach (var block in _document)
+            {
+                // LinkReferenceDefinitionGroup contains individual LinkReferenceDefinition blocks
+                if (block is LinkReferenceDefinitionGroup group)
+                {
+                    foreach (var child in group)
+                    {
+                        if (child is LinkReferenceDefinition def)
+                            yield return def;
+                    }
+                }
+                // Individual LinkReferenceDefinition (rare but possible)
+                else if (block is LinkReferenceDefinition def)
+                {
+                    yield return def;
+                }
+            }
         }
 
         public bool IsLineInCodeBlock(int lineNumber)

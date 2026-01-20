@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -11,30 +10,17 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Use single space after list marker";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var text = line.GetText();
-            var fixedText = NormalizeListMarkerSpace(text);
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return NormalizeListMarkerSpace(line.GetText());
-        }
-
-        private static string NormalizeListMarkerSpace(string text)
-        {
-            // Normalize unordered list markers: -, *, +
+            var text = line.GetText();
             text = Regex.Replace(text, @"^(\s*)([-*+])(\s{2,})(\S)", "$1$2 $4");
-            // Normalize ordered list markers: 1., 2., etc.
             text = Regex.Replace(text, @"^(\s*)(\d+\.)(\s{2,})(\S)", "$1$2 $4");
             return text;
         }

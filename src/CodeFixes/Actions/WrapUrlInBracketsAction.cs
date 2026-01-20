@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,15 +9,9 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Wrap URL in angle brackets";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
-            var url = Snapshot.GetText(Span);
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(Span, $"<{url}>");
-                edit.Apply();
-            }
+            edit.Replace(Span, GetFixedText());
         }
 
         protected override string GetFixedText()

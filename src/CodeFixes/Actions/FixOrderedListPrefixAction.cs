@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -16,27 +15,16 @@ namespace MarkdownLintVS.CodeFixes.Actions
 
         public override string DisplayText => $"Change list prefix to '{expectedNumber}.'";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            var fixedText = FixPrefix(line.GetText());
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                edit.Replace(line.Start, line.Length, fixedText);
-                edit.Apply();
-            }
+            edit.Replace(line.Start, line.Length, GetFixedText());
         }
 
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return FixPrefix(line.GetText());
-        }
-
-        private string FixPrefix(string text)
-        {
-            return _orderedListPattern.Replace(text, $"$1{expectedNumber}$3 ");
+            return _orderedListPattern.Replace(line.GetText(), $"$1{expectedNumber}$3 ");
         }
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Text.RegularExpressions;
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -16,38 +15,31 @@ namespace MarkdownLintVS.CodeFixes.Actions
 
         public override string DisplayText => "Surround list with blank lines";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
             var startLineNumber = startLine.LineNumber;
-
-            // Find the end of the list
             var endLineNumber = FindListEndLine(startLineNumber);
 
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
+            // Check if we need a blank line after
+            if (endLineNumber < Snapshot.LineCount - 1)
             {
-                // Check if we need a blank line after
-                if (endLineNumber < Snapshot.LineCount - 1)
+                ITextSnapshotLine lineAfter = Snapshot.GetLineFromLineNumber(endLineNumber + 1);
+                if (!string.IsNullOrWhiteSpace(lineAfter.GetText()))
                 {
-                    ITextSnapshotLine lineAfter = Snapshot.GetLineFromLineNumber(endLineNumber + 1);
-                    if (!string.IsNullOrWhiteSpace(lineAfter.GetText()))
-                    {
-                        ITextSnapshotLine endLine = Snapshot.GetLineFromLineNumber(endLineNumber);
-                        edit.Insert(endLine.EndIncludingLineBreak, Environment.NewLine);
-                    }
+                    ITextSnapshotLine endLine = Snapshot.GetLineFromLineNumber(endLineNumber);
+                    edit.Insert(endLine.EndIncludingLineBreak, Environment.NewLine);
                 }
+            }
 
-                // Check if we need a blank line before
-                if (startLineNumber > 0)
+            // Check if we need a blank line before
+            if (startLineNumber > 0)
+            {
+                ITextSnapshotLine lineBefore = Snapshot.GetLineFromLineNumber(startLineNumber - 1);
+                if (!string.IsNullOrWhiteSpace(lineBefore.GetText()))
                 {
-                    ITextSnapshotLine lineBefore = Snapshot.GetLineFromLineNumber(startLineNumber - 1);
-                    if (!string.IsNullOrWhiteSpace(lineBefore.GetText()))
-                    {
-                        edit.Insert(startLine.Start, Environment.NewLine);
-                    }
+                    edit.Insert(startLine.Start, Environment.NewLine);
                 }
-
-                edit.Apply();
             }
         }
 

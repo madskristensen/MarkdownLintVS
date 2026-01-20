@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -10,16 +9,10 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Remove extra blank lines";
 
-        public override void Invoke(CancellationToken cancellationToken)
+        public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-
-            using (ITextEdit edit = Snapshot.TextBuffer.CreateEdit())
-            {
-                // Delete the entire blank line including line break
-                edit.Delete(line.Start, line.LengthIncludingLineBreak);
-                edit.Apply();
-            }
+            edit.Delete(line.Start, line.LengthIncludingLineBreak);
         }
 
         protected override string GetFixedText()
