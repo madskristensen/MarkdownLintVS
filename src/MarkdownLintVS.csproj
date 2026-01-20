@@ -97,6 +97,7 @@
     <Compile Include="Options\RuleOptionsProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MarkdownLintVSPackage.cs" />
+    <Compile Include="QuickInfo\MarkdownLintQuickInfoSource.cs" />
     <Compile Include="source.extension.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

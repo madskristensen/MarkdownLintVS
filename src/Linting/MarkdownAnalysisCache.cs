@@ -41,7 +41,7 @@ namespace MarkdownLintVS.Linting
         public IReadOnlyList<LintViolation> GetOrAnalyze(ITextBuffer buffer, string filePath)
         {
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
-            int version = snapshot.Version.VersionNumber;
+            var version = snapshot.Version.VersionNumber;
 
             // Check for cached result
             if (buffer.Properties.TryGetProperty(_propertyKey, out CachedAnalysisResult cached) &&

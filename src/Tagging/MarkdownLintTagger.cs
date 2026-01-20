@@ -126,6 +126,28 @@ namespace MarkdownLintVS.Tagging
             }
         }
 
+        /// <summary>
+        /// Gets all lint results that contain the specified point.
+        /// Used by QuickInfo to display error details.
+        /// </summary>
+        public IEnumerable<LintResult> GetLintResultsAtPoint(SnapshotPoint point)
+        {
+            List<LintResult> results;
+            lock (_lock)
+            {
+                results = [.. _currentResults];
+            }
+
+            foreach (LintResult result in results)
+            {
+                SnapshotSpan? span = result.GetTranslatedSpan(point.Snapshot);
+                if (span.HasValue && span.Value.Contains(point))
+                {
+                    yield return result;
+                }
+            }
+        }
+
         private string GetErrorType(Linting.DiagnosticSeverity severity)
         {
             return severity switch
@@ -161,18 +183,20 @@ namespace MarkdownLintVS.Tagging
     /// <summary>
     /// Represents a lint result with tracking span support.
     /// </summary>
-    internal class LintResult
+    public class LintResult
     {
         private readonly ITrackingSpan _trackingSpan;
 
         public string RuleId { get; }
         public string Message { get; }
+        public string DocumentationUrl { get; }
         public Linting.DiagnosticSeverity Severity { get; }
 
         public LintResult(Linting.LintViolation violation, ITextSnapshot snapshot)
         {
             RuleId = violation.Rule.Id;
             Message = $"{violation.Rule.Id}: {violation.Message}";
+            DocumentationUrl = violation.Rule.DocumentationUrl;
             Severity = violation.Severity;
 
             // Calculate span from line/column

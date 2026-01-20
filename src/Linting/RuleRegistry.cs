@@ -63,7 +63,7 @@ namespace MarkdownLintVS.Linting
                     continue;
 
                 // Parse "MD001 - heading-increment" into id and alias
-                string[] parts = displayName.DisplayName.Split([" - "], System.StringSplitOptions.None);
+                var parts = displayName.DisplayName.Split([" - "], System.StringSplitOptions.None);
                 if (parts.Length != 2)
                     continue;
 
