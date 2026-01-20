@@ -104,10 +104,74 @@ namespace MarkdownLintVS.CodeFixes
 
             using ITextEdit edit = snapshot.TextBuffer.CreateEdit();
 
+            // Track which lines already have a blank line being inserted BEFORE them.
+            // This handles deduplication of:
+            // - MD022 "add blank after heading" (inserts after line N = before line N+1)
+            // - MD032 "add blank before list" (inserts before line M)
+            // When list immediately follows heading, both try to insert before the same line.
+            var blankLineBeforeLineNumbers = new HashSet<int>();
+
             foreach (LintViolation violation in violations)
             {
                 MarkdownFixAction action = MarkdownSuggestedActionsSource.CreateFixActionForViolation(violation, snapshot);
-                action?.ApplyFix(edit);
+                if (action == null)
+                    continue;
+
+                // Deduplicate blank line insertions that target the same line boundary
+                if (action is AddBlankLineBeforeAction beforeAction)
+                {
+                    // "Add blank before line N" - the blank goes before line N
+                    int targetLine = snapshot.GetLineFromPosition(beforeAction.InsertPosition).LineNumber;
+                    if (blankLineBeforeLineNumbers.Contains(targetLine))
+                        continue;
+
+                    blankLineBeforeLineNumbers.Add(targetLine);
+                }
+                else if (action is AddBlankLineAfterAction afterAction)
+                {
+                    // "Add blank after line N" - the blank goes before line N+1
+                    // InsertPosition is at EndIncludingLineBreak which is the start of next line
+                    int targetLine = snapshot.GetLineFromPosition(afterAction.InsertPosition).LineNumber;
+                    if (blankLineBeforeLineNumbers.Contains(targetLine))
+                        continue;
+
+                    blankLineBeforeLineNumbers.Add(targetLine);
+                }
+                else if (action is SurroundWithBlankLinesAction surroundAction)
+                {
+                    // SurroundWithBlankLinesAction may insert blanks before AND after the list
+                    // Check each insertion point for duplicates
+                    bool skipBefore = false;
+                    bool skipAfter = false;
+
+                    int beforeLine = surroundAction.InsertBeforeLine;
+                    if (beforeLine >= 0)
+                    {
+                        if (blankLineBeforeLineNumbers.Contains(beforeLine))
+                            skipBefore = true;
+                        else
+                            blankLineBeforeLineNumbers.Add(beforeLine);
+                    }
+
+                    int afterLine = surroundAction.InsertAfterListBeforeLine;
+                    if (afterLine >= 0)
+                    {
+                        if (blankLineBeforeLineNumbers.Contains(afterLine))
+                            skipAfter = true;
+                        else
+                            blankLineBeforeLineNumbers.Add(afterLine);
+                    }
+
+                    // If both would be skipped, skip the entire action
+                    if (skipBefore && skipAfter)
+                        continue;
+
+                    // Apply with selective skipping
+                    surroundAction.ApplyFix(edit, skipBefore, skipAfter);
+                    continue;
+                }
+
+                action.ApplyFix(edit);
             }
 
             edit.Apply();

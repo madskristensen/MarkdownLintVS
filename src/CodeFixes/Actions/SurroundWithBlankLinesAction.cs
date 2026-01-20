@@ -15,14 +15,68 @@ namespace MarkdownLintVS.CodeFixes.Actions
 
         public override string DisplayText => "Surround list with blank lines";
 
-        public override void ApplyFix(ITextEdit edit)
+        /// <summary>
+        /// Gets the line number that a blank line would be inserted BEFORE (at list start).
+        /// Returns -1 if no blank line is needed before.
+        /// Used for deduplication in Fix All operations.
+        /// </summary>
+        public int InsertBeforeLine
+        {
+            get
+            {
+                ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
+                int startLineNumber = startLine.LineNumber;
+
+                if (startLineNumber > 0)
+                {
+                    ITextSnapshotLine lineBefore = Snapshot.GetLineFromLineNumber(startLineNumber - 1);
+                    if (!string.IsNullOrWhiteSpace(lineBefore.GetText()))
+                    {
+                        return startLineNumber;
+                    }
+                }
+
+                return -1;
+            }
+        }
+
+        /// <summary>
+        /// Gets the line number that a blank line would be inserted BEFORE (after list end).
+        /// Returns -1 if no blank line is needed after.
+        /// Used for deduplication in Fix All operations.
+        /// </summary>
+        public int InsertAfterListBeforeLine
+        {
+            get
+            {
+                ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
+                int startLineNumber = startLine.LineNumber;
+                int endLineNumber = FindListEndLine(startLineNumber);
+
+                if (endLineNumber < Snapshot.LineCount - 1)
+                {
+                    ITextSnapshotLine lineAfter = Snapshot.GetLineFromLineNumber(endLineNumber + 1);
+                    if (!string.IsNullOrWhiteSpace(lineAfter.GetText()))
+                    {
+                        return endLineNumber + 1;
+                    }
+                }
+
+                return -1;
+            }
+        }
+
+        /// <summary>
+        /// Applies the fix, optionally skipping insertions that have already been handled.
+        /// </summary>
+        public void ApplyFix(ITextEdit edit, bool skipBefore, bool skipAfter)
         {
             ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
-            var startLineNumber = startLine.LineNumber;
-            var endLineNumber = FindListEndLine(startLineNumber);
+            int startLineNumber = startLine.LineNumber;
+            int endLineNumber = FindListEndLine(startLineNumber);
 
             // Check if we need a blank line after
-            if (endLineNumber < Snapshot.LineCount - 1)
+            if (!skipAfter && endLineNumber < Snapshot.LineCount - 1)
             {
                 ITextSnapshotLine lineAfter = Snapshot.GetLineFromLineNumber(endLineNumber + 1);
                 if (!string.IsNullOrWhiteSpace(lineAfter.GetText()))
@@ -33,7 +87,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
             }
 
             // Check if we need a blank line before
-            if (startLineNumber > 0)
+            if (!skipBefore && startLineNumber > 0)
             {
                 ITextSnapshotLine lineBefore = Snapshot.GetLineFromLineNumber(startLineNumber - 1);
                 if (!string.IsNullOrWhiteSpace(lineBefore.GetText()))
@@ -41,6 +95,11 @@ namespace MarkdownLintVS.CodeFixes.Actions
                     edit.Insert(startLine.Start, Environment.NewLine);
                 }
             }
+        }
+
+        public override void ApplyFix(ITextEdit edit)
+        {
+            ApplyFix(edit, skipBefore: false, skipAfter: false);
         }
 
         private int FindListEndLine(int startLineNumber)

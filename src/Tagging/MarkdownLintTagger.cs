@@ -60,20 +60,22 @@ namespace MarkdownLintVS.Tagging
             RuleOptions.Saved += OnOptionsSaved;
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
 
-            // Initial analysis
-            RequestAnalysis();
+            // Initial analysis - immediate, no debounce for fast feedback on file open
+            _analysisCache.AnalyzeImmediate(_buffer, _filePath);
         }
 
         private void OnOptionsSaved(RuleOptions options)
         {
-            // Revalidate when options change
-            RequestAnalysis();
+            // Revalidate immediately when options change - no debounce needed
+            _analysisCache.AnalyzeImmediate(_buffer, _filePath);
         }
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
         {
             _currentSnapshot = e.After;
-            RequestAnalysis();
+
+            // Debounced analysis during typing to reduce CPU usage
+            _analysisCache.InvalidateAndAnalyze(_buffer, _filePath);
         }
 
         private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
@@ -94,11 +96,6 @@ namespace MarkdownLintVS.Tagging
                         new SnapshotSpan(snapshot, 0, snapshot.Length)));
                 }
             }
-        }
-
-        private void RequestAnalysis()
-        {
-            _analysisCache.InvalidateAndAnalyze(_buffer, _filePath);
         }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)

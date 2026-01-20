@@ -10,6 +10,19 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         public override string DisplayText => "Add blank line before";
 
+        /// <summary>
+        /// Gets the position where the blank line will be inserted.
+        /// Used for deduplication in Fix All operations.
+        /// </summary>
+        public int InsertPosition
+        {
+            get
+            {
+                ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
+                return line.Start.Position;
+            }
+        }
+
         public override void ApplyFix(ITextEdit edit)
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
