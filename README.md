@@ -26,7 +26,7 @@ Or download directly from the [Visual Studio Marketplace](https://marketplace.vi
 
 ## Getting Started
 
-Once installed, the extension works automatically on any `.md` file:
+Once installed, the extension works automatically on any `.md` file. It is compatible with both the built-in Markdown editor in Visual Studio and the [Markdown Editor v2](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownEditor2) extension.
 
 1. Open a Markdown file
 2. Linting issues appear as squiggly underlines

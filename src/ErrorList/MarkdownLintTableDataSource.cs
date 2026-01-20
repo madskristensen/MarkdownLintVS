@@ -84,6 +84,11 @@ namespace MarkdownLintVS.ErrorList
 
         public void ClearErrors(string filePath)
         {
+            if (filePath == null)
+            {
+                return;
+            }
+
             lock (_snapshots)
             {
                 if (_snapshots.TryGetValue(filePath, out TableEntriesSnapshot snapshot))
