@@ -325,7 +325,8 @@ namespace MarkdownLintVS.Linting.Rules
         {
             var indent = configuration.GetIntParameter("indent", 2);
 
-            foreach (ListBlock list in analysis.GetLists().Where(l => l.BulletType != '1'))
+            // Only process top-level lists (not nested lists, which are handled recursively)
+            foreach (ListBlock list in analysis.GetLists().Where(l => l.BulletType != '1' && l.Parent is MarkdownDocument))
             {
                 foreach (LintViolation violation in AnalyzeList(list, analysis, severity, indent, 0))
                 {
