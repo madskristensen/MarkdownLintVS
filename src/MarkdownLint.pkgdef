@@ -1,0 +1,8 @@
+; Registration for EditorConfig Language Service schema extension
+; This registers the markdownlint rules schema to be recognized by the EditorConfig extension
+
+[$RootKey$\Languages\Language Services\EditorConfig]
+[$RootKey$\Languages\Language Services\EditorConfig\Schemas]
+[$RootKey$\Languages\Language Services\EditorConfig\Schemas\MarkdownLint]
+"schema"="$PackageFolder$\Schemas\markdownlint-editorconfig-schema.json"
+"moniker"="KnownMonikers.MarkdownFile"

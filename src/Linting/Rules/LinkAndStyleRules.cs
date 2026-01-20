@@ -1,0 +1,332 @@
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+namespace MarkdownLintVS.Linting.Rules
+{
+    /// <summary>
+    /// MD049: Emphasis style should be consistent.
+    /// </summary>
+    public class MD049_EmphasisStyle : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD049");
+        public override RuleInfo Info => _info;
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            var style = configuration.GetStringParameter("style", "consistent");
+            if (style == "false")
+                yield break;
+
+            string detectedStyle = null;
+
+            foreach (EmphasisInline emphasis in analysis.GetEmphasis().Where(e => e.DelimiterCount == 1))
+            {
+                (int Line, int Column) pos = analysis.GetPositionFromOffset(emphasis.Span.Start);
+                var line = analysis.GetLine(pos.Line);
+                
+                if (pos.Column >= line.Length) continue;
+                
+                var currentStyle = line[pos.Column] == '*' ? "asterisk" : "underscore";
+
+                if (style == "consistent")
+                {
+                    if (detectedStyle == null)
+                    {
+                        detectedStyle = currentStyle;
+                    }
+                    else if (currentStyle != detectedStyle)
+                    {
+                        yield return CreateViolation(
+                            pos.Line,
+                            pos.Column,
+                            pos.Column + emphasis.Span.Length,
+                            $"Emphasis style should be consistent (expected {detectedStyle})",
+                            severity);
+                    }
+                }
+                else if (currentStyle != style)
+                {
+                    yield return CreateViolation(
+                        pos.Line,
+                        pos.Column,
+                        pos.Column + emphasis.Span.Length,
+                        $"Emphasis style should be {style}",
+                        severity);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// MD050: Strong style should be consistent.
+    /// </summary>
+    public class MD050_StrongStyle : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD050");
+        public override RuleInfo Info => _info;
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            var style = configuration.GetStringParameter("style", "consistent");
+            if (style == "false")
+                yield break;
+
+            string detectedStyle = null;
+
+            foreach (EmphasisInline emphasis in analysis.GetEmphasis().Where(e => e.DelimiterCount == 2))
+            {
+                (int Line, int Column) pos = analysis.GetPositionFromOffset(emphasis.Span.Start);
+                var line = analysis.GetLine(pos.Line);
+                
+                if (pos.Column >= line.Length) continue;
+                
+                var currentStyle = line[pos.Column] == '*' ? "asterisk" : "underscore";
+
+                if (style == "consistent")
+                {
+                    if (detectedStyle == null)
+                    {
+                        detectedStyle = currentStyle;
+                    }
+                    else if (currentStyle != detectedStyle)
+                    {
+                        yield return CreateViolation(
+                            pos.Line,
+                            pos.Column,
+                            pos.Column + emphasis.Span.Length,
+                            $"Strong style should be consistent (expected {detectedStyle})",
+                            severity);
+                    }
+                }
+                else if (currentStyle != style)
+                {
+                    yield return CreateViolation(
+                        pos.Line,
+                        pos.Column,
+                        pos.Column + emphasis.Span.Length,
+                        $"Strong style should be {style}",
+                        severity);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// MD051: Link fragments should be valid.
+    /// </summary>
+    public class MD051_LinkFragments : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD051");
+        public override RuleInfo Info => _info;
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            // Collect all heading IDs
+            var headingIds = new HashSet<string>();
+            foreach (HeadingBlock heading in analysis.GetHeadings())
+            {
+                var content = GetHeadingContent(heading.Line, analysis);
+                var id = CreateHeadingId(content);
+                headingIds.Add(id);
+            }
+
+            // Check all links with fragments
+            foreach (LinkInline link in analysis.GetLinks())
+            {
+                if (string.IsNullOrEmpty(link.Url))
+                    continue;
+
+                // Only check internal fragment links
+                if (link.Url.StartsWith("#"))
+                {
+                    var fragment = link.Url.Substring(1).ToLowerInvariant();
+                    
+                    if (!string.IsNullOrEmpty(fragment) && !headingIds.Contains(fragment))
+                    {
+                        (int Line, int Column) pos = analysis.GetPositionFromOffset(link.Span.Start);
+                        yield return CreateViolation(
+                            pos.Line,
+                            pos.Column,
+                            pos.Column + link.Span.Length,
+                            $"Link fragment '#{fragment}' does not match any heading",
+                            severity);
+                    }
+                }
+            }
+        }
+
+        private string GetHeadingContent(int lineNumber, MarkdownDocumentAnalysis analysis)
+        {
+            var line = analysis.GetLine(lineNumber);
+            return line.TrimStart('#', ' ').TrimEnd('#', ' ');
+        }
+
+        private string CreateHeadingId(string content)
+        {
+            // Convert to lowercase, replace spaces with hyphens, remove special chars
+            var id = content.ToLowerInvariant();
+            id = Regex.Replace(id, @"[^\w\s-]", "");
+            id = Regex.Replace(id, @"\s+", "-");
+            return id;
+        }
+    }
+
+    /// <summary>
+    /// MD052: Reference links and images should use a label that is defined.
+    /// </summary>
+    public class MD052_ReferenceLinksImages : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD052");
+        public override RuleInfo Info => _info;
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            var shortcutSyntax = configuration.GetBoolParameter("shortcut_syntax", true);
+
+            // Collect all defined labels
+            var definedLabels = new HashSet<string>(
+                analysis.GetLinkReferenceDefinitions()
+                    .Where(d => d.Label != null)
+                    .Select(d => d.Label.ToLowerInvariant()));
+
+            // Check reference-style links
+            var refLinkPattern = new Regex(@"\[([^\]]+)\]\[([^\]]*)\]");
+            var shortcutPattern = new Regex(@"\[([^\]]+)\](?!\()");
+
+            for (var i = 0; i < analysis.LineCount; i++)
+            {
+                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
+                    continue;
+
+                var line = analysis.GetLine(i);
+
+                // Full reference: [text][label]
+                foreach (Match match in refLinkPattern.Matches(line))
+                {
+                    var label = match.Groups[2].Value;
+                    if (string.IsNullOrEmpty(label))
+                        label = match.Groups[1].Value; // Collapsed reference
+
+                    if (!definedLabels.Contains(label.ToLowerInvariant()))
+                    {
+                        yield return CreateViolation(
+                            i,
+                            match.Index,
+                            match.Index + match.Length,
+                            $"Reference link label '{label}' is not defined",
+                            severity);
+                    }
+                }
+
+                // Shortcut reference: [label]
+                if (shortcutSyntax)
+                {
+                    foreach (Match match in shortcutPattern.Matches(line))
+                    {
+                        var label = match.Groups[1].Value;
+                        
+                        // Skip if it's part of a full reference
+                        if (line.Length > match.Index + match.Length && line[match.Index + match.Length] == '[')
+                            continue;
+
+                        if (!definedLabels.Contains(label.ToLowerInvariant()))
+                        {
+                            yield return CreateViolation(
+                                i,
+                                match.Index,
+                                match.Index + match.Length,
+                                $"Reference link label '{label}' is not defined",
+                                severity);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// MD053: Link and image reference definitions should be needed.
+    /// </summary>
+    public class MD053_LinkImageReferenceDefinitions : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD053");
+        public override RuleInfo Info => _info;
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            var ignoredDefinitions = configuration.GetStringParameter("ignored_definitions", "//")
+                .Split(',')
+                .Select(d => d.Trim().ToLowerInvariant())
+                .Where(d => !string.IsNullOrEmpty(d))
+                .ToHashSet();
+
+            // Collect all used labels
+            var usedLabels = new HashSet<string>();
+            var refLinkPattern = new Regex(@"\[([^\]]+)\]\[([^\]]*)\]|\[([^\]]+)\](?!\()");
+
+            for (var i = 0; i < analysis.LineCount; i++)
+            {
+                if (analysis.IsLineInCodeBlock(i))
+                    continue;
+
+                var line = analysis.GetLine(i);
+                foreach (Match match in refLinkPattern.Matches(line))
+                {
+                    string label;
+                    if (match.Groups[3].Success)
+                        label = match.Groups[3].Value;
+                    else if (!string.IsNullOrEmpty(match.Groups[2].Value))
+                        label = match.Groups[2].Value;
+                    else
+                        label = match.Groups[1].Value;
+
+                    usedLabels.Add(label.ToLowerInvariant());
+                }
+            }
+
+            // Check definitions
+            foreach (LinkReferenceDefinition definition in analysis.GetLinkReferenceDefinitions())
+            {
+                if (definition.Label == null)
+                    continue;
+
+                var label = definition.Label.ToLowerInvariant();
+                
+                // Check if ignored
+                if (ignoredDefinitions.Any(ignored => 
+                    ignored.StartsWith("/") && ignored.EndsWith("/") 
+                        ? Regex.IsMatch(label, ignored.Trim('/'))
+                        : label == ignored))
+                    continue;
+
+                if (!usedLabels.Contains(label))
+                {
+                    yield return CreateLineViolation(
+                        definition.Line,
+                        analysis.GetLine(definition.Line),
+                        $"Link reference definition '{label}' is not used",
+                        severity,
+                        "Remove unused definition");
+                }
+            }
+        }
+    }
+}

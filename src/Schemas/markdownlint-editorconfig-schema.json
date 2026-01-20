@@ -1,0 +1,463 @@
+{
+  "properties": [
+    {
+      "name": "md_heading_increment",
+      "description": "MD001 - Heading levels should only increment by one level at a time",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md001.md"
+    },
+    {
+      "name": "md_heading_style",
+      "description": "MD003 - Heading style should be consistent (atx, atx_closed, setext, setext_with_atx, setext_with_atx_closed)",
+      "values": [ "atx", "atx_closed", "setext", "setext_with_atx", "setext_with_atx_closed", "consistent", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md003.md"
+    },
+    {
+      "name": "md_ul_style",
+      "description": "MD004 - Unordered list style should be consistent (asterisk, plus, dash, consistent, sublist)",
+      "values": [ "asterisk", "plus", "dash", "consistent", "sublist", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md004.md"
+    },
+    {
+      "name": "md_list_indent",
+      "description": "MD005 - Inconsistent indentation for list items at the same level",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md005.md"
+    },
+    {
+      "name": "md_ul_indent",
+      "description": "MD007 - Unordered list indentation (default: 2 spaces)",
+      "values": [ true, false, 2, 4 ],
+      "defaultValue": [ 2 ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md007.md"
+    },
+    {
+      "name": "md_no_trailing_spaces",
+      "description": "MD009 - Trailing spaces not allowed",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md009.md"
+    },
+    {
+      "name": "md_no_hard_tabs",
+      "description": "MD010 - Hard tabs not allowed",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md010.md"
+    },
+    {
+      "name": "md_no_reversed_links",
+      "description": "MD011 - Reversed link syntax",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md011.md"
+    },
+    {
+      "name": "md_no_multiple_blanks",
+      "description": "MD012 - Multiple consecutive blank lines",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md012.md"
+    },
+    {
+      "name": "md_line_length",
+      "description": "MD013 - Line length (default: 80 characters)",
+      "values": [ true, false, 80, 100, 120, 150 ],
+      "defaultValue": [ 80 ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md013.md"
+    },
+    {
+      "name": "md_commands_show_output",
+      "description": "MD014 - Dollar signs used before commands without showing output",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md014.md"
+    },
+    {
+      "name": "md_no_missing_space_atx",
+      "description": "MD018 - No space after hash on atx style heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md018.md"
+    },
+    {
+      "name": "md_no_multiple_space_atx",
+      "description": "MD019 - Multiple spaces after hash on atx style heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md019.md"
+    },
+    {
+      "name": "md_no_missing_space_closed_atx",
+      "description": "MD020 - No space inside hashes on closed atx style heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md020.md"
+    },
+    {
+      "name": "md_no_multiple_space_closed_atx",
+      "description": "MD021 - Multiple spaces inside hashes on closed atx style heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md021.md"
+    },
+    {
+      "name": "md_blanks_around_headings",
+      "description": "MD022 - Headings should be surrounded by blank lines",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md022.md"
+    },
+    {
+      "name": "md_heading_start_left",
+      "description": "MD023 - Headings must start at the beginning of the line",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md023.md"
+    },
+    {
+      "name": "md_no_duplicate_heading",
+      "description": "MD024 - Multiple headings with the same content",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md024.md"
+    },
+    {
+      "name": "md_single_title",
+      "description": "MD025 - Multiple top-level headings in the same document",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md025.md"
+    },
+    {
+      "name": "md_no_trailing_punctuation",
+      "description": "MD026 - Trailing punctuation in heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md026.md"
+    },
+    {
+      "name": "md_no_multiple_space_blockquote",
+      "description": "MD027 - Multiple spaces after blockquote symbol",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md027.md"
+    },
+    {
+      "name": "md_no_blanks_blockquote",
+      "description": "MD028 - Blank line inside blockquote",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md028.md"
+    },
+    {
+      "name": "md_ol_prefix",
+      "description": "MD029 - Ordered list item prefix (one, ordered, one_or_ordered, zero)",
+      "values": [ "one", "ordered", "one_or_ordered", "zero", false ],
+      "defaultValue": [ "one_or_ordered" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md029.md"
+    },
+    {
+      "name": "md_list_marker_space",
+      "description": "MD030 - Spaces after list markers",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md030.md"
+    },
+    {
+      "name": "md_blanks_around_fences",
+      "description": "MD031 - Fenced code blocks should be surrounded by blank lines",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md031.md"
+    },
+    {
+      "name": "md_blanks_around_lists",
+      "description": "MD032 - Lists should be surrounded by blank lines",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md032.md"
+    },
+    {
+      "name": "md_no_inline_html",
+      "description": "MD033 - Inline HTML not allowed",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md033.md"
+    },
+    {
+      "name": "md_no_bare_urls",
+      "description": "MD034 - Bare URL used",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md034.md"
+    },
+    {
+      "name": "md_hr_style",
+      "description": "MD035 - Horizontal rule style should be consistent",
+      "values": [ "consistent", "---", "***", "___", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md035.md"
+    },
+    {
+      "name": "md_no_emphasis_as_heading",
+      "description": "MD036 - Emphasis used instead of a heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md036.md"
+    },
+    {
+      "name": "md_no_space_in_emphasis",
+      "description": "MD037 - Spaces inside emphasis markers",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md037.md"
+    },
+    {
+      "name": "md_no_space_in_code",
+      "description": "MD038 - Spaces inside code span elements",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md038.md"
+    },
+    {
+      "name": "md_no_space_in_links",
+      "description": "MD039 - Spaces inside link text",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md039.md"
+    },
+    {
+      "name": "md_fenced_code_language",
+      "description": "MD040 - Fenced code blocks should have a language specified",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md040.md"
+    },
+    {
+      "name": "md_first_line_heading",
+      "description": "MD041 - First line in a file should be a top-level heading",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md041.md"
+    },
+    {
+      "name": "md_no_empty_links",
+      "description": "MD042 - No empty links",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md042.md"
+    },
+    {
+      "name": "md_required_headings",
+      "description": "MD043 - Required heading structure",
+      "values": [ true, false ],
+      "defaultValue": [ false ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md043.md"
+    },
+    {
+      "name": "md_proper_names",
+      "description": "MD044 - Proper names should have correct capitalization",
+      "values": [ true, false ],
+      "defaultValue": [ false ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md044.md"
+    },
+    {
+      "name": "md_no_alt_text",
+      "description": "MD045 - Images should have alternate text (alt text)",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md045.md"
+    },
+    {
+      "name": "md_code_block_style",
+      "description": "MD046 - Code block style (fenced, indented, consistent)",
+      "values": [ "fenced", "indented", "consistent", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md046.md"
+    },
+    {
+      "name": "md_single_trailing_newline",
+      "description": "MD047 - Files should end with a single newline character",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md047.md"
+    },
+    {
+      "name": "md_code_fence_style",
+      "description": "MD048 - Code fence style (backtick, tilde, consistent)",
+      "values": [ "backtick", "tilde", "consistent", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md048.md"
+    },
+    {
+      "name": "md_emphasis_style",
+      "description": "MD049 - Emphasis style should be consistent (asterisk, underscore, consistent)",
+      "values": [ "asterisk", "underscore", "consistent", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md049.md"
+    },
+    {
+      "name": "md_strong_style",
+      "description": "MD050 - Strong style should be consistent (asterisk, underscore, consistent)",
+      "values": [ "asterisk", "underscore", "consistent", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md050.md"
+    },
+    {
+      "name": "md_link_fragments",
+      "description": "MD051 - Link fragments should be valid",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md051.md"
+    },
+    {
+      "name": "md_reference_links_images",
+      "description": "MD052 - Reference links and images should use a label that is defined",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md052.md"
+    },
+    {
+      "name": "md_link_image_reference_definitions",
+      "description": "MD053 - Link and image reference definitions should be needed",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md053.md"
+    },
+    {
+      "name": "md_link_image_style",
+      "description": "MD054 - Link and image style (autolink, collapsed, full, inline, shortcut)",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md054.md"
+    },
+    {
+      "name": "md_table_pipe_style",
+      "description": "MD055 - Table pipe style should be consistent",
+      "values": [ "leading_and_trailing", "leading_only", "trailing_only", "no_leading_or_trailing", "consistent", false ],
+      "defaultValue": [ "consistent" ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md055.md"
+    },
+    {
+      "name": "md_table_column_count",
+      "description": "MD056 - Table column count should be consistent",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md056.md"
+    },
+    {
+      "name": "md_blanks_around_tables",
+      "description": "MD058 - Tables should be surrounded by blank lines",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md058.md"
+    }
+  ]
+}
