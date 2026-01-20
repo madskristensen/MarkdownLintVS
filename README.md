@@ -65,6 +65,8 @@ Changes take effect immediately when you click OK or Apply - all open markdown f
 
 Rules can also be configured in your `.editorconfig` file. All rules use the `md_` prefix.
 
+> 💡 **Tip:** Install the [EditorConfig Language Service](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.EditorConfig) extension to get IntelliSense and validation for markdown lint rules in your `.editorconfig` files.
+
 ### Example .editorconfig
 
 ```ini
