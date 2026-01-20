@@ -12,10 +12,10 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Error List integration** - All warnings appear in Visual Studio's Error List  
 ✅ **Quick fixes** - Press `Ctrl+.` for automatic fixes (light bulb suggestions)  
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
-✅ **Works with any Markdown editor** - Compatible with the built-in Markdown editor and most Markdown extensions  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
-✅ **50+ rules** - Comprehensive coverage based on markdownlint standards
+✅ **50+ rules** - Comprehensive coverage based on markdownlint standards  
+✅ **Works with any Markdown editor** - Including the built-in Markdown editor and most Markdown extensions
 
 ## Installation
 
