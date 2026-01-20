@@ -18,7 +18,17 @@ namespace MarkdownLintVS.Options
             if (string.IsNullOrEmpty(ruleId))
                 return true;
 
-            RuleOptions options = RuleOptions.Instance;
+            RuleOptions options;
+            try
+            {
+                options = RuleOptions.Instance;
+            }
+            catch
+            {
+                // Options not available (e.g., in unit tests without VS Shell)
+                return true;
+            }
+
             var id = ruleId.ToUpperInvariant();
 
             return id switch
