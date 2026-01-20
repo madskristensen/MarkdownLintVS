@@ -159,14 +159,26 @@ namespace MarkdownLintVS.CodeFixes
                     continue;
 
                 var lineNumber = violation.LineNumber;
-                if (lineNumber >= range.Snapshot.LineCount)
+                if (lineNumber < 0 || lineNumber >= range.Snapshot.LineCount)
                     continue;
 
                 ITextSnapshotLine line = range.Snapshot.GetLineFromLineNumber(lineNumber);
-                var violationSpan = new SnapshotSpan(
-                    range.Snapshot,
-                    line.Start + Math.Min(violation.ColumnStart, line.Length),
-                    Math.Max(1, Math.Min(violation.ColumnEnd - violation.ColumnStart, line.Length - violation.ColumnStart)));
+
+                // Clamp column values to valid range within the line
+                int columnStart = Math.Max(0, Math.Min(violation.ColumnStart, line.Length));
+                int columnEnd = Math.Max(columnStart, Math.Min(violation.ColumnEnd, line.Length));
+                int spanLength = Math.Max(1, columnEnd - columnStart);
+
+                // Ensure the span doesn't exceed the snapshot length
+                int start = line.Start + columnStart;
+                if (start >= range.Snapshot.Length)
+                    continue;
+
+                spanLength = Math.Min(spanLength, range.Snapshot.Length - start);
+                if (spanLength <= 0)
+                    continue;
+
+                var violationSpan = new SnapshotSpan(range.Snapshot, new Span(start, spanLength));
 
                 if (violationSpan.IntersectsWith(range))
                 {
