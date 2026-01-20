@@ -6,8 +6,6 @@
 
 A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD058).
 
-![Screenshot](art/screenshot.png)
-
 ## Features
 
 ✅ **Real-time linting** - See issues as you type with squiggly underlines  
@@ -142,27 +140,39 @@ md_no_trailing_spaces = false
 
 ### Rule Documentation
 
-For detailed documentation on each rule, see the [markdownlint documentation](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md).
+For detailed documentation on each rule, see the [markdownlint Rules Documentation](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md).
 
 ## Quick Fixes
 
-The extension provides quick fixes (Ctrl+.) for many common issues:
+The extension provides intelligent quick fixes (`Ctrl+.`) for many common issues:
 
-- **MD009**: Remove trailing whitespace
-- **MD010**: Replace tabs with spaces
-- **MD011**: Fix reversed link syntax
-- **MD012**: Remove extra blank lines
-- **MD018**: Add space after heading hash
-- **MD019/MD021/MD027**: Normalize multiple spaces
-- **MD022/MD031/MD032/MD058**: Add blank lines around elements
-- **MD023**: Remove leading whitespace from headings
-- **MD026**: Remove trailing punctuation
-- **MD034**: Wrap bare URLs in angle brackets
-- **MD040**: Add language identifier to code blocks
-- **MD045**: Add alt text placeholder to images
-- **MD047**: Add/remove trailing newline
+| Rule | Quick Fix |
+|------|-----------|
+| MD009 | Remove trailing whitespace |
+| MD010 | Replace tabs with spaces |
+| MD011 | Fix reversed link syntax |
+| MD012 | Remove extra blank lines |
+| MD018 | Add space after heading hash |
+| MD019/MD021/MD027 | Normalize multiple spaces |
+| MD022/MD031/MD032/MD058 | Add blank lines around elements |
+| MD023 | Remove leading whitespace from headings |
+| MD026 | Remove trailing punctuation |
+| MD034 | Wrap bare URLs in angle brackets |
+| MD040 | Add language identifier to code blocks |
+| MD045 | Add alt text placeholder to images |
+| MD047 | Add/remove trailing newline |
 
 ### Fix All Actions
 
-- **Fix all [rule] violations in document**: Fix all instances of a specific rule
-- **Fix all auto-fixable violations in document**: Fix all auto-fixable issues at once
+Right-click on any fixable issue to access bulk fix options:
+
+- **Fix all [rule] violations in document** - Fix all instances of a specific rule
+- **Fix all auto-fixable violations in document** - Fix all auto-fixable issues at once
+
+## Contributing
+
+Found a bug or have a feature request? Please open an issue on [GitHub](https://github.com/madskristensen/MarkdownLintVS/issues).
+
+## License
+
+This extension is open source. See the [LICENSE](LICENSE.txt) file for details.
