@@ -1,5 +1,4 @@
 using System.ComponentModel.Composition;
-using System.Linq;
 using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
@@ -13,6 +12,7 @@ namespace MarkdownLintVS.ErrorList
     /// </summary>
     [Export(typeof(ITextViewCreationListener))]
     [ContentType("markdown")]
+    [ContentType("vs-markdown")]
     [TextViewRole(PredefinedTextViewRoles.Document)]
     public class MarkdownDocumentListener : ITextViewCreationListener
     {

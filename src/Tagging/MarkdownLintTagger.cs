@@ -14,6 +14,7 @@ namespace MarkdownLintVS.Tagging
     /// </summary>
     [Export(typeof(ITaggerProvider))]
     [ContentType("markdown")]
+    [ContentType("vs-markdown")]
     [TagType(typeof(IErrorTag))]
     public class MarkdownLintTaggerProvider : ITaggerProvider
     {
@@ -120,7 +121,7 @@ namespace MarkdownLintVS.Tagging
                 {
                     yield return new TagSpan<IErrorTag>(
                         span.Value,
-                        new ErrorTag(GetErrorType(result.Severity), result.Message));
+                        new ErrorTag(GetErrorType(result.Severity)));
                 }
             }
         }

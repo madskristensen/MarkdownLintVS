@@ -19,6 +19,7 @@ namespace MarkdownLintVS.CodeFixes
     [Export(typeof(ISuggestedActionsSourceProvider))]
     [Name("Markdown Lint Suggested Actions")]
     [ContentType("markdown")]
+    [ContentType("vs-markdown")]
     public class MarkdownSuggestedActionsSourceProvider : ISuggestedActionsSourceProvider
     {
         public ISuggestedActionsSource CreateSuggestedActionsSource(ITextView textView, ITextBuffer textBuffer)
