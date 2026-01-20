@@ -8,6 +8,27 @@ public sealed class CodeBlockRuleTests
 {
     private static RuleConfiguration DefaultConfig => new();
 
+    #region MD041 - First Line Heading
+
+    [TestMethod]
+    public void MD041_WhenFrontMatterAndBlankLineThenHeadingIsAccepted()
+    {
+        var rule = new MD041_FirstLineHeading();
+        var markdown =
+            "---\n" +
+            "description: 'Test'\n" +
+            "---\n" +
+            "\n" +
+            "# Title\n";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    #endregion
+
     #region MD031 - Blanks Around Fences
 
     [TestMethod]

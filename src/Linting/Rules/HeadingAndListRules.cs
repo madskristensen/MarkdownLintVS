@@ -60,6 +60,9 @@ namespace MarkdownLintVS.Linting.Rules
 
             foreach (HeadingBlock heading in analysis.GetHeadings())
             {
+                if (analysis.IsLineInFrontMatter(heading.Line))
+                    continue;
+
                 var line = analysis.GetLine(heading.Line);
                 var currentStyle = GetHeadingStyle(line, heading);
 

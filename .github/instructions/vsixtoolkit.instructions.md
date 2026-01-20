@@ -24,6 +24,7 @@ Verify the project uses the toolkit by checking for:
 - Follow VSSDK and VSTHRD analyzer rules
 - Produce testable, maintainable extension code
 - **Adhere to `.editorconfig` settings** when present in the repository
+- As for clarification if needed about any of these guidelines
 
 ## Code Style (.editorconfig)
 

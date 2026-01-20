@@ -174,12 +174,25 @@ namespace MarkdownLintVS.Linting.Rules
             var linesAbove = configuration.GetIntParameter("lines_above", 1);
             var linesBelow = configuration.GetIntParameter("lines_below", 1);
 
+            var firstContentLine = 0;
+            while (firstContentLine < analysis.LineCount && analysis.IsLineInFrontMatter(firstContentLine))
+            {
+                firstContentLine++;
+            }
+            while (firstContentLine < analysis.LineCount && analysis.IsBlankLine(firstContentLine))
+            {
+                firstContentLine++;
+            }
+
             foreach (HeadingBlock heading in analysis.GetHeadings())
             {
                 var lineNum = heading.Line;
 
-                // Check lines above (except for first heading or after front matter)
-                if (lineNum > 0 && !analysis.IsLineInFrontMatter(lineNum - 1))
+                if (analysis.IsLineInFrontMatter(lineNum))
+                    continue;
+
+                // Check lines above (except for first heading or just after front matter)
+                if (lineNum > 0 && lineNum > firstContentLine + 1)
                 {
                     var blankAbove = 0;
                     for (var i = lineNum - 1; i >= 0 && analysis.IsBlankLine(i); i--)

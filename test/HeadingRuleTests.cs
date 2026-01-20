@@ -8,6 +8,44 @@ public sealed class HeadingRuleTests
 {
     private static RuleConfiguration DefaultConfig => new();
 
+    [TestMethod]
+    public void MD003_WhenFrontMatterBeforeHeadingsThenNoViolations()
+    {
+        var rule = new MD003_HeadingStyle();
+        var markdown =
+            "---\n" +
+            "description: 'Test'\n" +
+            "applyTo: '**/*.cs'\n" +
+            "---\n" +
+            "\n" +
+            "# Title\n\n" +
+            "## Scope\n";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsFalse(violations.Any(v => v.Message.Contains("preceded by")));
+    }
+
+    [TestMethod]
+    public void MD022_WhenFrontMatterBeforeHeadingThenNoViolationForBlankLinesAbove()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var markdown =
+            "---\n" +
+            "description: 'Test'\n" +
+            "applyTo: '**/*.cs'\n" +
+            "---\n" +
+            "\n" +
+            "# Title\n\n" +
+            "Text\n";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsFalse(violations.Any(v => v.Message.Contains("preceded by")));
+    }
+
     #region MD001 - Heading Increment
 
     [TestMethod]

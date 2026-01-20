@@ -105,10 +105,11 @@ namespace MarkdownLintVS.Linting.Rules
             if (startLine >= analysis.LineCount)
                 yield break;
 
-            // Check if first line is a heading of the correct level
-            HeadingBlock firstHeading = analysis.GetHeadings().FirstOrDefault(h => h.Line >= startLine);
-            
-            if (firstHeading == null || firstHeading.Line != startLine)
+            // Check if the first non-blank content after front matter is a heading of the correct level.
+            // Markdig's HeadingBlock.Line can be off by one around YAML front matter boundaries.
+            HeadingBlock firstHeading = analysis.GetHeadings().FirstOrDefault(h => h.Line >= startLine - 1);
+
+            if (firstHeading == null || (firstHeading.Line != startLine && firstHeading.Line != startLine - 1))
             {
                 yield return CreateLineViolation(
                     startLine,

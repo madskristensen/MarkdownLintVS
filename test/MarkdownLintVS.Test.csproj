@@ -12,4 +12,8 @@
     <ProjectReference Include="..\src\MarkdownLintVS.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Text\" />
+  </ItemGroup>
+
 </Project>
