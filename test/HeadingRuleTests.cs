@@ -54,6 +54,7 @@ public sealed class HeadingRuleTests
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD001"));
     }
 
     [TestMethod]
@@ -104,6 +105,7 @@ public sealed class HeadingRuleTests
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(1, violations);
+        Assert.AreEqual("MD003", violations[0].Rule.Id);
     }
 
     [TestMethod]

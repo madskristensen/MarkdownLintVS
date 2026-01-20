@@ -65,6 +65,7 @@ public sealed class ListRuleTests
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD004"));
     }
 
     [TestMethod]
@@ -77,6 +78,7 @@ public sealed class ListRuleTests
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD004"));
     }
 
     [TestMethod]
@@ -167,6 +169,7 @@ public sealed class ListRuleTests
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD029"));
     }
 
     [TestMethod]
@@ -179,6 +182,7 @@ public sealed class ListRuleTests
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD029"));
     }
 
     #endregion

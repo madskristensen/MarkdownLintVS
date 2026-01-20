@@ -5,6 +5,16 @@ namespace MarkdownLintVS.Test;
 [TestClass]
 public sealed class MarkdownLintAnalyzerTests
 {
+    private static void AssertHasViolation(IReadOnlyCollection<LintViolation> violations, string ruleId)
+    {
+        Assert.IsTrue(violations.Any(v => v.Rule.Id == ruleId), $"Expected a violation for rule '{ruleId}'.");
+    }
+
+    private static void AssertDoesNotHaveViolation(IReadOnlyCollection<LintViolation> violations, string ruleId)
+    {
+        Assert.IsFalse(violations.Any(v => v.Rule.Id == ruleId), $"Did not expect a violation for rule '{ruleId}'.");
+    }
+
     [TestMethod]
     public void WhenEmptyTextThenNoViolations()
     {
@@ -45,7 +55,18 @@ public sealed class MarkdownLintAnalyzerTests
 
         var violations = analyzer.Analyze(markdown, string.Empty).ToList();
 
-        Assert.IsTrue(violations.Any(v => v.Rule.Id == "MD001"));
+        AssertHasViolation(violations, "MD001");
+    }
+
+    [TestMethod]
+    public void WhenHeadingDoesNotSkipLevelThenNoHeadingIncrementViolation()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown = "# Title\n\n## Section";
+
+        var violations = analyzer.Analyze(markdown, string.Empty).ToList();
+
+        AssertDoesNotHaveViolation(violations, "MD001");
     }
 
     [TestMethod]
@@ -56,7 +77,18 @@ public sealed class MarkdownLintAnalyzerTests
 
         var violations = analyzer.Analyze(markdown, string.Empty).ToList();
 
-        Assert.IsTrue(violations.Any(v => v.Rule.Id == "MD009"));
+        AssertHasViolation(violations, "MD009");
+    }
+
+    [TestMethod]
+    public void WhenNoTrailingSpacesThenNoTrailingSpacesViolation()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown = "Line without trailing spaces";
+
+        var violations = analyzer.Analyze(markdown, string.Empty).ToList();
+
+        AssertDoesNotHaveViolation(violations, "MD009");
     }
 
     [TestMethod]
@@ -67,7 +99,18 @@ public sealed class MarkdownLintAnalyzerTests
 
         var violations = analyzer.Analyze(markdown, string.Empty).ToList();
 
-        Assert.IsTrue(violations.Any(v => v.Rule.Id == "MD010"));
+        AssertHasViolation(violations, "MD010");
+    }
+
+    [TestMethod]
+    public void WhenNoHardTabsThenNoHardTabsViolation()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown = "Spaces only\n    Indented";
+
+        var violations = analyzer.Analyze(markdown, string.Empty).ToList();
+
+        AssertDoesNotHaveViolation(violations, "MD010");
     }
 
     [TestMethod]
@@ -78,7 +121,9 @@ public sealed class MarkdownLintAnalyzerTests
 
         var violations = analyzer.Analyze(markdown, string.Empty).ToList();
 
-        Assert.IsGreaterThanOrEqualTo(2, violations.Count);
+        Assert.IsTrue(violations.Count >= 2, "Expected at least two violations.");
+        AssertHasViolation(violations, "MD001");
+        AssertHasViolation(violations, "MD009");
     }
 
     [TestMethod]
