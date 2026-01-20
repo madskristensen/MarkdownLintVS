@@ -116,8 +116,9 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD011");
         public override RuleInfo Info => _info;
 
+        // Matches (url)[text] pattern where url looks like an actual URL
         private static readonly Regex _reversedLinkPattern = new(
-            @"\([^)]+\)\[[^\]]+\]",
+            @"\(([^)]+)\)\[([^\]]+)\]",
             RegexOptions.Compiled);
 
         public override IEnumerable<LintViolation> Analyze(
@@ -135,6 +136,13 @@ namespace MarkdownLintVS.Linting.Rules
 
                 foreach (Match match in matches)
                 {
+                    var parenContent = match.Groups[1].Value;
+
+                    // Only flag if the parentheses content looks like a URL
+                    // This avoids false positives like (value)[0] or (obj)[key]
+                    if (!LooksLikeUrl(parenContent))
+                        continue;
+
                     yield return CreateViolation(
                         i,
                         match.Index,
@@ -144,6 +152,19 @@ namespace MarkdownLintVS.Linting.Rules
                         "Swap link text and URL");
                 }
             }
+        }
+
+        private static bool LooksLikeUrl(string text)
+        {
+            // Check for common URL patterns
+            return text.Contains("://") ||
+                   text.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ||
+                   text.StartsWith("/") ||
+                   text.StartsWith("#") ||
+                   text.StartsWith("./") ||
+                   text.StartsWith("../") ||
+                   text.StartsWith(".\\") ||
+                   text.StartsWith("..\\");
         }
     }
 

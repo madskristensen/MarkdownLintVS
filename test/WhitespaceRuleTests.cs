@@ -158,5 +158,67 @@ public sealed class WhitespaceRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD011_WhenParenthesesFollowedByArrayIndexThenNoViolation()
+    {
+        // Valid: function call or value in parens followed by array-like indexing
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("Use (value)[0] to get the first element");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenParenthesesFollowedByPropertyAccessThenNoViolation()
+    {
+        // Valid: expression in parens followed by property bracket notation
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("The (obj)[key] syntax accesses properties");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenCitationWithFootnoteThenNoViolation()
+    {
+        // Valid: citation reference that happens to have parens before brackets
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("According to (Smith, 2020)[1], this is true.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenReversedRelativePathLinkThenReportsViolation()
+    {
+        // Reversed relative path links should be flagged
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("See (./docs/readme.md)[the docs] for more info.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD011", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD011_WhenReversedParentPathLinkThenReportsViolation()
+    {
+        // Reversed parent-relative path links should be flagged
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("See (../other/file.md)[other file] for details.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD011", violations[0].Rule.Id);
+    }
+
     #endregion
 }

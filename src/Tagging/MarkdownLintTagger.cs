@@ -129,9 +129,9 @@ namespace MarkdownLintVS.Tagging
         {
             return severity switch
             {
-                Linting.DiagnosticSeverity.Error => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.SyntaxError,
-                Linting.DiagnosticSeverity.Warning => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Warning,
-                Linting.DiagnosticSeverity.Suggestion => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Suggestion,
+                DiagnosticSeverity.Error => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.SyntaxError,
+                DiagnosticSeverity.Warning => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Warning,
+                DiagnosticSeverity.Suggestion => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.Suggestion,
                 _ => Microsoft.VisualStudio.Text.Adornments.PredefinedErrorTypeNames.HintedSuggestion,
             };
         }

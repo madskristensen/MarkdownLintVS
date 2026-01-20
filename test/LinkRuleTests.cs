@@ -246,6 +246,42 @@ public sealed class LinkRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD052_WhenKeyboardShortcutInBracketsThenNoViolation()
+    {
+        // Valid: keyboard shortcut notation should not be flagged
+        var rule = new MD052_ReferenceLinksImages();
+        var analysis = new MarkdownDocumentAnalysis("Press [Ctrl] + [C] to copy the text.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD052_WhenFootnoteStyleBracketsThenNoViolation()
+    {
+        // Valid: footnote-style brackets like [1], [2] in academic text
+        var rule = new MD052_ReferenceLinksImages();
+        var analysis = new MarkdownDocumentAnalysis("This claim needs a citation [1].");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD052_WhenSingleWordInBracketsThenNoViolation()
+    {
+        // Valid: single words in brackets are typically not reference links
+        var rule = new MD052_ReferenceLinksImages();
+        var analysis = new MarkdownDocumentAnalysis("hey [what] is going on");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD053 - Link Image Reference Definitions

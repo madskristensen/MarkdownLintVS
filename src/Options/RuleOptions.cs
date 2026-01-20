@@ -226,8 +226,8 @@ namespace MarkdownLintVS.Options
         [Category("5. Links")]
         [DisplayName("MD052 - reference-links-images")]
         [Description("Reference links and images should use a label that is defined")]
-        [DefaultValue(true)]
-        public bool MD052 { get; set; } = true;
+        [DefaultValue(false)]
+        public bool MD052 { get; set; } = false;
 
         [Category("5. Links")]
         [DisplayName("MD053 - link-image-reference-definitions")]

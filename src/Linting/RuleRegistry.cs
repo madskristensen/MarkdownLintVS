@@ -180,7 +180,8 @@ namespace MarkdownLintVS.Linting
                 "Link fragments should be valid"));
 
             Register(new RuleInfo("MD052", "reference-links-images", ["reference_links_images"],
-                "Reference links and images should use a label that is defined"));
+                "Reference links and images should use a label that is defined",
+                enabledByDefault: false));
 
             Register(new RuleInfo("MD053", "link-image-reference-definitions", ["link_image_reference_definitions"],
                 "Link and image reference definitions should be needed"));

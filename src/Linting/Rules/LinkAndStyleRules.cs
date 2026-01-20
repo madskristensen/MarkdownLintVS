@@ -264,6 +264,10 @@ namespace MarkdownLintVS.Linting.Rules
                         if (label == " " || label.Equals("x", StringComparison.OrdinalIgnoreCase))
                             continue;
 
+                        // Skip common false positive patterns to avoid flagging valid markdown
+                        if (LooksLikeNonReference(label))
+                            continue;
+
                         if (!definedLabels.Contains(label.ToLowerInvariant()))
                         {
                             yield return CreateViolation(
@@ -276,6 +280,37 @@ namespace MarkdownLintVS.Linting.Rules
                     }
                 }
             }
+        }
+
+        private static readonly Regex _numericPattern = new(@"^\d+$", RegexOptions.Compiled);
+        private static readonly Regex _singleWordPattern = new(@"^\w+$", RegexOptions.Compiled);
+        private static readonly HashSet<string> _keyboardKeys = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Ctrl", "Alt", "Shift", "Tab", "Enter", "Esc", "Escape", "Space",
+            "Backspace", "Delete", "Del", "Insert", "Ins", "Home", "End",
+            "PageUp", "PageDown", "PgUp", "PgDn", "Up", "Down", "Left", "Right",
+            "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+            "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+        };
+
+        private static bool LooksLikeNonReference(string label)
+        {
+            // Skip numeric labels like [1], [2] (footnote-style)
+            if (_numericPattern.IsMatch(label))
+                return true;
+
+            // Skip keyboard key names like [Ctrl], [Alt], [A], [F1]
+            if (_keyboardKeys.Contains(label))
+                return true;
+
+            // Skip single words without hyphens like [what], [example], [note]
+            // These are typically bracketed text, not intended reference links
+            // Real reference links usually have hyphens like [my-link] or multiple words
+            if (_singleWordPattern.IsMatch(label))
+                return true;
+
+            return false;
         }
     }
 
