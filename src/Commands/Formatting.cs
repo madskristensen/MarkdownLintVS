@@ -1,8 +1,4 @@
-using System.Collections.Generic;
 using System.Linq;
-using MarkdownLintVS.CodeFixes;
-using MarkdownLintVS.CodeFixes.Actions;
-using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -16,14 +12,14 @@ namespace MarkdownLintVS.Commands
     /// </summary>
     public static class Formatting
     {
-        private const string MarkdownContentType = "markdown";
-        private const string VsMarkdownContentType = "vs-markdown";
+        private const string _markdownContentType = "markdown";
+        private const string _vsMarkdownContentType = "vs-markdown";
 
         public static async Task InitializeAsync()
         {
             // Intercept the formatting commands for Markdown files
-            await VS.Commands.InterceptAsync(VSConstants.VSStd2KCmdID.FORMATDOCUMENT, () => ExecuteOnMarkdownDocument(FormatDocument));
-            await VS.Commands.InterceptAsync(VSConstants.VSStd2KCmdID.FORMATSELECTION, () => ExecuteOnMarkdownDocument(FormatSelection));
+            _ = await VS.Commands.InterceptAsync(VSConstants.VSStd2KCmdID.FORMATDOCUMENT, () => ExecuteOnMarkdownDocument(FormatDocument));
+            _ = await VS.Commands.InterceptAsync(VSConstants.VSStd2KCmdID.FORMATSELECTION, () => ExecuteOnMarkdownDocument(FormatSelection));
         }
 
         /// <summary>
@@ -50,9 +46,6 @@ namespace MarkdownLintVS.Commands
                     {
                         action(doc);
                     }
-
-                    // If Off or user cancelled, let Visual Studio handle the command normally
-                    return behavior == FormatDocumentBehavior.On ? CommandProgression.Stop : CommandProgression.Continue;
                 }
 
                 return CommandProgression.Continue;
@@ -95,7 +88,7 @@ namespace MarkdownLintVS.Commands
 
         private static bool IsMarkdownContentType(Microsoft.VisualStudio.Utilities.IContentType contentType)
         {
-            return contentType.IsOfType(MarkdownContentType) || contentType.IsOfType(VsMarkdownContentType);
+            return contentType.IsOfType(_markdownContentType) || contentType.IsOfType(_vsMarkdownContentType);
         }
 
         private static void FormatDocument(DocumentView doc)
