@@ -485,4 +485,167 @@ public sealed class ListRuleTests
     }
 
     #endregion
+
+    #region MD007 - Unordered List Indentation
+
+    [TestMethod]
+    public void MD007_WhenDefault2SpaceIndentThenNoViolations()
+    {
+        var rule = new MD007_UlIndent();
+        var markdown =
+            "* List item\n" +
+            "  * Nested list item indented by 2 spaces\n" +
+            "    * Deeply nested";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenWrongIndentationThenReportsViolation()
+    {
+        var rule = new MD007_UlIndent();
+        var markdown =
+            "* List item\n" +
+            "   * Nested list item indented by 3 spaces";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD007", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD007_WhenConfigured4SpaceIndentThenNoViolations()
+    {
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration();
+        config.Parameters["indent"] = "4";
+        var markdown =
+            "* List item\n" +
+            "    * Nested list item indented by 4 spaces";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenConfigured4SpaceIndentWith2SpacesThenReportsViolation()
+    {
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration();
+        config.Parameters["indent"] = "4";
+        var markdown =
+            "* List item\n" +
+            "  * Nested list item indented by 2 spaces";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenStartIndentedThenFirstLevelMustBeIndented()
+    {
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration();
+        config.Parameters["start_indented"] = "true";
+        var markdown =
+            "  * List item at 2 spaces\n" +
+            "    * Nested at 4 spaces";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenStartIndentedAndNoIndentThenReportsViolation()
+    {
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration();
+        config.Parameters["start_indented"] = "true";
+        var markdown =
+            "* List item at 0 spaces";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("2 spaces", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD007_WhenStartIndentAndCustomValueThenUsesCustomIndent()
+    {
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration();
+        config.Parameters["start_indented"] = "true";
+        config.Parameters["start_indent"] = "4";
+        var markdown =
+            "    * List item at 4 spaces\n" +
+            "      * Nested at 6 spaces";  // 4 + 2 (default indent)
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenMixedOrderedUnorderedThenOnlyChecksUnordered()
+    {
+        // Per docs: "This rule applies to a sublist only if its parent lists are all also unordered"
+        var rule = new MD007_UlIndent();
+        var markdown =
+            "1. Ordered item\n" +
+            "   * Unordered sublist with 3 spaces";  // MD007 should not apply here
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Nested unordered under ordered - rule should not apply per docs
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenDeeplyNestedThenChecksAllLevels()
+    {
+        var rule = new MD007_UlIndent();
+        var markdown =
+            "* Level 0\n" +
+            "  * Level 1\n" +
+            "    * Level 2\n" +
+            "      * Level 3";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_ViolationMessageContainsExpectedAndActualIndent()
+    {
+        var rule = new MD007_UlIndent();
+        var markdown =
+            "* List item\n" +
+            "   * Wrong indent";  // 3 spaces instead of 2
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("2 spaces", violations[0].Message);  // expected
+        Assert.Contains("found 3", violations[0].Message);   // actual
+    }
+
+    #endregion
 }

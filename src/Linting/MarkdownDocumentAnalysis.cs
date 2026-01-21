@@ -249,6 +249,25 @@ namespace MarkdownLintVS.Linting
             return _codeBlockLines.Contains(lineNumber);
         }
 
+        /// <summary>
+        /// Gets the code language for a line if it's inside a fenced code block.
+        /// Returns null if the line is not in a fenced code block.
+        /// </summary>
+        public string GetCodeBlockLanguage(int lineNumber)
+        {
+            foreach (FencedCodeBlock codeBlock in GetFencedCodeBlocks())
+            {
+                var startLine = codeBlock.Line;
+                var endLine = GetBlockEndLine(codeBlock);
+
+                if (lineNumber >= startLine && lineNumber <= endLine)
+                {
+                    return codeBlock.Info?.ToLowerInvariant() ?? string.Empty;
+                }
+            }
+            return null;
+        }
+
         public bool IsLineInHtmlBlock(int lineNumber)
         {
             return _htmlBlockLines.Contains(lineNumber);

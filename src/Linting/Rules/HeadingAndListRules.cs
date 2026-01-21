@@ -462,11 +462,13 @@ namespace MarkdownLintVS.Linting.Rules
             DiagnosticSeverity severity)
         {
             var indent = configuration.GetIntParameter("indent", 2);
+            var startIndented = configuration.GetBoolParameter("start_indented", false);
+            var startIndent = configuration.GetIntParameter("start_indent", indent);
 
             // Only process top-level lists (not nested lists, which are handled recursively)
             foreach (ListBlock list in analysis.GetLists().Where(l => l.BulletType != '1' && l.Parent is MarkdownDocument))
             {
-                foreach (LintViolation violation in AnalyzeList(list, analysis, severity, indent, 0))
+                foreach (LintViolation violation in AnalyzeList(list, analysis, severity, indent, startIndented, startIndent, 0))
                 {
                     yield return violation;
                 }
@@ -474,7 +476,7 @@ namespace MarkdownLintVS.Linting.Rules
         }
 
         private IEnumerable<LintViolation> AnalyzeList(ListBlock list, MarkdownDocumentAnalysis analysis,
-            DiagnosticSeverity severity, int expectedIndent, int level)
+            DiagnosticSeverity severity, int expectedIndent, bool startIndented, int startIndent, int level)
         {
             foreach (Block item in list)
             {
@@ -482,7 +484,21 @@ namespace MarkdownLintVS.Linting.Rules
                 {
                     var line = analysis.GetLine(listItem.Line);
                     var actualIndent = GetIndentLevel(line);
-                    var expected = level * expectedIndent;
+
+                    // Calculate expected indentation for this level
+                    int expected;
+                    if (level == 0 && startIndented)
+                    {
+                        expected = startIndent;
+                    }
+                    else if (startIndented)
+                    {
+                        expected = startIndent + (level * expectedIndent);
+                    }
+                    else
+                    {
+                        expected = level * expectedIndent;
+                    }
 
                     if (actualIndent != expected)
                     {
@@ -497,7 +513,7 @@ namespace MarkdownLintVS.Linting.Rules
                     {
                         if (child is ListBlock nestedList && nestedList.BulletType != '1')
                         {
-                            foreach (LintViolation violation in AnalyzeList(nestedList, analysis, severity, expectedIndent, level + 1))
+                            foreach (LintViolation violation in AnalyzeList(nestedList, analysis, severity, expectedIndent, startIndented, startIndent, level + 1))
                             {
                                 yield return violation;
                             }

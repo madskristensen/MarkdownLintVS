@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Markdig.Syntax;
 
@@ -18,12 +19,17 @@ namespace MarkdownLintVS.Linting.Rules
             DiagnosticSeverity severity)
         {
             var brSpaces = configuration.GetIntParameter("br_spaces", 2);
+            var codeBlocks = configuration.GetBoolParameter("code_blocks", false);
             var listItemEmptyLines = configuration.GetBoolParameter("list_item_empty_lines", false);
             var strict = configuration.GetBoolParameter("strict", false);
 
             for (var i = 0; i < analysis.LineCount; i++)
             {
-                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
+                if (analysis.IsLineInFrontMatter(i))
+                    continue;
+
+                // Skip code blocks unless code_blocks is true
+                if (!codeBlocks && analysis.IsLineInCodeBlock(i))
                     continue;
 
                 var line = analysis.GetLine(i);
@@ -31,8 +37,11 @@ namespace MarkdownLintVS.Linting.Rules
 
                 if (trailingSpaces > 0)
                 {
+                    // brSpaces must be >= 2 to take effect; value of 1 behaves like 0
+                    var effectiveBrSpaces = brSpaces >= 2 ? brSpaces : 0;
+
                     // Allow exactly brSpaces for line breaks (unless strict mode)
-                    if (!strict && trailingSpaces == brSpaces)
+                    if (!strict && effectiveBrSpaces > 0 && trailingSpaces == effectiveBrSpaces)
                         continue;
 
                     // Check for list item empty lines
@@ -78,16 +87,30 @@ namespace MarkdownLintVS.Linting.Rules
             DiagnosticSeverity severity)
         {
             var codeBlocks = configuration.GetBoolParameter("code_blocks", true);
-            var ignoreCodeLanguages = configuration.GetStringParameter("ignore_code_languages", "");
-            var spacesPerTab = configuration.GetIntParameter("spaces_per_tab", 4);
+            var ignoreCodeLanguagesStr = configuration.GetStringParameter("ignore_code_languages", "");
+            var spacesPerTab = configuration.GetIntParameter("spaces_per_tab", 1);
+
+            // Parse ignore_code_languages into a set for fast lookup
+            var ignoreCodeLanguages = new HashSet<string>(
+                ignoreCodeLanguagesStr.Split(new[] { ',', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim().ToLowerInvariant()));
 
             for (var i = 0; i < analysis.LineCount; i++)
             {
                 if (analysis.IsLineInFrontMatter(i))
                     continue;
 
-                if (!codeBlocks && analysis.IsLineInCodeBlock(i))
-                    continue;
+                if (analysis.IsLineInCodeBlock(i))
+                {
+                    // Skip if code_blocks is false
+                    if (!codeBlocks)
+                        continue;
+
+                    // Check if this code block's language should be ignored
+                    var language = analysis.GetCodeBlockLanguage(i);
+                    if (language != null && ignoreCodeLanguages.Contains(language))
+                        continue;
+                }
 
                 var line = analysis.GetLine(i);
                 var tabIndex = line.IndexOf('\t');
