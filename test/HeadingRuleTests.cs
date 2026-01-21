@@ -973,4 +973,101 @@ public sealed class HeadingRuleTests
     }
 
     #endregion
+
+    #region MD026 - Trailing Punctuation in Heading
+
+    [TestMethod]
+    public void MD026_WhenNoTrailingPunctuationThenNoViolation()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# This is a heading\n\n## Another heading");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD026_WhenTrailingPeriodThenReportsViolation()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# This is a heading.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD026", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD026_WhenTrailingExclamationThenReportsViolation()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# Important!");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD026_WhenTrailingQuestionMarkThenNoViolation()
+    {
+        // Per docs: ? is allowed by default
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# What is this?");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD026_WhenCustomPunctuationThenUsesIt()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var config = new RuleConfiguration();
+        config.Parameters["punctuation"] = ".,;:";  // No ! so exclamation allowed
+        var analysis = new MarkdownDocumentAnalysis("# Important!");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD026_WhenClosedAtxWithPunctuationThenReportsViolation()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# This is a heading. #");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD026_ViolationMessageContainsPunctuation()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# Heading!");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("!", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD026_WhenMultipleHeadingsWithPunctuationThenReportsAll()
+    {
+        var rule = new MD026_NoTrailingPunctuation();
+        var analysis = new MarkdownDocumentAnalysis("# First.\n\n## Second!");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+    }
+
+    #endregion
 }

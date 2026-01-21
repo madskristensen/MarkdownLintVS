@@ -93,5 +93,59 @@ public sealed class BlockquoteRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD028_WhenBlockquoteWithBlankPrefixLineThenNoViolation()
+    {
+        // Per docs: blockquote symbol at beginning of blank line keeps it same quote
+        var rule = new MD028_NoBlanksBlockquote();
+        var analysis = new MarkdownDocumentAnalysis("> line 1\n>\n> line 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD028_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD028_NoBlanksBlockquote();
+        var analysis = new MarkdownDocumentAnalysis("> quote 1\n\n> quote 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("Blank line", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD027 Additional Tests
+
+    [TestMethod]
+    public void MD027_WhenListItemsDisabledThenSkipsListItems()
+    {
+        var rule = new MD027_NoMultipleSpaceBlockquote();
+        var config = new RuleConfiguration();
+        config.Parameters["list_items"] = "false";
+        var analysis = new MarkdownDocumentAnalysis(">  - list item with extra space");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        // With list_items=false, should skip list items
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD027_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD027_NoMultipleSpaceBlockquote();
+        var analysis = new MarkdownDocumentAnalysis(">  extra space");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("Multiple spaces", violations[0].Message);
+    }
+
     #endregion
 }

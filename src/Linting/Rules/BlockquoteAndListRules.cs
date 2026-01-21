@@ -17,17 +17,29 @@ namespace MarkdownLintVS.Linting.Rules
             @"^(\s*>)+\s{2,}",
             RegexOptions.Compiled);
 
+        // Pattern to detect list items inside blockquotes
+        private static readonly Regex _blockquoteListItemPattern = new(
+            @"^(\s*>)+\s*[-*+]\s|^(\s*>)+\s*\d+\.\s",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
+            var listItems = configuration.GetBoolParameter("list_items", true);
+
             for (var i = 0; i < analysis.LineCount; i++)
             {
                 if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
                     continue;
 
                 var line = analysis.GetLine(i);
+
+                // Skip list items if list_items is false
+                if (!listItems && _blockquoteListItemPattern.IsMatch(line))
+                    continue;
+
                 if (_multipleSpaceBlockquotePattern.IsMatch(line))
                 {
                     yield return CreateLineViolation(
