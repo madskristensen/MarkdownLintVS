@@ -880,4 +880,155 @@ public sealed class WhitespaceRuleTests
     }
 
     #endregion
+
+    #region MD013 - Unicode Character Counting (Issue #1458)
+
+    [TestMethod]
+    public void MD013_WhenMultiByteUnicodeCharactersThenCountsVisualCharacters()
+    {
+        // Issue #1458: Multi-byte Unicode characters should be counted as single visual characters
+        // Math italic characters like 𝑣 (U+1D463) are 2 UTF-16 code units but 1 visual character
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "80";
+        config.Parameters["strict"] = "true";
+
+        // This line has 74 visual characters but would be 85+ if counting UTF-16 code units
+        // Using math italic Unicode characters: 𝑣, 𝑛, 𝑇, 𝐾
+        var analysis = new MarkdownDocumentAnalysis("- $\\forall 𝑣_1, 𝑣_2, 𝑣_𝑛 \\in 𝑇_𝑛: 𝑣_1, 𝑣_2, 𝑣_𝑛 \\in 𝐾$");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        // Should NOT report a violation because visual length is under 80
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenEmojiCharactersThenCountsAsVisualCharacters()
+    {
+        // Emoji are multi-byte but should count as single visual characters
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "20";
+        config.Parameters["strict"] = "true";
+
+        // 15 visible characters: "Hello 🎉🎊🎈 world" (15 visual chars)
+        var analysis = new MarkdownDocumentAnalysis("Hello 🎉🎊🎈 world");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        // Should NOT report a violation because visual length is 15 (under 20)
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenEmojiExceedsLimitThenReportsCorrectLength()
+    {
+        // When emoji line does exceed limit, reported length should be visual characters
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "10";
+        config.Parameters["strict"] = "true";
+
+        // 15 visible characters: "Hello 🎉🎊🎈 world"
+        var analysis = new MarkdownDocumentAnalysis("Hello 🎉🎊🎈 world");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        // Message should report visual length (15), not UTF-16 length (18)
+        Assert.Contains("15", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD013_WhenCjkCharactersThenCountsCorrectly()
+    {
+        // CJK characters are typically single code points but visually wider
+        // For line length purposes, they should count as their code point count
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "20";
+        config.Parameters["strict"] = "true";
+
+        // 12 visual characters: "Hello 世界 test"
+        var analysis = new MarkdownDocumentAnalysis("Hello 世界 test");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenCombiningCharactersThenCountsAsOneWithBase()
+    {
+        // Combining characters (like accents) should count together with their base character
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "15";
+        config.Parameters["strict"] = "true";
+
+        // "café" with combining acute accent (e + combining acute = 1 visual char)
+        // Visual length should be ~10, not more
+        var analysis = new MarkdownDocumentAnalysis("Test cafe\u0301 end");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        // "Test cafe\u0301 end" = 13 visual characters, should be under 15
+        Assert.IsEmpty(violations);
+    }
+
+    #endregion
+
+    #region MD011 - R Markdown Citation Syntax (Issue #1670)
+
+    [TestMethod]
+    public void MD011_WhenRMarkdownCitationAfterParensThenNoViolation()
+    {
+        // Issue #1670: R Markdown citation syntax (something)[@citekey] should not be flagged
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("(something)[@citekey]");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenRMarkdownCitationWithMultipleKeysThenNoViolation()
+    {
+        // Multiple citation keys: [@key-1; @key-2; @key-3]
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("See (Smith, 2020)[@smith2020; @jones2021] for details.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenRMarkdownSuppressAuthorCitationThenNoViolation()
+    {
+        // Suppress author citation: [-@citekey]
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("(2020)[-@R-base]");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenActualReversedLinkWithAtSymbolInPathThenReportsViolation()
+    {
+        // A real reversed link that happens to have @ in the path should still be flagged
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("(https://example.com/@user/repo)[link text]");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD011", violations[0].Rule.Id);
+    }
+
+    #endregion
 }

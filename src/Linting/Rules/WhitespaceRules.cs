@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Markdig.Syntax;
@@ -144,6 +145,11 @@ namespace MarkdownLintVS.Linting.Rules
             @"\(([^)]+)\)\[([^\]]+)\]",
             RegexOptions.Compiled);
 
+        // R Markdown citation pattern: [@citekey] or [@key1; @key2] or [-@key]
+        private static readonly Regex _citationPattern = new(
+            @"^\[[-]?@[\w:-]+(?:;\s*[-]?@[\w:-]+)*\]$",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -160,6 +166,12 @@ namespace MarkdownLintVS.Linting.Rules
                 foreach (Match match in matches)
                 {
                     var parenContent = match.Groups[1].Value;
+                    var bracketContent = match.Groups[2].Value;
+
+                    // Issue #1670: Skip R Markdown citation syntax (something)[@citekey]
+                    // Citation patterns: [@key], [@key1; @key2], [-@key]
+                    if (LooksLikeCitation(bracketContent))
+                        continue;
 
                     // Only flag if the parentheses content looks like a URL
                     // This avoids false positives like (value)[0] or (obj)[key]
@@ -188,6 +200,18 @@ namespace MarkdownLintVS.Linting.Rules
                    text.StartsWith("../") ||
                    text.StartsWith(".\\") ||
                    text.StartsWith("..\\");
+        }
+
+        private static bool LooksLikeCitation(string text)
+        {
+            // R Markdown/Pandoc citation syntax:
+            // @citekey, -@citekey (suppress author), multiple keys separated by ;
+            // Examples: @smith2020, -@jones2021, @key1; @key2; @key3
+            if (string.IsNullOrEmpty(text))
+                return false;
+
+            // Check if text starts with @ or -@ (citation indicator)
+            return text.StartsWith("@") || text.StartsWith("-@");
         }
     }
 
@@ -303,7 +327,11 @@ namespace MarkdownLintVS.Linting.Rules
                 if (!tables && line.TrimStart().StartsWith("|"))
                     continue;
 
-                if (line.Length <= maxLength)
+                // Use visual character count (grapheme clusters) instead of UTF-16 code units
+                // This fixes Issue #1458: multi-byte Unicode characters counted incorrectly
+                var visualLength = GetVisualLength(line);
+
+                if (visualLength <= maxLength)
                     continue;
 
                 // Check if line exceeds limit
@@ -314,21 +342,13 @@ namespace MarkdownLintVS.Linting.Rules
                         i,
                         maxLength,
                         line.Length,
-                        $"Line length is {line.Length} (maximum {maxLength})",
+                        $"Line length is {visualLength} (maximum {maxLength})",
                         severity);
                 }
                 else
                 {
-                    // Check if there's whitespace beyond the limit
-                    var hasWhitespaceBeyondLimit = false;
-                    for (var j = maxLength; j < line.Length; j++)
-                    {
-                        if (char.IsWhiteSpace(line[j]))
-                        {
-                            hasWhitespaceBeyondLimit = true;
-                            break;
-                        }
-                    }
+                    // Check if there's whitespace beyond the limit (using visual position)
+                    var hasWhitespaceBeyondLimit = HasWhitespaceBeyondVisualLimit(line, maxLength);
 
                     if (stern)
                     {
@@ -339,7 +359,7 @@ namespace MarkdownLintVS.Linting.Rules
                                 i,
                                 maxLength,
                                 line.Length,
-                                $"Line length is {line.Length} (maximum {maxLength})",
+                                $"Line length is {visualLength} (maximum {maxLength})",
                                 severity);
                         }
                     }
@@ -352,12 +372,57 @@ namespace MarkdownLintVS.Linting.Rules
                                 i,
                                 maxLength,
                                 line.Length,
-                                $"Line length is {line.Length} (maximum {maxLength})",
+                                $"Line length is {visualLength} (maximum {maxLength})",
                                 severity);
                         }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets the visual length of a string by counting grapheme clusters (text elements)
+        /// instead of UTF-16 code units. This correctly handles:
+        /// - Multi-byte Unicode characters (emoji, math symbols)
+        /// - Combining characters (accents, diacritics)
+        /// - Surrogate pairs
+        /// </summary>
+        private static int GetVisualLength(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return 0;
+
+            var enumerator = StringInfo.GetTextElementEnumerator(text);
+            var count = 0;
+            while (enumerator.MoveNext())
+            {
+                count++;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Checks if there's whitespace beyond the visual character limit.
+        /// </summary>
+        private static bool HasWhitespaceBeyondVisualLimit(string line, int maxLength)
+        {
+            var enumerator = StringInfo.GetTextElementEnumerator(line);
+            var visualIndex = 0;
+
+            while (enumerator.MoveNext())
+            {
+                if (visualIndex >= maxLength)
+                {
+                    var textElement = enumerator.GetTextElement();
+                    if (textElement.Length > 0 && char.IsWhiteSpace(textElement[0]))
+                    {
+                        return true;
+                    }
+                }
+                visualIndex++;
+            }
+
+            return false;
         }
     }
 

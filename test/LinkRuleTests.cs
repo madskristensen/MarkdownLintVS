@@ -490,6 +490,83 @@ public sealed class LinkRuleTests
 
     #endregion
 
+    #region MD051 - kramdown IAL Support (Issue #726)
+
+    [TestMethod]
+    public void MD051_WhenKramdownBlockIALIdThenNoViolation()
+    {
+        // Issue #726: kramdown block IAL syntax {:#id} should be recognized
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "This is a paragraph I want to link to.\n" +
+            "{:#the-paragraph-id}\n\n" +
+            "Later, I link to [the paragraph](#the-paragraph-id).");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenKramdownBlockIALWithClassAndIdThenNoViolation()
+    {
+        // kramdown IAL can have both class and id: {:.class #id}
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "Some paragraph content.\n" +
+            "{:.highlight #custom-anchor}\n\n" +
+            "[Link to paragraph](#custom-anchor)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenKramdownSpanIALIdThenNoViolation()
+    {
+        // kramdown span IAL: text{:#id}
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "This is some text{:#inline-anchor} in a paragraph.\n\n" +
+            "[Link to text](#inline-anchor)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenKramdownHeadingIALIdThenNoViolation()
+    {
+        // kramdown heading with custom ID: ## Heading {:#custom-id}
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "## Some Heading {:#my-custom-id}\n\n" +
+            "[Link to heading](#my-custom-id)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenKramdownIALAndInvalidFragmentThenReportsViolation()
+    {
+        // Should still report invalid fragments even with IAL support
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "Paragraph\n{:#valid-id}\n\n" +
+            "[Invalid link](#non-existent-id)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("non-existent-id", violations[0].Message);
+    }
+
+    #endregion
+
     #region MD052 Additional Tests
 
     [TestMethod]

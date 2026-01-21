@@ -141,6 +141,17 @@ namespace MarkdownLintVS.Linting.Rules
             @"(?:id|name)\s*=\s*[""']?([^""'\s>]+)[""']?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        // Issue #726: kramdown block IAL pattern: {:#id} or {:.class #id} or {: #id .class}
+        // Can appear on its own line after a block, or inline at end of heading
+        private static readonly Regex _kramdownIalIdPattern = new(
+            @"\{:\s*(?:[^}]*\s)?#([^\s}]+)(?:\s[^}]*)?\}",
+            RegexOptions.Compiled);
+
+        // kramdown heading IAL: ## Heading {:#custom-id}
+        private static readonly Regex _kramdownHeadingIalPattern = new(
+            @"\{:#([^\s}]+)\}\s*$",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -152,23 +163,49 @@ namespace MarkdownLintVS.Linting.Rules
             // Add IDs from markdown headings
             foreach (HeadingBlock heading in analysis.GetHeadings())
             {
-                var content = GetHeadingContent(heading.Line, analysis);
-                var id = CreateHeadingId(content);
-                headingIds.Add(id);
+                var line = analysis.GetLine(heading.Line);
+
+                // Check for kramdown heading IAL: ## Heading {:#custom-id}
+                Match kramdownMatch = _kramdownHeadingIalPattern.Match(line);
+                if (kramdownMatch.Success)
+                {
+                    headingIds.Add(kramdownMatch.Groups[1].Value);
+                    // Remove the IAL from content for generating default ID
+                    var contentWithoutIal = _kramdownHeadingIalPattern.Replace(line, "");
+                    var content = contentWithoutIal.TrimStart('#', ' ').TrimEnd('#', ' ');
+                    var id = CreateHeadingId(content);
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        headingIds.Add(id);
+                    }
+                }
+                else
+                {
+                    var content = GetHeadingContent(heading.Line, analysis);
+                    var id = CreateHeadingId(content);
+                    headingIds.Add(id);
+                }
 
                 // Also check for explicit id in heading line (e.g., ## <a id="custom">Heading</a>)
-                var line = analysis.GetLine(heading.Line);
                 foreach (Match match in _htmlIdPattern.Matches(line))
                 {
                     headingIds.Add(match.Groups[1].Value);
                 }
             }
 
-            // Scan all lines for HTML id/name attributes (for anchors outside headings)
+            // Scan all lines for HTML id/name attributes and kramdown IAL IDs
             for (var i = 0; i < analysis.LineCount; i++)
             {
                 var line = analysis.GetLine(i);
+
+                // HTML id/name attributes
                 foreach (Match match in _htmlIdPattern.Matches(line))
+                {
+                    headingIds.Add(match.Groups[1].Value);
+                }
+
+                // Issue #726: kramdown block/span IAL IDs {:#id} or {:.class #id}
+                foreach (Match match in _kramdownIalIdPattern.Matches(line))
                 {
                     headingIds.Add(match.Groups[1].Value);
                 }
