@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to add blockquote prefix to blank line inside blockquote (MD028).
     /// </summary>
+    [FixForRule("MD028")]
     public class AddBlockquotePrefixAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add '>' prefix to blank line";

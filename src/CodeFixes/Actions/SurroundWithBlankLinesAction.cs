@@ -7,6 +7,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to surround a list with blank lines (MD032).
     /// </summary>
+    [FixForRule("MD032")]
     public class SurroundWithBlankLinesAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         private static readonly Regex _listItemPattern = new(

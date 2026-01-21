@@ -6,6 +6,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove spaces inside link text (MD039).
     /// </summary>
+    [FixForRule("MD039", SpanType = FixSpanType.Violation)]
     public class RemoveSpaceInLinkTextAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove spaces inside link text";

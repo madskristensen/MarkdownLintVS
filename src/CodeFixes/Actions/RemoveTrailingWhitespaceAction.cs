@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove trailing whitespace from a line (MD009).
     /// </summary>
+    [FixForRule("MD009")]
     public class RemoveTrailingWhitespaceAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove trailing whitespace";

@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove trailing punctuation from a heading (MD026).
     /// </summary>
+    [FixForRule("MD026")]
     public class RemoveTrailingPunctuationAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         private const string PunctuationChars = ".,;:!。，；：！";

@@ -12,9 +12,6 @@ namespace MarkdownLintVS.Commands
     /// </summary>
     public static class Formatting
     {
-        private const string _markdownContentType = "markdown";
-        private const string _vsMarkdownContentType = "vs-markdown";
-
         public static async Task InitializeAsync()
         {
             // Intercept the formatting commands for Markdown files
@@ -88,7 +85,7 @@ namespace MarkdownLintVS.Commands
 
         private static bool IsMarkdownContentType(Microsoft.VisualStudio.Utilities.IContentType contentType)
         {
-            return contentType.IsOfType(_markdownContentType) || contentType.IsOfType(_vsMarkdownContentType);
+            return contentType.IsOfType(ContentTypes.Markdown) || contentType.IsOfType(ContentTypes.VsMarkdown);
         }
 
         private static void FormatDocument(DocumentView doc)

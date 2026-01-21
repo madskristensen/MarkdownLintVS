@@ -22,16 +22,12 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            for (var i = 0; i < analysis.LineCount; i++)
+            foreach (var (lineNumber, line) in analysis.GetAnalyzableLines())
             {
-                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
-                    continue;
-
-                var line = analysis.GetLine(i);
                 if (AtxNoSpacePattern.IsMatch(line))
                 {
                     yield return CreateLineViolation(
-                        i,
+                        lineNumber,
                         line,
                         "No space after hash on atx style heading",
                         severity,
@@ -96,12 +92,8 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            for (var i = 0; i < analysis.LineCount; i++)
+            foreach (var (lineNumber, line) in analysis.GetAnalyzableLines())
             {
-                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
-                    continue;
-
-                var line = analysis.GetLine(i);
                 Match match = ClosedAtxPattern.Match(line);
                 if (match.Success)
                 {
@@ -123,7 +115,7 @@ namespace MarkdownLintVS.Linting.Rules
                     if (hasMissingSpace)
                     {
                         yield return CreateLineViolation(
-                            i,
+                            lineNumber,
                             line,
                             "No space inside hashes on closed atx style heading",
                             severity,
@@ -151,18 +143,14 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            for (var i = 0; i < analysis.LineCount; i++)
+            foreach (var (lineNumber, line) in analysis.GetAnalyzableLines())
             {
-                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
-                    continue;
-
-                var line = analysis.GetLine(i);
                 if (line.Contains("#") && line.TrimEnd().EndsWith("#"))
                 {
                     if (ClosedAtxMultipleSpacePattern.IsMatch(line))
                     {
                         yield return CreateLineViolation(
-                            i,
+                            lineNumber,
                             line,
                             "Multiple spaces inside hashes on closed atx style heading",
                             severity,

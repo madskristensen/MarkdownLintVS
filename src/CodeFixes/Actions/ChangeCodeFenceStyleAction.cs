@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -6,6 +7,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to change code fence style between backtick and tilde (MD048).
     /// </summary>
+    [FixForRule("MD048", RequiresFactory = true)]
     public class ChangeCodeFenceStyleAction(ITextSnapshot snapshot, Span span, string targetStyle) : MarkdownFixAction(snapshot, span)
     {
         private static readonly Regex _backtickFencePattern = new(
@@ -17,6 +19,23 @@ namespace MarkdownLintVS.CodeFixes.Actions
             RegexOptions.Compiled);
 
         public override string DisplayText => $"Change code fence to {targetStyle}";
+
+        /// <summary>
+        /// Creates a fix action by extracting the expected style from the violation message.
+        /// </summary>
+        public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
+        {
+            var style = ExtractExpectedStyle(violation.Message);
+            return style != null ? new ChangeCodeFenceStyleAction(snapshot, span, style) : null;
+        }
+
+        private static string ExtractExpectedStyle(string message)
+        {
+            Match match = Regex.Match(message, @"expected '([^']+)'|Expected:\s*(\w+)");
+            if (match.Success)
+                return match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+            return null;
+        }
 
         public override void ApplyFix(ITextEdit edit)
         {

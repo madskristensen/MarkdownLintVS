@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove leading whitespace from a heading (MD023).
     /// </summary>
+    [FixForRule("MD023")]
     public class RemoveLeadingWhitespaceAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove leading whitespace";

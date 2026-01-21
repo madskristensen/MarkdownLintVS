@@ -6,6 +6,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove dollar sign from command (MD014).
     /// </summary>
+    [FixForRule("MD014")]
     public class RemoveDollarSignAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove $ from command";

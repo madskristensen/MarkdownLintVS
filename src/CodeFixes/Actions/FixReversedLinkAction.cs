@@ -6,6 +6,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to swap reversed link syntax (MD011).
     /// </summary>
+    [FixForRule("MD011", SpanType = FixSpanType.Violation)]
     public class FixReversedLinkAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Fix reversed link syntax";

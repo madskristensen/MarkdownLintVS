@@ -6,6 +6,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to normalize space after list marker (MD030).
     /// </summary>
+    [FixForRule("MD030")]
     public class NormalizeListMarkerSpaceAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Use single space after list marker";

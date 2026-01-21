@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -6,23 +7,31 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to change emphasis style between asterisk and underscore (MD049).
     /// </summary>
-    public class ChangeEmphasisStyleAction(ITextSnapshot snapshot, Span span, string targetStyle) : MarkdownFixAction(snapshot, span)
+    [FixForRule("MD049", SpanType = FixSpanType.Violation, RequiresFactory = true)]
+    public class ChangeEmphasisStyleAction(ITextSnapshot snapshot, Span span, string targetStyle) 
+        : ChangeInlineStyleAction(snapshot, span, targetStyle)
     {
-        public override string DisplayText => $"Change emphasis to {targetStyle}";
+        protected override string StyleTypeName => "emphasis";
+        protected override string ToAsteriskPattern => @"(?<!\*)_([^_*]+)_(?!\*)";
+        protected override string ToAsteriskReplacement => "*$1*";
+        protected override string ToUnderscorePattern => @"(?<!\*)\*([^_*]+)\*(?!\*)";
+        protected override string ToUnderscoreReplacement => "_$1_";
 
-        public override void ApplyFix(ITextEdit edit)
+        /// <summary>
+        /// Creates a fix action by extracting the expected style from the violation message.
+        /// </summary>
+        public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
         {
-            edit.Replace(Span, GetFixedText());
+            var style = ExtractExpectedStyle(violation.Message);
+            return style != null ? new ChangeEmphasisStyleAction(snapshot, span, style) : null;
         }
 
-        protected override string GetFixedText()
+        private static string ExtractExpectedStyle(string message)
         {
-            var text = Snapshot.GetText(Span);
-
-            if (targetStyle == "asterisk")
-                return Regex.Replace(text, @"(?<!\*)_([^_*]+)_(?!\*)", "*$1*");
-            else
-                return Regex.Replace(text, @"(?<!\*)\*([^_*]+)\*(?!\*)", "_$1_");
+            Match match = Regex.Match(message, @"expected '([^']+)'|Expected:\s*(\w+)");
+            if (match.Success)
+                return match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+            return null;
         }
     }
 }

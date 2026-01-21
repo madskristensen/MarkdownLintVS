@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to add language to a fenced code block (MD040).
     /// </summary>
+    [FixForRule("MD040")]
     public class AddCodeBlockLanguageAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add language identifier";

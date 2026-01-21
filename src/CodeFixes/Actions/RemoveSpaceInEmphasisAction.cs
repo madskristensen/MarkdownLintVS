@@ -6,6 +6,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove spaces inside emphasis markers (MD037).
     /// </summary>
+    [FixForRule("MD037", SpanType = FixSpanType.Violation)]
     public class RemoveSpaceInEmphasisAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove spaces inside emphasis";

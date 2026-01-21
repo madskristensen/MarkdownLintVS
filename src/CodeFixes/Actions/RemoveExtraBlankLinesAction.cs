@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove extra blank lines (MD012).
     /// </summary>
+    [FixForRule("MD012")]
     public class RemoveExtraBlankLinesAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove extra blank lines";

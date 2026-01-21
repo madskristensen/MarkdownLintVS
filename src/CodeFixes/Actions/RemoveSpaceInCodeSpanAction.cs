@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to remove spaces inside code span elements (MD038).
     /// </summary>
+    [FixForRule("MD038", SpanType = FixSpanType.Violation)]
     public class RemoveSpaceInCodeSpanAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove spaces inside code span";

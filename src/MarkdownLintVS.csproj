@@ -53,9 +53,11 @@
     <Compile Include="CodeFixes\Actions\AddImageAltTextAction.cs" />
     <Compile Include="CodeFixes\Actions\AddSpaceAfterHashAction.cs" />
     <Compile Include="CodeFixes\Actions\AddSpaceBeforeClosingHashAction.cs" />
+    <Compile Include="CodeFixes\Actions\BlankLineActionBase.cs" />
     <Compile Include="CodeFixes\Actions\ChangeCodeFenceStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeEmphasisStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeHorizontalRuleStyleAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeInlineStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeListMarkerAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeStrongStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\FixOrderedListPrefixAction.cs" />
@@ -74,7 +76,9 @@
     <Compile Include="CodeFixes\Actions\ReplaceTabsWithSpacesAction.cs" />
     <Compile Include="CodeFixes\Actions\SurroundWithBlankLinesAction.cs" />
     <Compile Include="CodeFixes\Actions\WrapUrlInBracketsAction.cs" />
+    <Compile Include="CodeFixes\FixActionRegistry.cs" />
     <Compile Include="CodeFixes\FixAllActions.cs" />
+    <Compile Include="CodeFixes\FixForRuleAttribute.cs" />
     <Compile Include="CodeFixes\MarkdownSuggestedActionsSource.cs" />
     <Compile Include="Commands\EnabledCommand.cs" />
     <Compile Include="Commands\Formatting.cs" />
@@ -83,6 +87,7 @@
     <Compile Include="Commands\MarkdownFixApplier.cs" />
     <Compile Include="Commands\SaveCommandHandler.cs" />
     <Compile Include="Commands\SettingsCommand.cs" />
+    <Compile Include="ContentTypes.cs" />
     <Compile Include="ErrorList\MarkdownDocumentListener.cs" />
     <Compile Include="ErrorList\MarkdownLintTableDataSource.cs" />
     <Compile Include="Linting\MarkdownAnalysisCache.cs" />

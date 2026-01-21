@@ -6,6 +6,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to add space before closing hash on closed atx heading (MD020).
     /// </summary>
+    [FixForRule("MD020")]
     public class AddSpaceBeforeClosingHashAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add space before closing #";

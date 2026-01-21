@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using MarkdownLintVS.CodeFixes.Actions;
@@ -43,97 +42,23 @@ namespace MarkdownLintVS.CodeFixes
 
     /// <summary>
     /// Source for markdown lint suggested actions.
+    /// Uses FixActionRegistry to auto-discover available fix actions.
     /// </summary>
     internal class MarkdownSuggestedActionsSource(string filePath) : ISuggestedActionsSource2
     {
-        /// <summary>
-        /// Context passed to fix action factories.
-        /// </summary>
-        private readonly struct FixContext(ITextSnapshot snapshot, ITextSnapshotLine line, LintViolation violation)
-        {
-            public ITextSnapshot Snapshot { get; } = snapshot;
-            public ITextSnapshotLine Line { get; } = line;
-            public LintViolation Violation { get; } = violation;
-            public Span LineSpan => new(Line.Start, Line.Length);
-            public Span ViolationSpan => new(Line.Start + Violation.ColumnStart, Violation.ColumnEnd - Violation.ColumnStart);
-        }
-
-        /// <summary>
-        /// Registry of fix action factories keyed by rule ID.
-        /// </summary>
-        private static readonly Dictionary<string, Func<FixContext, ISuggestedAction>> _fixFactories = new()
-        {
-            ["MD004"] = ctx => ExtractExpectedMarker(ctx.Violation.Message) is char marker
-                ? new ChangeListMarkerAction(ctx.Snapshot, ctx.LineSpan, marker) : null,
-            ["MD009"] = ctx => new RemoveTrailingWhitespaceAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD010"] = ctx => new ReplaceTabsWithSpacesAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD011"] = ctx => new FixReversedLinkAction(ctx.Snapshot, ctx.ViolationSpan),
-            ["MD012"] = ctx => new RemoveExtraBlankLinesAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD014"] = ctx => new RemoveDollarSignAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD018"] = ctx => new AddSpaceAfterHashAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD019"] = ctx => new NormalizeWhitespaceAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD020"] = ctx => new AddSpaceBeforeClosingHashAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD021"] = ctx => new NormalizeWhitespaceAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD022"] = ctx => CreateBlankLineAction(ctx),
-            ["MD023"] = ctx => new RemoveLeadingWhitespaceAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD026"] = ctx => new RemoveTrailingPunctuationAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD027"] = ctx => new NormalizeWhitespaceAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD028"] = ctx => new AddBlockquotePrefixAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD029"] = ctx => ExtractExpectedNumber(ctx.Violation.Message) is int num
-                ? new FixOrderedListPrefixAction(ctx.Snapshot, ctx.LineSpan, num) : null,
-            ["MD030"] = ctx => new NormalizeListMarkerSpaceAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD031"] = ctx => CreateBlankLineAction(ctx),
-            ["MD032"] = ctx => new SurroundWithBlankLinesAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD034"] = ctx => new WrapUrlInBracketsAction(ctx.Snapshot, ctx.ViolationSpan),
-            ["MD035"] = ctx => ExtractExpectedStyle(ctx.Violation.Message) is string style
-                ? new ChangeHorizontalRuleStyleAction(ctx.Snapshot, ctx.LineSpan, style) : null,
-            ["MD037"] = ctx => new RemoveSpaceInEmphasisAction(ctx.Snapshot, ctx.ViolationSpan),
-            ["MD038"] = ctx => new RemoveSpaceInCodeSpanAction(ctx.Snapshot, ctx.ViolationSpan),
-            ["MD039"] = ctx => new RemoveSpaceInLinkTextAction(ctx.Snapshot, ctx.ViolationSpan),
-            ["MD040"] = ctx => new AddCodeBlockLanguageAction(ctx.Snapshot, ctx.LineSpan),
-            ["MD045"] = ctx => new AddImageAltTextAction(ctx.Snapshot, ctx.ViolationSpan),
-            ["MD047"] = ctx => ctx.Violation.Message.Contains("multiple")
-                ? new RemoveExtraBlankLinesAction(ctx.Snapshot, new Span(ctx.Snapshot.Length - 1, 1))
-                : new AddFinalNewlineAction(ctx.Snapshot, new Span(ctx.Snapshot.Length, 0)),
-            ["MD048"] = ctx => ExtractExpectedStyle(ctx.Violation.Message) is string style
-                ? new ChangeCodeFenceStyleAction(ctx.Snapshot, ctx.LineSpan, style) : null,
-            ["MD049"] = ctx => ExtractExpectedStyle(ctx.Violation.Message) is string style
-                ? new ChangeEmphasisStyleAction(ctx.Snapshot, ctx.ViolationSpan, style) : null,
-            ["MD050"] = ctx => ExtractExpectedStyle(ctx.Violation.Message) is string style
-                ? new ChangeStrongStyleAction(ctx.Snapshot, ctx.ViolationSpan, style) : null,
-            ["MD058"] = ctx => CreateBlankLineAction(ctx),
-        };
-
-        private static MarkdownFixAction CreateBlankLineAction(FixContext ctx)
-        {
-            var fixDesc = ctx.Violation.FixDescription ?? ctx.Violation.Message;
-            if (fixDesc.Contains("before"))
-                return new AddBlankLineBeforeAction(ctx.Snapshot, ctx.LineSpan);
-            if (fixDesc.Contains("after"))
-                return new AddBlankLineAfterAction(ctx.Snapshot, ctx.LineSpan);
-            return null;
-        }
-
         /// <summary>
         /// Creates a fix action for a violation. Used by both single-fix and fix-all operations.
         /// </summary>
         public static MarkdownFixAction CreateFixActionForViolation(LintViolation violation, ITextSnapshot snapshot)
         {
             ITextSnapshotLine line = snapshot.GetLineFromLineNumber(Math.Min(violation.LineNumber, snapshot.LineCount - 1));
-            var context = new FixContext(snapshot, line, violation);
-
-            if (_fixFactories.TryGetValue(violation.Rule.Id, out Func<FixContext, ISuggestedAction> factory))
-            {
-                return factory(context) as MarkdownFixAction;
-            }
-
-            return null;
+            return FixActionRegistry.CreateFix(violation, snapshot, line);
         }
 
         /// <summary>
         /// Returns whether a rule has an auto-fix available.
         /// </summary>
-        public static bool IsRuleAutoFixable(string ruleId) => _fixFactories.ContainsKey(ruleId);
+        public static bool IsRuleAutoFixable(string ruleId) => FixActionRegistry.HasFix(ruleId);
 
         public event EventHandler<EventArgs> SuggestedActionsChanged { add { } remove { } }
 
@@ -270,48 +195,6 @@ namespace MarkdownLintVS.CodeFixes
                     yield return violation;
                 }
             }
-        }
-
-        private static char? ExtractExpectedMarker(string message)
-        {
-            // Extract marker from messages like "expected 'dash'" or "should use dash"
-            // Must look for "expected 'X'" pattern to avoid matching "found 'Y'" part
-            if (message.Contains("expected 'dash'") || message.Contains("should use dash"))
-                return '-';
-            if (message.Contains("expected 'asterisk'") || message.Contains("should use asterisk"))
-                return '*';
-            if (message.Contains("expected 'plus'") || message.Contains("should use plus"))
-                return '+';
-            return null;
-        }
-
-        private static int? ExtractExpectedNumber(string message)
-        {
-            // Extract number from messages like "should be '1'" or "should be '2'"
-            Match match = System.Text.RegularExpressions.Regex.Match(message, @"should be '(\d+)'");
-            if (match.Success && int.TryParse(match.Groups[1].Value, out var number))
-                return number;
-            return null;
-        }
-
-        private static string ExtractExpectedStyle(string message)
-        {
-            // Extract style from messages like "expected backtick)", "expected asterisk)"
-            // Look for "expected X" pattern to avoid matching "found Y" part
-            if (message.Contains("expected backtick")) return "backtick";
-            if (message.Contains("expected tilde")) return "tilde";
-            if (message.Contains("expected asterisk")) return "asterisk";
-            if (message.Contains("expected underscore")) return "underscore";
-            // For "should be X" patterns
-            if (message.Contains("should be backtick")) return "backtick";
-            if (message.Contains("should be tilde")) return "tilde";
-            if (message.Contains("should be asterisk")) return "asterisk";
-            if (message.Contains("should be underscore")) return "underscore";
-            // For horizontal rules
-            if (message.Contains("---")) return "---";
-            if (message.Contains("***")) return "***";
-            if (message.Contains("___")) return "___";
-            return null;
         }
 
         public void Dispose()

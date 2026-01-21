@@ -20,7 +20,7 @@ namespace MarkdownLintVS
         name: "Markdown File Open",
         expression: "markdown | vsmarkdown",
         termNames: ["markdown", "vsmarkdown"],
-        termValues: ["ActiveEditorContentType:markdown", "ActiveEditorContentType:vs-markdown"])]
+        termValues: [$"ActiveEditorContentType:{ContentTypes.Markdown}", $"ActiveEditorContentType:{ContentTypes.VsMarkdown}"])]
     [ProvideAutoLoad(PackageGuids.MarkdownFileOpenString, PackageAutoLoadFlags.BackgroundLoad)]
     [ProvideFileIcon(".markdownlintignore", "KnownMonikers.DocumentExclude")]
     public sealed class MarkdownLintVSPackage : ToolkitPackage

@@ -334,6 +334,28 @@ namespace MarkdownLintVS.Linting
             return string.IsNullOrWhiteSpace(_lines[lineNumber]);
         }
 
+        /// <summary>
+        /// Enumerates lines that should be analyzed, skipping code blocks and front matter by default.
+        /// </summary>
+        /// <param name="skipCodeBlocks">If true, skips lines inside code blocks.</param>
+        /// <param name="skipFrontMatter">If true, skips lines inside YAML front matter.</param>
+        /// <returns>Enumerable of (lineNumber, lineText) tuples for analyzable lines.</returns>
+        public IEnumerable<(int LineNumber, string Line)> GetAnalyzableLines(
+            bool skipCodeBlocks = true,
+            bool skipFrontMatter = true)
+        {
+            for (var i = 0; i < LineCount; i++)
+            {
+                if (skipFrontMatter && IsLineInFrontMatter(i))
+                    continue;
+
+                if (skipCodeBlocks && IsLineInCodeBlock(i))
+                    continue;
+
+                yield return (i, GetLine(i));
+            }
+        }
+
         public int GetFirstNonBlankLine()
         {
             for (var i = 0; i < _lines.Length; i++)

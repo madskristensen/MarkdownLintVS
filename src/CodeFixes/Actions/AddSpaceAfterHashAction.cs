@@ -5,6 +5,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// <summary>
     /// Fix action to add space after heading hash (MD018).
     /// </summary>
+    [FixForRule("MD018")]
     public class AddSpaceAfterHashAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add space after #";
