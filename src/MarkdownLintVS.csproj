@@ -76,7 +76,9 @@
     <Compile Include="CodeFixes\Actions\WrapUrlInBracketsAction.cs" />
     <Compile Include="CodeFixes\FixAllActions.cs" />
     <Compile Include="CodeFixes\MarkdownSuggestedActionsSource.cs" />
+    <Compile Include="Commands\EnabledCommand.cs" />
     <Compile Include="Commands\Formatting.cs" />
+    <Compile Include="Commands\SettingsCommand.cs" />
     <Compile Include="ErrorList\MarkdownDocumentListener.cs" />
     <Compile Include="ErrorList\MarkdownLintTableDataSource.cs" />
     <Compile Include="Linting\MarkdownAnalysisCache.cs" />

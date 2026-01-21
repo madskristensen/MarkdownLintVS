@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
 using System.Threading;
+using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.Linting
@@ -40,6 +41,12 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         public IReadOnlyList<LintViolation> GetOrAnalyze(ITextBuffer buffer, string filePath)
         {
+            // Return empty if linting is disabled
+            if (!GeneralOptions.Instance.LintingEnabled)
+            {
+                return [];
+            }
+
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var version = snapshot.Version.VersionNumber;
 
@@ -117,7 +124,17 @@ namespace MarkdownLintVS.Linting
         {
             try
             {
-                var violations = MarkdownLintAnalyzer.Instance.Analyze(text, filePath).ToList();
+                // Return empty violations if linting is disabled
+                List<LintViolation> violations;
+                if (GeneralOptions.Instance.LintingEnabled)
+                {
+                    violations = MarkdownLintAnalyzer.Instance.Analyze(text, filePath).ToList();
+                }
+                else
+                {
+                    violations = [];
+                }
+
                 var result = new CachedAnalysisResult(snapshot.Version.VersionNumber, violations);
 
                 buffer.Properties[_propertyKey] = result;

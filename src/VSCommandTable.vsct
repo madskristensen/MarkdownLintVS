@@ -7,11 +7,69 @@
   <Include href="VSGlobals.vsct"/>
 
   <Commands package="MarkdownLintVS">
-    <!-- No commands needed - extension uses MEF components -->
+    <Menus>
+      <Menu guid="MarkdownLintVS" id="FlyoutMenu" priority="0x0100" type="Menu">
+        <Parent guid="MarkdownLintVS" id="EditorContextMenuGroup"/>
+        <Strings>
+          <ButtonText>Markdown Lint</ButtonText>
+          <LocCanonicalName>.MarkdownLint.ContextMenu</LocCanonicalName>
+        </Strings>
+      </Menu>
+    </Menus>
+
+    <Groups>
+      <!-- Group in editor context menu to hold the flyout -->
+      <Group guid="MarkdownLintVS" id="EditorContextMenuGroup" priority="0x9000">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN"/>
+      </Group>
+      <!-- Group for Enabled command at top of flyout -->
+      <Group guid="MarkdownLintVS" id="FlyoutEnabledGroup" priority="0x0100">
+        <Parent guid="MarkdownLintVS" id="FlyoutMenu"/>
+      </Group>
+      <!-- Group for Settings command in flyout -->
+      <Group guid="MarkdownLintVS" id="FlyoutSettingsGroup" priority="0x0200">
+        <Parent guid="MarkdownLintVS" id="FlyoutMenu"/>
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="MarkdownLintVS" id="EnabledCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="FlyoutEnabledGroup"/>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Enable automatic linting</ButtonText>
+          <LocCanonicalName>.MarkdownLint.ToggleAutomaticLinting</LocCanonicalName>
+        </Strings>
+      </Button>
+      <Button guid="MarkdownLintVS" id="SettingsCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="FlyoutSettingsGroup"/>
+        <Icon guid="ImageCatalogGuid" id="Settings"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Settings...</ButtonText>
+          <LocCanonicalName>.MarkdownLint.Settings</LocCanonicalName>
+        </Strings>
+      </Button>
+    </Buttons>
   </Commands>
+
+  <VisibilityConstraints>
+    <VisibilityItem guid="MarkdownLintVS" id="EditorContextMenuGroup" context="MarkdownFileOpen"/>
+    <VisibilityItem guid="MarkdownLintVS" id="EnabledCommand" context="MarkdownFileOpen"/>
+    <VisibilityItem guid="MarkdownLintVS" id="SettingsCommand" context="MarkdownFileOpen"/>
+  </VisibilityConstraints>
 
   <Symbols>
     <GuidSymbol name="MarkdownLintVS" value="{885a2d95-251c-4eb2-9b74-5c05c87bc9dd}">
+      <IDSymbol name="EditorContextMenuGroup" value="0x0001"/>
+      <IDSymbol name="FlyoutMenu" value="0x0010"/>
+      <IDSymbol name="FlyoutEnabledGroup" value="0x0011"/>
+      <IDSymbol name="FlyoutSettingsGroup" value="0x0012"/>
+      <IDSymbol name="EnabledCommand" value="0x0100"/>
+      <IDSymbol name="SettingsCommand" value="0x0101"/>
     </GuidSymbol>
     <GuidSymbol name="MarkdownFileOpen" value="{a9b85cb7-4e4c-4f7c-9e1a-2d3c5e7f1a2b}">
     </GuidSymbol>

@@ -1,5 +1,6 @@
 using System.ComponentModel.Composition;
 using MarkdownLintVS.Linting;
+using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
@@ -71,6 +72,7 @@ namespace MarkdownLintVS.ErrorList
 
             _textView.TextBuffer.Changed += OnTextBufferChanged;
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
+            GeneralOptions.Saved += OnGeneralOptionsSaved;
 
             // Initial analysis - request from cache
             RequestAnalysis();
@@ -97,6 +99,12 @@ namespace MarkdownLintVS.ErrorList
             _tableDataSource?.UpdateErrors(_filePath, e.Violations);
         }
 
+        private void OnGeneralOptionsSaved(GeneralOptions options)
+        {
+            // Trigger re-analysis when linting is enabled/disabled
+            RequestAnalysis();
+        }
+
         private void RequestAnalysis()
         {
             if (_disposed)
@@ -115,6 +123,7 @@ namespace MarkdownLintVS.ErrorList
                 _debounceTimer.Dispose();
                 _textView.TextBuffer.Changed -= OnTextBufferChanged;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
+                GeneralOptions.Saved -= OnGeneralOptionsSaved;
                 _tableDataSource?.ClearErrors(_filePath);
             }
         }

@@ -27,6 +27,7 @@ namespace MarkdownLintVS
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             await Formatting.InitializeAsync();
+            await this.RegisterCommandsAsync();
         }
     }
 }

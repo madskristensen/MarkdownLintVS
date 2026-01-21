@@ -57,16 +57,23 @@ namespace MarkdownLintVS.Tagging
             _filePath = GetFilePath();
 
             _buffer.Changed += OnBufferChanged;
-            RuleOptions.Saved += OnOptionsSaved;
+            RuleOptions.Saved += OnRuleOptionsSaved;
+            GeneralOptions.Saved += OnGeneralOptionsSaved;
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
 
             // Initial analysis - immediate, no debounce for fast feedback on file open
             _analysisCache.AnalyzeImmediate(_buffer, _filePath);
         }
 
-        private void OnOptionsSaved(RuleOptions options)
+        private void OnRuleOptionsSaved(RuleOptions options)
         {
             // Revalidate immediately when options change - no debounce needed
+            _analysisCache.AnalyzeImmediate(_buffer, _filePath);
+        }
+
+        private void OnGeneralOptionsSaved(GeneralOptions options)
+        {
+            // Revalidate immediately when linting is enabled/disabled
             _analysisCache.AnalyzeImmediate(_buffer, _filePath);
         }
 
@@ -170,7 +177,8 @@ namespace MarkdownLintVS.Tagging
             if (!_isDisposed)
             {
                 _buffer.Changed -= OnBufferChanged;
-                RuleOptions.Saved -= OnOptionsSaved;
+                RuleOptions.Saved -= OnRuleOptionsSaved;
+                GeneralOptions.Saved -= OnGeneralOptionsSaved;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
                 _isDisposed = true;
             }
