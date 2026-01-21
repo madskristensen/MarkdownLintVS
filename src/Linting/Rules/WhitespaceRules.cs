@@ -248,6 +248,16 @@ namespace MarkdownLintVS.Linting.Rules
             @"https?://[^\s\)]+",
             RegexOptions.Compiled);
 
+        // Link/image reference definition: [label]: url "title"
+        private static readonly Regex _linkRefDefinitionPattern = new(
+            @"^\s*\[[^\]]+\]:\s*\S+",
+            RegexOptions.Compiled);
+
+        // Standalone link/image line (possibly with emphasis)
+        private static readonly Regex _standaloneLinkPattern = new(
+            @"^\s*(\*{0,2}|_{0,2})!?\[[^\]]*\]\([^\)]+\)(\*{0,2}|_{0,2})\s*$",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -268,6 +278,11 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 var line = analysis.GetLine(i);
+
+                // Always exempt link/image reference definitions and standalone link lines
+                if (_linkRefDefinitionPattern.IsMatch(line) || _standaloneLinkPattern.IsMatch(line))
+                    continue;
+
                 var maxLength = lineLength;
                 var isCodeBlock = analysis.IsLineInCodeBlock(i);
                 var isHeading = line.TrimStart().StartsWith("#");
@@ -288,32 +303,61 @@ namespace MarkdownLintVS.Linting.Rules
                 if (!tables && line.TrimStart().StartsWith("|"))
                     continue;
 
-                var effectiveLength = GetEffectiveLength(line, strict);
+                if (line.Length <= maxLength)
+                    continue;
 
-                if (effectiveLength > maxLength)
+                // Check if line exceeds limit
+                if (strict)
                 {
+                    // Strict mode: any line over limit is a violation
                     yield return CreateViolation(
                         i,
                         maxLength,
                         line.Length,
-                        $"Line length is {effectiveLength} (maximum {maxLength})",
+                        $"Line length is {line.Length} (maximum {maxLength})",
                         severity);
                 }
-            }
-        }
+                else
+                {
+                    // Check if there's whitespace beyond the limit
+                    var hasWhitespaceBeyondLimit = false;
+                    for (var j = maxLength; j < line.Length; j++)
+                    {
+                        if (char.IsWhiteSpace(line[j]))
+                        {
+                            hasWhitespaceBeyondLimit = true;
+                            break;
+                        }
+                    }
 
-        private static int GetEffectiveLength(string line, bool strict)
-        {
-            if (strict)
-                return line.Length;
-
-            // In non-strict mode, don't count URLs
-            var length = line.Length;
-            foreach (Match match in _urlPattern.Matches(line))
-            {
-                length -= match.Length;
+                    if (stern)
+                    {
+                        // Stern mode: report if there's whitespace beyond limit (fixable)
+                        if (hasWhitespaceBeyondLimit)
+                        {
+                            yield return CreateViolation(
+                                i,
+                                maxLength,
+                                line.Length,
+                                $"Line length is {line.Length} (maximum {maxLength})",
+                                severity);
+                        }
+                    }
+                    else
+                    {
+                        // Default mode: only report if there's whitespace beyond limit
+                        if (hasWhitespaceBeyondLimit)
+                        {
+                            yield return CreateViolation(
+                                i,
+                                maxLength,
+                                line.Length,
+                                $"Line length is {line.Length} (maximum {maxLength})",
+                                severity);
+                        }
+                    }
+                }
             }
-            return length;
         }
     }
 

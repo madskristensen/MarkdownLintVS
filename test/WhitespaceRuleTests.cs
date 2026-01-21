@@ -411,5 +411,473 @@ public sealed class WhitespaceRuleTests
         Assert.AreEqual("MD011", violations[0].Rule.Id);
     }
 
+    [TestMethod]
+    public void MD011_WhenMarkdownExtraFootnoteThenNoViolation()
+    {
+        // Per docs: Markdown Extra-style footnotes should not trigger
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("For (example)[^1]");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenInFrontMatterThenSkipped()
+    {
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("---\nlink: (http://example.com)[text]\n---\n\nContent");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD011_WhenMultipleReversedLinksThenReportsAll()
+    {
+        var rule = new MD011_NoReversedLinks();
+        var analysis = new MarkdownDocumentAnalysis("(http://a.com)[A] and (http://b.com)[B]");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+    }
+
+    #endregion
+
+    #region MD012 - Multiple Blank Lines
+
+    [TestMethod]
+    public void MD012_WhenSingleBlankLineThenNoViolation()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("Line 1\n\nLine 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD012_WhenMultipleBlankLinesThenReportsViolation()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("Line 1\n\n\nLine 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD012", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD012_WhenMaximumSetTo2ThenAllows2BlankLines()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var config = new RuleConfiguration();
+        config.Parameters["maximum"] = "2";
+        var analysis = new MarkdownDocumentAnalysis("Line 1\n\n\nLine 2");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD012_WhenMaximumExceededThenReportsViolation()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var config = new RuleConfiguration();
+        config.Parameters["maximum"] = "2";
+        var analysis = new MarkdownDocumentAnalysis("Line 1\n\n\n\nLine 2");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD012_WhenInCodeBlockThenNoViolation()
+    {
+        // Per docs: rule will not be triggered inside code blocks
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("```\n\n\n\n```");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD012_WhenInFrontMatterThenNoViolation()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("---\n\n\ntitle: Test\n---\n\nContent");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD012_ViolationMessageContainsCounts()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("Line 1\n\n\n\nLine 2");  // 3 blank lines
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);  // Reports on 2nd and 3rd blank line
+        Assert.Contains("maximum 1", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD012_WhenMultipleGroupsOfBlankLinesThenReportsAll()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("A\n\n\nB\n\n\nC");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+    }
+
+    #endregion
+
+    #region MD013 - Line Length
+
+    [TestMethod]
+    public void MD013_WhenLinesWithinLimitThenNoViolation()
+    {
+        var rule = new MD013_LineLength();
+        var analysis = new MarkdownDocumentAnalysis("Short line");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenLineExceeds80CharsThenReportsViolation()
+    {
+        var rule = new MD013_LineLength();
+        // Line with whitespace beyond limit (words separated by spaces)
+        var longLine = "This is a very long line with many words that definitely exceeds the eighty character limit for lines";
+        var analysis = new MarkdownDocumentAnalysis(longLine);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD013", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD013_WhenCustomLineLengthSetThenUsesIt()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "100";
+        var line90 = new string('a', 90);
+        var analysis = new MarkdownDocumentAnalysis(line90);
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenHeadingLineLengthSetThenUsesItForHeadings()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "80";
+        config.Parameters["heading_line_length"] = "100";
+        var longHeading = "# " + new string('a', 90);  // 92 chars total
+        var analysis = new MarkdownDocumentAnalysis(longHeading);
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenCodeBlockLineLengthSetThenUsesItForCode()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "80";
+        config.Parameters["code_block_line_length"] = "120";
+        var longCodeLine = new string('a', 100);
+        var analysis = new MarkdownDocumentAnalysis($"```\n{longCodeLine}\n```");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenCodeBlocksDisabledThenSkipsCodeBlocks()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["code_blocks"] = "false";
+        var longCodeLine = new string('a', 100);
+        var analysis = new MarkdownDocumentAnalysis($"```\n{longCodeLine}\n```");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenHeadingsDisabledThenSkipsHeadings()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["headings"] = "false";
+        var longHeading = "# " + new string('a', 100);
+        var analysis = new MarkdownDocumentAnalysis(longHeading);
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenTablesDisabledThenSkipsTables()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["tables"] = "false";
+        var longTableRow = "| " + new string('a', 100) + " |";
+        var analysis = new MarkdownDocumentAnalysis(longTableRow);
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenStrictModeThenCountsUrlLength()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "50";
+        config.Parameters["strict"] = "true";
+        // Line with URL that makes it long
+        var analysis = new MarkdownDocumentAnalysis("Check out https://example.com/very/long/path/here text");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenNotStrictModeAndOnlyUrlLongThenNoViolation()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "30";
+        // Line without whitespace beyond limit - should be allowed in non-strict mode
+        var analysis = new MarkdownDocumentAnalysis("See-this-very-long-url-without-spaces");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenNoWhitespaceBeyondLimitThenNoViolation()
+    {
+        // Per docs: exception when no whitespace beyond limit (like long URLs)
+        var rule = new MD013_LineLength();
+        var longContinuousLine = new string('a', 100);  // No spaces
+        var analysis = new MarkdownDocumentAnalysis(longContinuousLine);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenSternModeAndHasWhitespaceBeyondLimitThenReportsViolation()
+    {
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "30";
+        config.Parameters["stern"] = "true";
+        // Line with whitespace beyond limit
+        var analysis = new MarkdownDocumentAnalysis("This is a line with spaces that exceeds the limit");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenSternModeAndNoWhitespaceBeyondLimitThenNoViolation()
+    {
+        // Per docs: stern mode allows long lines without spaces
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "30";
+        config.Parameters["stern"] = "true";
+        var analysis = new MarkdownDocumentAnalysis("This-line-has-no-spaces-beyond-thirty");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenLinkRefDefinitionThenAlwaysExempt()
+    {
+        // Per docs: link/image reference definitions are always exempted
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "30";
+        config.Parameters["strict"] = "true";
+        var analysis = new MarkdownDocumentAnalysis("[very-long-reference-label]: https://example.com/very/long/path \"title\"");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenStandaloneLinkThenAlwaysExempt()
+    {
+        // Per docs: standalone lines with only a link (possibly with emphasis) are exempted
+        var rule = new MD013_LineLength();
+        var config = new RuleConfiguration();
+        config.Parameters["line_length"] = "30";
+        config.Parameters["strict"] = "true";
+        var analysis = new MarkdownDocumentAnalysis("**[Link text](https://example.com/very/long/path/here)**");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_WhenInFrontMatterThenSkipped()
+    {
+        var rule = new MD013_LineLength();
+        var longLine = "description: " + new string('a', 100);
+        var analysis = new MarkdownDocumentAnalysis($"---\n{longLine}\n---\n\nContent");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD013_ViolationMessageContainsLengths()
+    {
+        var rule = new MD013_LineLength();
+        // Line with spaces beyond the 80 char limit
+        var analysis = new MarkdownDocumentAnalysis("This is a very long line with many words that definitely exceeds the eighty character limit for lines in documents");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("80", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD014 - Dollar Signs in Commands
+
+    [TestMethod]
+    public void MD014_WhenCommandsWithOutputThenNoViolation()
+    {
+        // Per docs: showing output does not trigger this rule
+        var rule = new MD014_CommandsShowOutput();
+        var markdown = "```\n$ ls\nfoo bar\n$ cat foo\nHello world\n```";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD014_WhenAllCommandsHaveDollarSignsWithoutOutputThenReportsViolation()
+    {
+        // Per docs: all commands with $ but no output triggers rule
+        var rule = new MD014_CommandsShowOutput();
+        var markdown = "```\n$ ls\n$ cat foo\n$ less bar\n```";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(3, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD014"));
+    }
+
+    [TestMethod]
+    public void MD014_WhenSomeCommandsHaveOutputThenNoViolation()
+    {
+        // Per docs: if some commands have output, it's not a violation
+        var rule = new MD014_CommandsShowOutput();
+        var markdown = "```\n$ mkdir test\nmkdir: created directory 'test'\n$ ls test\n```";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD014_WhenNoDollarSignsThenNoViolation()
+    {
+        var rule = new MD014_CommandsShowOutput();
+        var markdown = "```\nls\ncat foo\nless bar\n```";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD014_WhenEmptyCodeBlockThenNoViolation()
+    {
+        var rule = new MD014_CommandsShowOutput();
+        var analysis = new MarkdownDocumentAnalysis("```\n```");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD014_WhenMultipleCodeBlocksThenChecksEach()
+    {
+        var rule = new MD014_CommandsShowOutput();
+        var markdown = "```\n$ cmd1\n```\n\n```\n$ cmd2\noutput\n```";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Only first code block should have violations
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD014_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD014_CommandsShowOutput();
+        var markdown = "```\n$ ls\n```";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("Dollar signs", violations[0].Message);
+    }
+
     #endregion
 }
