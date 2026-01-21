@@ -32,10 +32,6 @@ namespace MarkdownLintVS.Options
     /// </summary>
     public class GeneralOptions : BaseOptionModel<GeneralOptions>
     {
-        /// <summary>
-        /// Event raised when options are saved.
-        /// </summary>
-        public static event Action<GeneralOptions> Saved;
 
         [Category("General")]
         [DisplayName("Linting Enabled")]
@@ -48,24 +44,6 @@ namespace MarkdownLintVS.Options
         [Description("Controls whether markdown lint fixes are automatically applied when using Format Document or Format Selection commands.")]
         [DefaultValue(FormatDocumentBehavior.Ask)]
         public FormatDocumentBehavior FormatDocumentBehavior { get; set; } = FormatDocumentBehavior.Ask;
-
-        /// <summary>
-        /// Saves the options and raises the Saved event.
-        /// </summary>
-        public override void Save()
-        {
-            base.Save();
-            Saved?.Invoke(this);
-        }
-
-        /// <summary>
-        /// Saves the options asynchronously and raises the Saved event.
-        /// </summary>
-        public override async Task SaveAsync()
-        {
-            await base.SaveAsync();
-            Saved?.Invoke(this);
-        }
     }
 
     internal partial class OptionsProvider
