@@ -475,5 +475,161 @@ public sealed class CodeBlockRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD048_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD048_CodeFenceStyle();
+        var analysis = new MarkdownDocumentAnalysis("```js\ncode\n```\n\n~~~python\ncode\n~~~");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("fence", violations[0].Message.ToLower());
+    }
+
+    #endregion
+
+    #region MD046 - Code Block Style
+
+    [TestMethod]
+    public void MD046_WhenConsistentFencedStyleThenNoViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var analysis = new MarkdownDocumentAnalysis("```\ncode1\n```\n\n```\ncode2\n```");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD046_WhenMixedStylesThenReportsViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        // Fenced code block followed by indented code block
+        var analysis = new MarkdownDocumentAnalysis("```\nfenced\n```\n\nText\n\n    indented");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Should report violation for inconsistent styles
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD046", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD046_WhenFencedStyleEnforcedWithIndentedThenReportsViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "fenced";
+        var analysis = new MarkdownDocumentAnalysis("Text\n\n    indented code");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD046_WhenIndentedStyleEnforcedWithFencedThenReportsViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "indented";
+        var analysis = new MarkdownDocumentAnalysis("```\nfenced code\n```");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD046_WhenStyleDisabledThenNoViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "false";
+        var analysis = new MarkdownDocumentAnalysis("```\nfenced\n```\n\nText\n\n    indented");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD046_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "fenced";
+        var analysis = new MarkdownDocumentAnalysis("Text\n\n    indented");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("style", violations[0].Message.ToLower());
+    }
+
+    #endregion
+
+    #region MD047 - Single Trailing Newline
+
+    [TestMethod]
+    public void MD047_WhenFileEndsWithSingleNewlineThenNoViolation()
+    {
+        var rule = new MD047_SingleTrailingNewline();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\n\nText\n");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD047_WhenFileMissingTrailingNewlineThenReportsViolation()
+    {
+        var rule = new MD047_SingleTrailingNewline();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\n\nText");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD047", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD047_WhenFileEndsWithMultipleNewlinesThenReportsViolation()
+    {
+        var rule = new MD047_SingleTrailingNewline();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\n\nText\n\n");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("multiple", violations[0].Message.ToLower());
+    }
+
+    [TestMethod]
+    public void MD047_WhenEmptyFileThenNoViolation()
+    {
+        var rule = new MD047_SingleTrailingNewline();
+        var analysis = new MarkdownDocumentAnalysis("");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD047_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD047_SingleTrailingNewline();
+        var analysis = new MarkdownDocumentAnalysis("Text");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("newline", violations[0].Message.ToLower());
+    }
+
     #endregion
 }

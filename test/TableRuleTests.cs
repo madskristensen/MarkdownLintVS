@@ -10,36 +10,83 @@ public sealed class TableRuleTests
 
     #region MD055 - Table Pipe Style
 
-    [TestMethod]
-    public void MD055_WhenConsistentLeadingAndTrailingThenNoViolations()
-    {
-        var rule = new MD055_TablePipeStyle();
-        var analysis = new MarkdownDocumentAnalysis(
-            "| Header 1 | Header 2 |\n" +
-            "| -------- | -------- |\n" +
-            "| Cell 1   | Cell 2   |");
+        [TestMethod]
+        public void MD055_WhenConsistentLeadingAndTrailingThenNoViolations()
+        {
+            var rule = new MD055_TablePipeStyle();
+            var analysis = new MarkdownDocumentAnalysis(
+                "| Header 1 | Header 2 |\n" +
+                "| -------- | -------- |\n" +
+                "| Cell 1   | Cell 2   |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
-        Assert.IsEmpty(violations);
-    }
+            Assert.IsEmpty(violations);
+        }
 
-    [TestMethod]
-    public void MD055_WhenMixedStylesThenReportsViolation()
-    {
-        var rule = new MD055_TablePipeStyle();
-        var analysis = new MarkdownDocumentAnalysis(
-            "| Header 1 | Header 2 |\n" +
-            "| -------- | -------- |\n" +
-            "| Cell 1   | Cell 2");
+        [TestMethod]
+        public void MD055_WhenMixedStylesThenReportsViolation()
+        {
+            var rule = new MD055_TablePipeStyle();
+            var analysis = new MarkdownDocumentAnalysis(
+                "| Header 1 | Header 2 |\n" +
+                "| -------- | -------- |\n" +
+                "| Cell 1   | Cell 2");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
-        Assert.HasCount(1, violations);
-        Assert.AreEqual("MD055", violations[0].Rule.Id);
-    }
+            Assert.HasCount(1, violations);
+            Assert.AreEqual("MD055", violations[0].Rule.Id);
+        }
 
-    #endregion
+        [TestMethod]
+        public void MD055_WhenLeadingAndTrailingStyleEnforcedThenNoViolation()
+        {
+            var rule = new MD055_TablePipeStyle();
+            var config = new RuleConfiguration();
+            config.Parameters["style"] = "leading_and_trailing";
+            var analysis = new MarkdownDocumentAnalysis(
+                "| Header |\n" +
+                "| ------ |\n" +
+                "| Cell   |");
+
+            var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+            Assert.IsEmpty(violations);
+        }
+
+        [TestMethod]
+        public void MD055_WhenStyleDisabledThenNoViolation()
+        {
+            var rule = new MD055_TablePipeStyle();
+            var config = new RuleConfiguration();
+            config.Parameters["style"] = "false";
+            var analysis = new MarkdownDocumentAnalysis(
+                "| Header |\n" +
+                "| ------ |\n" +
+                "| Cell");
+
+            var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+            Assert.IsEmpty(violations);
+        }
+
+        [TestMethod]
+        public void MD055_ViolationMessageDescribesIssue()
+        {
+            var rule = new MD055_TablePipeStyle();
+            var analysis = new MarkdownDocumentAnalysis(
+                "| Header |\n" +
+                "| ------ |\n" +
+                "Cell |");
+
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+            Assert.HasCount(1, violations);
+            Assert.Contains("pipe", violations[0].Message.ToLower());
+        }
+
+        #endregion
 
     #region MD056 - Table Column Count
 
