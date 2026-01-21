@@ -224,12 +224,12 @@ namespace MarkdownLintVS.Linting
         {
             // LinkReferenceDefinitions in Markdig are stored in LinkReferenceDefinitionGroup blocks
             // which are children of the document
-            foreach (var block in _document)
+            foreach (Block block in _document)
             {
                 // LinkReferenceDefinitionGroup contains individual LinkReferenceDefinition blocks
                 if (block is LinkReferenceDefinitionGroup group)
                 {
-                    foreach (var child in group)
+                    foreach (Block child in group)
                     {
                         if (child is LinkReferenceDefinition def)
                             yield return def;

@@ -121,7 +121,7 @@ public sealed class MarkdownLintAnalyzerTests
 
         var violations = analyzer.Analyze(markdown, string.Empty).ToList();
 
-        Assert.IsTrue(violations.Count >= 2, "Expected at least two violations.");
+        Assert.IsGreaterThanOrEqualTo(2, violations.Count, "Expected at least two violations.");
         AssertHasViolation(violations, "MD001");
         AssertHasViolation(violations, "MD009");
     }

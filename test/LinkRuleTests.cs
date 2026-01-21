@@ -298,4 +298,152 @@ public sealed class LinkRuleTests
     }
 
     #endregion
+
+    #region MD059 - Descriptive Link Text
+
+    [TestMethod]
+    public void MD059_WhenDescriptiveLinkTextThenNoViolations()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[View the documentation](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD059_WhenClickHereThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[click here](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+        Assert.Contains("click here", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD059_WhenHereThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[here](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenReadMoreThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[read more](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenLearnMoreThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[learn more](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenLinkThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[link](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenUrlAsLinkTextThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[https://example.com](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenThisPageThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[this page](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenCaseInsensitiveThenReportsViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[CLICK HERE](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD059_WhenMultipleNonDescriptiveLinksThenReportsAll()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[click here](https://a.com) and [here](https://b.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+    }
+
+    [TestMethod]
+    public void MD059_WhenAllowedTextConfiguredThenNoViolation()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var config = new RuleConfiguration();
+        config.Parameters["allowed_texts"] = "click here,here";
+        var analysis = new MarkdownDocumentAnalysis("[click here](https://example.com)");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD059_WhenEmphasisInLinkThenChecksText()
+    {
+        var rule = new MD059_DescriptiveLinkText();
+        var analysis = new MarkdownDocumentAnalysis("[*click here*](https://example.com)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD059", violations[0].Rule.Id);
+    }
+
+    #endregion
 }

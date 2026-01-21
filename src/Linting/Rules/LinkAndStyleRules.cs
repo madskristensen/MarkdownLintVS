@@ -398,4 +398,131 @@ namespace MarkdownLintVS.Linting.Rules
             }
         }
     }
+
+    /// <summary>
+    /// MD059: Link text should be descriptive.
+    /// Flags links with generic text like "click here", "read more", "here", etc.
+    /// </summary>
+    public class MD059_DescriptiveLinkText : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD059");
+        public override RuleInfo Info => _info;
+
+        // Non-descriptive link text patterns (case-insensitive)
+        private static readonly HashSet<string> _nonDescriptiveTexts = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "click here",
+            "click",
+            "here",
+            "link",
+            "more",
+            "read more",
+            "learn more",
+            "this",
+            "this link",
+            "page",
+            "this page",
+            "article",
+            "this article",
+            "go here",
+            "go",
+            "details",
+            "more details",
+            "info",
+            "more info",
+            "more information",
+            "see here",
+            "see more",
+            "full article",
+            "continue reading",
+            "continue",
+            "read",
+            "edit",
+            "source",
+            "view",
+            "view source",
+            "download",
+            "download here"
+        };
+
+        // Patterns that are just URLs
+        private static readonly Regex _urlPattern = new(
+            @"^https?://",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            // Get additional allowed texts from configuration
+            var allowedTexts = configuration.GetStringParameter("allowed_texts", "")
+                .Split(',')
+                .Select(t => t.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (LinkInline link in analysis.GetLinks())
+            {
+                // Get link text content
+                var linkText = GetLinkText(link);
+
+                if (string.IsNullOrWhiteSpace(linkText))
+                    continue;
+
+                var normalizedText = linkText.Trim();
+
+                // Skip if explicitly allowed
+                if (allowedTexts.Contains(normalizedText))
+                    continue;
+
+                // Check if text is non-descriptive
+                var isNonDescriptive = _nonDescriptiveTexts.Contains(normalizedText);
+
+                // Also flag URLs used as link text
+                if (!isNonDescriptive && _urlPattern.IsMatch(normalizedText))
+                {
+                    isNonDescriptive = true;
+                }
+
+                if (isNonDescriptive)
+                {
+                    (var Line, var Column) = analysis.GetPositionFromOffset(link.Span.Start);
+                    yield return CreateViolation(
+                        Line,
+                        Column,
+                        Column + link.Span.Length,
+                        $"Link text '{normalizedText}' is not descriptive",
+                        severity);
+                }
+            }
+        }
+
+        private static string GetLinkText(LinkInline link)
+        {
+            // Extract text content from the link's children
+            var text = new System.Text.StringBuilder();
+
+            foreach (Inline inline in link)
+            {
+                if (inline is LiteralInline literal)
+                {
+                    text.Append(literal.Content.ToString());
+                }
+                else if (inline is EmphasisInline emphasis)
+                {
+                    foreach (Inline child in emphasis)
+                    {
+                        if (child is LiteralInline literalChild)
+                        {
+                            text.Append(literalChild.Content.ToString());
+                        }
+                    }
+                }
+            }
+
+            return text.ToString();
+        }
+    }
 }
+

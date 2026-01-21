@@ -1,7 +1,7 @@
-using Markdig.Extensions.Tables;
-using Markdig.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using Markdig.Extensions.Tables;
+using Markdig.Syntax;
 
 namespace MarkdownLintVS.Linting.Rules
 {
@@ -160,6 +160,134 @@ namespace MarkdownLintVS.Linting.Rules
                         "Add blank line after table");
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// MD060: Table column style should be consistent.
+    /// Each column should have consistent alignment across all rows.
+    /// </summary>
+    public class MD060_TableColumnStyle : MarkdownRuleBase
+    {
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD060");
+        public override RuleInfo Info => _info;
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity)
+        {
+            foreach (Table table in analysis.GetTables())
+            {
+                // Get the column alignments from the table
+                var columnAlignments = table.ColumnDefinitions?
+                    .Select(c => c.Alignment)
+                    .ToList();
+
+                if (columnAlignments == null || columnAlignments.Count == 0)
+                    continue;
+
+                // Check each row for alignment consistency
+                foreach (Block row in table)
+                {
+                    if (row is TableRow tableRow)
+                    {
+                        var lineNum = tableRow.Line;
+                        var line = analysis.GetLine(lineNum);
+
+                        // Skip delimiter row (contains ---, :---, ---:, :---:)
+                        if (IsDelimiterRow(line))
+                            continue;
+
+                        // Check if cell content alignment matches column alignment
+                        var cellIndex = 0;
+                        foreach (Block cell in tableRow)
+                        {
+                            if (cell is TableCell tableCell && cellIndex < columnAlignments.Count)
+                            {
+                                TableColumnAlign? expectedAlignment = columnAlignments[cellIndex];
+                                var cellContent = GetCellContent(tableCell, analysis);
+                                TableColumnAlign actualAlignment = DetectCellContentAlignment(cellContent);
+
+                                // Only report if there's an explicit alignment defined and content doesn't match
+                                if (expectedAlignment.HasValue &&
+                                    expectedAlignment.Value != TableColumnAlign.Left &&
+                                    actualAlignment != TableColumnAlign.Left &&
+                                    expectedAlignment.Value != actualAlignment)
+                                {
+                                    yield return CreateViolation(
+                                        lineNum,
+                                        0,
+                                        line.Length,
+                                        $"Cell content alignment does not match column alignment (expected {GetAlignmentName(expectedAlignment.Value)})",
+                                        severity,
+                                        "Adjust cell content alignment");
+                                    break; // Only report once per row
+                                }
+                            }
+                            cellIndex++;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static bool IsDelimiterRow(string line)
+        {
+            // Delimiter rows contain only |, -, :, and whitespace
+            var trimmed = line.Trim();
+            return trimmed.All(c => c == '|' || c == '-' || c == ':' || char.IsWhiteSpace(c));
+        }
+
+        private static string GetCellContent(TableCell cell, MarkdownDocumentAnalysis analysis)
+        {
+            if (cell.Span.Length <= 0)
+                return string.Empty;
+
+            var text = analysis.Text;
+            var start = cell.Span.Start;
+            var end = cell.Span.End;
+
+            if (start >= 0 && end < text.Length && end >= start)
+            {
+                return text.Substring(start, end - start + 1).Trim();
+            }
+
+            return string.Empty;
+        }
+
+        private static TableColumnAlign DetectCellContentAlignment(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                return TableColumnAlign.Left;
+
+            // Check for leading/trailing whitespace patterns
+            var leadingSpaces = content.Length - content.TrimStart().Length;
+            var trailingSpaces = content.Length - content.TrimEnd().Length;
+
+            if (leadingSpaces > 0 && trailingSpaces > 0 &&
+                System.Math.Abs(leadingSpaces - trailingSpaces) <= 1)
+            {
+                return TableColumnAlign.Center;
+            }
+
+            if (leadingSpaces > trailingSpaces)
+            {
+                return TableColumnAlign.Right;
+            }
+
+            return TableColumnAlign.Left;
+        }
+
+        private static string GetAlignmentName(TableColumnAlign alignment)
+        {
+            return alignment switch
+            {
+                TableColumnAlign.Left => "left",
+                TableColumnAlign.Center => "center",
+                TableColumnAlign.Right => "right",
+                _ => "left"
+            };
         }
     }
 }

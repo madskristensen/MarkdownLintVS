@@ -458,6 +458,24 @@
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md058.md"
+    },
+    {
+      "name": "md_descriptive_link_text",
+      "description": "MD059 - Link text should be descriptive (avoid 'click here', 'here', 'read more', etc.)",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md059.md"
+    },
+    {
+      "name": "md_table_column_style",
+      "description": "MD060 - Table column style should be consistent",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md060.md"
     }
   ]
 }

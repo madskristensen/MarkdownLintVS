@@ -318,6 +318,20 @@ namespace MarkdownLintVS.Options
         [Description("Tables should be surrounded by blank lines")]
         [DefaultValue(true)]
         public bool MD058 { get; set; } = true;
+
+        [Category("8. Tables")]
+        [DisplayName("MD060 - table-column-style")]
+        [Description("Table column style should be consistent")]
+        [DefaultValue(true)]
+        public bool MD060 { get; set; } = true;
+
+        // ===== Accessibility Rules =====
+
+        [Category("9. Accessibility")]
+        [DisplayName("MD059 - descriptive-link-text")]
+        [Description("Link text should be descriptive")]
+        [DefaultValue(true)]
+        public bool MD059 { get; set; } = true;
     }
 
     internal partial class OptionsProvider

@@ -252,7 +252,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 levelIndents.Clear();
-                foreach (var violation in AnalyzeList(list, analysis, severity, levelIndents, 0))
+                foreach (LintViolation violation in AnalyzeList(list, analysis, severity, levelIndents, 0))
                 {
                     yield return violation;
                 }

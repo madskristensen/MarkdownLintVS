@@ -4,7 +4,7 @@
 [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/MadsKristensen.MarkdownLintS?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLint)
 [![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/MadsKristensen.MarkdownLint)](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownLint)
 
-A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD058).
+A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD060).
 
 ## Features
 
@@ -14,7 +14,7 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
-✅ **50+ rules** - Comprehensive coverage based on markdownlint standards  
+✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD060)
 ✅ **Works with any Markdown editor** - Including the built-in Markdown editor and most Markdown extensions
 
 ## Installation
@@ -58,7 +58,8 @@ Go to **Tools → Options → Markdown Lint → Rules** to access all rule setti
 | 5. Links | MD011, MD034, MD039, MD042, MD045, MD051-MD054 |
 | 6. Inline | MD033, MD035-MD038, MD049, MD050 |
 | 7. Blockquotes | MD027, MD028 |
-| 8. Tables | MD055, MD056, MD058 |
+| 8. Tables | MD055, MD056, MD058, MD060 |
+| 9. Accessibility | MD059 |
 
 Changes take effect immediately when you click OK or Apply - all open markdown files are automatically revalidated.
 
@@ -167,6 +168,8 @@ md_no_trailing_spaces = false
 | `md_table_pipe_style` | MD055 | Table pipe style (leading_and_trailing, consistent) |
 | `md_table_column_count` | MD056 | Table column count should be consistent |
 | `md_blanks_around_tables` | MD058 | Tables should be surrounded by blank lines |
+| `md_descriptive_link_text` | MD059 | Link text should be descriptive |
+| `md_table_column_style` | MD060 | Table column style should be consistent |
 
 ### Rule Documentation
 
