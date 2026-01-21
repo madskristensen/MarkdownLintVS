@@ -22,6 +22,7 @@ namespace MarkdownLintVS
         termNames: ["markdown", "vsmarkdown"],
         termValues: ["ActiveEditorContentType:markdown", "ActiveEditorContentType:vs-markdown"])]
     [ProvideAutoLoad(PackageGuids.MarkdownFileOpenString, PackageAutoLoadFlags.BackgroundLoad)]
+    [ProvideFileIcon(".markdownlintignore", "KnownMonikers.DocumentExclude")]
     public sealed class MarkdownLintVSPackage : ToolkitPackage
     {
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
