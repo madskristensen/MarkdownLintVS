@@ -29,7 +29,13 @@ namespace MarkdownLintVS
         public const int FlyoutMenu = 0x0010;
         public const int FlyoutEnabledGroup = 0x0011;
         public const int FlyoutSettingsGroup = 0x0012;
+        public const int SolutionExplorerFolderGroup = 0x0020;
+        public const int SolutionExplorerProjectGroup = 0x0021;
+        public const int SolutionExplorerSolutionGroup = 0x0022;
         public const int EnabledCommand = 0x0100;
         public const int SettingsCommand = 0x0101;
+        public const int LintFolderCommand = 0x0102;
+        public const int LintProjectCommand = 0x0103;
+        public const int LintSolutionCommand = 0x0104;
     }
 }

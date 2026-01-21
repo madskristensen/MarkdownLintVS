@@ -30,6 +30,18 @@
       <Group guid="MarkdownLintVS" id="FlyoutSettingsGroup" priority="0x0200">
         <Parent guid="MarkdownLintVS" id="FlyoutMenu"/>
       </Group>
+      <!-- Group for Lint Folder command in Solution Explorer folder context menu -->
+      <Group guid="MarkdownLintVS" id="SolutionExplorerFolderGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_FOLDERNODE"/>
+      </Group>
+      <!-- Group for Lint Folder command in Solution Explorer project context menu -->
+      <Group guid="MarkdownLintVS" id="SolutionExplorerProjectGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE"/>
+      </Group>
+      <!-- Group for Lint Folder command in Solution Explorer solution context menu -->
+      <Group guid="MarkdownLintVS" id="SolutionExplorerSolutionGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_SOLNNODE"/>
+      </Group>
     </Groups>
 
     <Buttons>
@@ -53,6 +65,36 @@
           <LocCanonicalName>.MarkdownLint.Settings</LocCanonicalName>
         </Strings>
       </Button>
+      <!-- Lint Folder command for folders -->
+      <Button guid="MarkdownLintVS" id="LintFolderCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="SolutionExplorerFolderGroup"/>
+        <Icon guid="ImageCatalogGuid" id="MarkdownFile"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Lint Markdown Files</ButtonText>
+          <LocCanonicalName>.MarkdownLint.LintFolder</LocCanonicalName>
+        </Strings>
+      </Button>
+      <!-- Lint Folder command for projects -->
+      <Button guid="MarkdownLintVS" id="LintProjectCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="SolutionExplorerProjectGroup"/>
+        <Icon guid="ImageCatalogGuid" id="MarkdownFile"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Lint Markdown Files</ButtonText>
+          <LocCanonicalName>.MarkdownLint.LintProject</LocCanonicalName>
+        </Strings>
+      </Button>
+      <!-- Lint Folder command for solution -->
+      <Button guid="MarkdownLintVS" id="LintSolutionCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="SolutionExplorerSolutionGroup"/>
+        <Icon guid="ImageCatalogGuid" id="MarkdownFile"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Lint All Markdown Files</ButtonText>
+          <LocCanonicalName>.MarkdownLint.LintSolution</LocCanonicalName>
+        </Strings>
+      </Button>
     </Buttons>
   </Commands>
 
@@ -68,8 +110,14 @@
       <IDSymbol name="FlyoutMenu" value="0x0010"/>
       <IDSymbol name="FlyoutEnabledGroup" value="0x0011"/>
       <IDSymbol name="FlyoutSettingsGroup" value="0x0012"/>
+      <IDSymbol name="SolutionExplorerFolderGroup" value="0x0020"/>
+      <IDSymbol name="SolutionExplorerProjectGroup" value="0x0021"/>
+      <IDSymbol name="SolutionExplorerSolutionGroup" value="0x0022"/>
       <IDSymbol name="EnabledCommand" value="0x0100"/>
       <IDSymbol name="SettingsCommand" value="0x0101"/>
+      <IDSymbol name="LintFolderCommand" value="0x0102"/>
+      <IDSymbol name="LintProjectCommand" value="0x0103"/>
+      <IDSymbol name="LintSolutionCommand" value="0x0104"/>
     </GuidSymbol>
     <GuidSymbol name="MarkdownFileOpen" value="{a9b85cb7-4e4c-4f7c-9e1a-2d3c5e7f1a2b}">
     </GuidSymbol>

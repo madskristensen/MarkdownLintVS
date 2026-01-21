@@ -121,7 +121,7 @@ namespace MarkdownLintVS.CodeFixes
                 if (action is AddBlankLineBeforeAction beforeAction)
                 {
                     // "Add blank before line N" - the blank goes before line N
-                    int targetLine = snapshot.GetLineFromPosition(beforeAction.InsertPosition).LineNumber;
+                    var targetLine = snapshot.GetLineFromPosition(beforeAction.InsertPosition).LineNumber;
                     if (blankLineBeforeLineNumbers.Contains(targetLine))
                         continue;
 
@@ -131,7 +131,7 @@ namespace MarkdownLintVS.CodeFixes
                 {
                     // "Add blank after line N" - the blank goes before line N+1
                     // InsertPosition is at EndIncludingLineBreak which is the start of next line
-                    int targetLine = snapshot.GetLineFromPosition(afterAction.InsertPosition).LineNumber;
+                    var targetLine = snapshot.GetLineFromPosition(afterAction.InsertPosition).LineNumber;
                     if (blankLineBeforeLineNumbers.Contains(targetLine))
                         continue;
 
@@ -141,10 +141,10 @@ namespace MarkdownLintVS.CodeFixes
                 {
                     // SurroundWithBlankLinesAction may insert blanks before AND after the list
                     // Check each insertion point for duplicates
-                    bool skipBefore = false;
-                    bool skipAfter = false;
+                    var skipBefore = false;
+                    var skipAfter = false;
 
-                    int beforeLine = surroundAction.InsertBeforeLine;
+                    var beforeLine = surroundAction.InsertBeforeLine;
                     if (beforeLine >= 0)
                     {
                         if (blankLineBeforeLineNumbers.Contains(beforeLine))
@@ -153,7 +153,7 @@ namespace MarkdownLintVS.CodeFixes
                             blankLineBeforeLineNumbers.Add(beforeLine);
                     }
 
-                    int afterLine = surroundAction.InsertAfterListBeforeLine;
+                    var afterLine = surroundAction.InsertAfterListBeforeLine;
                     if (afterLine >= 0)
                     {
                         if (blankLineBeforeLineNumbers.Contains(afterLine))

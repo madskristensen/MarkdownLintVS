@@ -165,7 +165,7 @@ namespace MarkdownLintVS.Commands
                 // Deduplicate blank line insertions that target the same line boundary
                 if (action is AddBlankLineBeforeAction beforeAction)
                 {
-                    int targetLine = snapshot.GetLineFromPosition(beforeAction.InsertPosition).LineNumber;
+                    var targetLine = snapshot.GetLineFromPosition(beforeAction.InsertPosition).LineNumber;
                     if (blankLineBeforeLineNumbers.Contains(targetLine))
                         continue;
 
@@ -173,7 +173,7 @@ namespace MarkdownLintVS.Commands
                 }
                 else if (action is AddBlankLineAfterAction afterAction)
                 {
-                    int targetLine = snapshot.GetLineFromPosition(afterAction.InsertPosition).LineNumber;
+                    var targetLine = snapshot.GetLineFromPosition(afterAction.InsertPosition).LineNumber;
                     if (blankLineBeforeLineNumbers.Contains(targetLine))
                         continue;
 
@@ -181,10 +181,10 @@ namespace MarkdownLintVS.Commands
                 }
                 else if (action is SurroundWithBlankLinesAction surroundAction)
                 {
-                    bool skipBefore = false;
-                    bool skipAfter = false;
+                    var skipBefore = false;
+                    var skipAfter = false;
 
-                    int beforeLine = surroundAction.InsertBeforeLine;
+                    var beforeLine = surroundAction.InsertBeforeLine;
                     if (beforeLine >= 0)
                     {
                         if (blankLineBeforeLineNumbers.Contains(beforeLine))
@@ -193,7 +193,7 @@ namespace MarkdownLintVS.Commands
                             blankLineBeforeLineNumbers.Add(beforeLine);
                     }
 
-                    int afterLine = surroundAction.InsertAfterListBeforeLine;
+                    var afterLine = surroundAction.InsertAfterListBeforeLine;
                     if (afterLine >= 0)
                     {
                         if (blankLineBeforeLineNumbers.Contains(afterLine))

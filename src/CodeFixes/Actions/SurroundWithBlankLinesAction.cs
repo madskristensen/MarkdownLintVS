@@ -25,7 +25,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
             get
             {
                 ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
-                int startLineNumber = startLine.LineNumber;
+                var startLineNumber = startLine.LineNumber;
 
                 if (startLineNumber > 0)
                 {
@@ -50,8 +50,8 @@ namespace MarkdownLintVS.CodeFixes.Actions
             get
             {
                 ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
-                int startLineNumber = startLine.LineNumber;
-                int endLineNumber = FindListEndLine(startLineNumber);
+                var startLineNumber = startLine.LineNumber;
+                var endLineNumber = FindListEndLine(startLineNumber);
 
                 if (endLineNumber < Snapshot.LineCount - 1)
                 {
@@ -72,8 +72,8 @@ namespace MarkdownLintVS.CodeFixes.Actions
         public void ApplyFix(ITextEdit edit, bool skipBefore, bool skipAfter)
         {
             ITextSnapshotLine startLine = Snapshot.GetLineFromPosition(Span.Start);
-            int startLineNumber = startLine.LineNumber;
-            int endLineNumber = FindListEndLine(startLineNumber);
+            var startLineNumber = startLine.LineNumber;
+            var endLineNumber = FindListEndLine(startLineNumber);
 
             // Check if we need a blank line after
             if (!skipAfter && endLineNumber < Snapshot.LineCount - 1)

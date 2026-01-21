@@ -567,6 +567,85 @@ public sealed class LinkRuleTests
 
     #endregion
 
+    #region MD051 - Extended Markdown Heading ID Support
+
+    [TestMethod]
+    public void MD051_WhenExtendedMarkdownHeadingIdThenNoViolation()
+    {
+        // Extended Markdown heading ID syntax: ## Heading {#custom-id}
+        // Used by GitHub, GitLab, Hugo, VitePress, Pandoc
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "## My Great Heading {#custom-id}\n\n" +
+            "[Link to heading](#custom-id)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenExtendedMarkdownBlockIALIdThenNoViolation()
+    {
+        // Extended Markdown block IAL syntax {#id} should be recognized
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "This is a paragraph I want to link to.\n" +
+            "{#the-paragraph-id}\n\n" +
+            "Later, I link to [the paragraph](#the-paragraph-id).");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenExtendedMarkdownIALWithClassAndIdThenNoViolation()
+    {
+        // Extended Markdown IAL can have both class and id: {.class #id}
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "Some paragraph content.\n" +
+            "{.highlight #custom-anchor}\n\n" +
+            "[Link to paragraph](#custom-anchor)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenExtendedMarkdownHeadingAlsoGeneratesDefaultIdThenNoViolation()
+    {
+        // When using {#custom-id}, both the custom ID and the auto-generated ID should work
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "## Installation Guide {#setup}\n\n" +
+            "[Via custom ID](#setup)\n" +
+            "[Via auto ID](#installation-guide)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenExtendedMarkdownIALAndInvalidFragmentThenReportsViolation()
+    {
+        // Should still report invalid fragments even with extended Markdown support
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "## Heading {#valid-id}\n\n" +
+            "[Invalid link](#non-existent-id)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("non-existent-id", violations[0].Message);
+    }
+
+    #endregion
+
     #region MD052 Additional Tests
 
     [TestMethod]

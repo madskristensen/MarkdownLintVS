@@ -93,7 +93,7 @@ namespace MarkdownLintVS.Linting.Rules
 
             // Parse ignore_code_languages into a set for fast lookup
             var ignoreCodeLanguages = new HashSet<string>(
-                ignoreCodeLanguagesStr.Split(new[] { ',', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)
+                ignoreCodeLanguagesStr.Split([',', ' '], System.StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => s.Trim().ToLowerInvariant()));
 
             for (var i = 0; i < analysis.LineCount; i++)
@@ -392,7 +392,7 @@ namespace MarkdownLintVS.Linting.Rules
             if (string.IsNullOrEmpty(text))
                 return 0;
 
-            var enumerator = StringInfo.GetTextElementEnumerator(text);
+            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
             var count = 0;
             while (enumerator.MoveNext())
             {
@@ -406,7 +406,7 @@ namespace MarkdownLintVS.Linting.Rules
         /// </summary>
         private static bool HasWhitespaceBeyondVisualLimit(string line, int maxLength)
         {
-            var enumerator = StringInfo.GetTextElementEnumerator(line);
+            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(line);
             var visualIndex = 0;
 
             while (enumerator.MoveNext())

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace MarkdownLintVS.Options
@@ -44,6 +45,26 @@ namespace MarkdownLintVS.Options
         [Description("Controls whether markdown lint fixes are automatically applied when using Format Document or Format Selection commands.")]
         [DefaultValue(FormatDocumentBehavior.Ask)]
         public FormatDocumentBehavior FormatDocumentBehavior { get; set; } = FormatDocumentBehavior.Ask;
+
+        [Category("Folder Linting")]
+        [DisplayName("Ignored Folders")]
+        [Description("Comma-separated list of folder names to always ignore when linting a folder. These are ignored in addition to patterns in .markdownlintignore files.")]
+        [DefaultValue("node_modules, vendor, .git, bin, obj, packages, TestResults")]
+        public string IgnoredFolders { get; set; } = "node_modules, vendor, .git, bin, obj, packages, TestResults";
+
+        /// <summary>
+        /// Gets the ignored folder names as an array.
+        /// </summary>
+        public string[] GetIgnoredFolderNames()
+        {
+            if (string.IsNullOrWhiteSpace(IgnoredFolders))
+                return [];
+
+            return [.. IgnoredFolders
+                .Split(',')
+                .Select(f => f.Trim())
+                .Where(f => !string.IsNullOrEmpty(f))];
+        }
     }
 
     internal partial class OptionsProvider
@@ -52,3 +73,4 @@ namespace MarkdownLintVS.Options
         public class GeneralOptionsPage : BaseOptionPage<GeneralOptions> { }
     }
 }
+

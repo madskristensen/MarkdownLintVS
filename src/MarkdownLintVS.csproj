@@ -78,11 +78,13 @@
     <Compile Include="CodeFixes\MarkdownSuggestedActionsSource.cs" />
     <Compile Include="Commands\EnabledCommand.cs" />
     <Compile Include="Commands\Formatting.cs" />
+    <Compile Include="Commands\LintFolderCommand.cs" />
     <Compile Include="Commands\SettingsCommand.cs" />
     <Compile Include="ErrorList\MarkdownDocumentListener.cs" />
     <Compile Include="ErrorList\MarkdownLintTableDataSource.cs" />
     <Compile Include="Linting\MarkdownAnalysisCache.cs" />
     <Compile Include="Linting\MarkdownDocumentAnalysis.cs" />
+    <Compile Include="Linting\MarkdownFileScanner.cs" />
     <Compile Include="Linting\MarkdownLintAnalyzer.cs" />
     <Compile Include="Linting\RuleInfo.cs" />
     <Compile Include="Linting\RuleRegistry.cs" />
@@ -158,6 +160,9 @@
     </PackageReference>
     <PackageReference Include="Markdig">
       <Version>0.43.0</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing">
+      <Version>10.0.2</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

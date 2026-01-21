@@ -131,6 +131,111 @@ namespace MarkdownLintVS.Linting
             }
         }
 
+        /// <summary>
+        /// Static method to analyze a markdown document using provided configurations.
+        /// Used by LintFolderCommand for parallel processing.
+        /// </summary>
+        public static IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            Dictionary<string, RuleConfiguration> ruleConfigs,
+            Dictionary<string, RuleConfiguration> editorConfigSettings)
+        {
+            List<IMarkdownRule> rules = Instance._rules;
+
+            foreach (IMarkdownRule rule in rules)
+            {
+                RuleConfiguration config = GetConfigurationForRuleStatic(rule.Info, ruleConfigs, editorConfigSettings);
+
+                if (!config.Enabled || config.Severity == DiagnosticSeverity.None)
+                    continue;
+
+                IEnumerable<LintViolation> violations;
+                try
+                {
+                    violations = rule.Analyze(analysis, config, config.Severity);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                foreach (LintViolation violation in violations)
+                {
+                    yield return violation;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets EditorConfig settings for a directory.
+        /// </summary>
+        public static Dictionary<string, RuleConfiguration> GetEditorConfigSettings(string directoryPath)
+        {
+            var configurations = new Dictionary<string, RuleConfiguration>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrEmpty(directoryPath))
+                return configurations;
+
+            try
+            {
+                // Create a dummy file path in the directory to parse EditorConfig
+                var dummyFilePath = Path.Combine(directoryPath, "dummy.md");
+                FileConfiguration fileConfig = Instance._editorConfigParser.Parse(dummyFilePath);
+
+                foreach (KeyValuePair<string, string> property in fileConfig.Properties)
+                {
+                    if (property.Key.StartsWith("md_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var ruleName = property.Key.Substring("md_".Length);
+                        RuleConfiguration config = Instance.ParseRuleConfiguration(property.Value);
+                        configurations[ruleName] = config;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore EditorConfig parsing errors
+            }
+
+            return configurations;
+        }
+
+        private static RuleConfiguration GetConfigurationForRuleStatic(
+            RuleInfo rule,
+            Dictionary<string, RuleConfiguration> ruleConfigs,
+            Dictionary<string, RuleConfiguration> editorConfigSettings)
+        {
+            // EditorConfig takes precedence
+            if (editorConfigSettings != null)
+            {
+                if (editorConfigSettings.TryGetValue(rule.Id, out RuleConfiguration config))
+                    return config;
+                if (editorConfigSettings.TryGetValue(rule.Name, out config))
+                    return config;
+                foreach (var alias in rule.Aliases)
+                {
+                    if (editorConfigSettings.TryGetValue(alias, out config))
+                        return config;
+                }
+            }
+
+            // Fall back to options page settings
+            if (ruleConfigs != null)
+            {
+                if (ruleConfigs.TryGetValue(rule.Id, out RuleConfiguration config))
+                    return config;
+                if (ruleConfigs.TryGetValue(rule.Name, out config))
+                    return config;
+            }
+
+            // Default: use rule defaults
+            return new RuleConfiguration
+            {
+                Enabled = rule.EnabledByDefault,
+                Severity = rule.DefaultSeverity
+            };
+        }
+
         private Dictionary<string, RuleConfiguration> GetRuleConfigurations(string filePath)
         {
             var configurations = new Dictionary<string, RuleConfiguration>(StringComparer.OrdinalIgnoreCase);

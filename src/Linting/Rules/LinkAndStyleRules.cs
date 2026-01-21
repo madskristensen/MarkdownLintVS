@@ -152,6 +152,18 @@ namespace MarkdownLintVS.Linting.Rules
             @"\{:#([^\s}]+)\}\s*$",
             RegexOptions.Compiled);
 
+        // Extended Markdown heading ID: ## Heading {#custom-id}
+        // Used by GitHub, GitLab, Hugo, VitePress, Pandoc
+        // See: https://www.markdownlang.com/extended/heading-ids.html
+        private static readonly Regex _extendedHeadingIdPattern = new(
+            @"\{#([^\s}]+)\}\s*$",
+            RegexOptions.Compiled);
+
+        // Extended Markdown block IAL pattern: {#id} or {.class #id} or {#id .class}
+        private static readonly Regex _extendedIalIdPattern = new(
+            @"\{(?:[^}]*\s)?#([^\s}]+)(?:\s[^}]*)?\}",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -167,12 +179,28 @@ namespace MarkdownLintVS.Linting.Rules
 
                 // Check for kramdown heading IAL: ## Heading {:#custom-id}
                 Match kramdownMatch = _kramdownHeadingIalPattern.Match(line);
+                // Check for extended Markdown heading ID: ## Heading {#custom-id}
+                Match extendedMatch = _extendedHeadingIdPattern.Match(line);
+
                 if (kramdownMatch.Success)
                 {
                     headingIds.Add(kramdownMatch.Groups[1].Value);
                     // Remove the IAL from content for generating default ID
                     var contentWithoutIal = _kramdownHeadingIalPattern.Replace(line, "");
                     var content = contentWithoutIal.TrimStart('#', ' ').TrimEnd('#', ' ');
+                    var id = CreateHeadingId(content);
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        headingIds.Add(id);
+                    }
+                }
+                else if (extendedMatch.Success)
+                {
+                    // Extended Markdown syntax: {#custom-id} (without colon)
+                    headingIds.Add(extendedMatch.Groups[1].Value);
+                    // Remove the ID from content for generating default ID
+                    var contentWithoutId = _extendedHeadingIdPattern.Replace(line, "");
+                    var content = contentWithoutId.TrimStart('#', ' ').TrimEnd('#', ' ');
                     var id = CreateHeadingId(content);
                     if (!string.IsNullOrEmpty(id))
                     {
@@ -193,7 +221,7 @@ namespace MarkdownLintVS.Linting.Rules
                 }
             }
 
-            // Scan all lines for HTML id/name attributes and kramdown IAL IDs
+            // Scan all lines for HTML id/name attributes and IAL IDs
             for (var i = 0; i < analysis.LineCount; i++)
             {
                 var line = analysis.GetLine(i);
@@ -206,6 +234,12 @@ namespace MarkdownLintVS.Linting.Rules
 
                 // Issue #726: kramdown block/span IAL IDs {:#id} or {:.class #id}
                 foreach (Match match in _kramdownIalIdPattern.Matches(line))
+                {
+                    headingIds.Add(match.Groups[1].Value);
+                }
+
+                // Extended Markdown IAL IDs {#id} or {.class #id}
+                foreach (Match match in _extendedIalIdPattern.Matches(line))
                 {
                     headingIds.Add(match.Groups[1].Value);
                 }

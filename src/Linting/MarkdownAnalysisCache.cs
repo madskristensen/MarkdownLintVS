@@ -128,7 +128,7 @@ namespace MarkdownLintVS.Linting
                 List<LintViolation> violations;
                 if (GeneralOptions.Instance.LintingEnabled)
                 {
-                    violations = MarkdownLintAnalyzer.Instance.Analyze(text, filePath).ToList();
+                    violations = [.. MarkdownLintAnalyzer.Instance.Analyze(text, filePath)];
                 }
                 else
                 {

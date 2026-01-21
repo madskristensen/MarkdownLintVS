@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
+using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell.TableControl;
 using Microsoft.VisualStudio.Shell.TableManager;
@@ -19,6 +20,10 @@ namespace MarkdownLintVS.ErrorList
         private readonly List<SinkManager> _managers = [];
         private readonly Dictionary<string, TableEntriesSnapshot> _snapshots =
             new(StringComparer.OrdinalIgnoreCase);
+
+        // Separate storage for folder lint results (keyed by "FolderLint:" prefix)
+        private const string _folderLintPrefix = "FolderLint:";
+        private TableEntriesSnapshot _folderLintSnapshot;
 
         public string SourceTypeIdentifier => StandardTableDataSources.ErrorTableDataSource;
         public string Identifier => "MarkdownLint";
@@ -56,6 +61,11 @@ namespace MarkdownLintVS.ErrorList
                 {
                     sink.AddSnapshot(snapshot);
                 }
+
+                if (_folderLintSnapshot != null)
+                {
+                    sink.AddSnapshot(_folderLintSnapshot);
+                }
             }
 
             return manager;
@@ -79,6 +89,9 @@ namespace MarkdownLintVS.ErrorList
                     _snapshots[filePath] = snapshot;
                     NotifySinks(sink => sink.AddSnapshot(snapshot));
                 }
+
+                // Remove any folder lint errors for this file to avoid duplicates
+                RemoveFolderLintErrorsForFile(filePath);
             }
         }
 
@@ -88,7 +101,6 @@ namespace MarkdownLintVS.ErrorList
             {
                 return;
             }
-
             lock (_snapshots)
             {
                 if (_snapshots.TryGetValue(filePath, out TableEntriesSnapshot snapshot))
@@ -108,6 +120,96 @@ namespace MarkdownLintVS.ErrorList
                     NotifySinks(sink => sink.RemoveSnapshot(snapshot));
                 }
                 _snapshots.Clear();
+
+                if (_folderLintSnapshot != null)
+                {
+                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    _folderLintSnapshot = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clears all folder lint errors (from Lint Folder command).
+        /// </summary>
+        public void ClearFolderLintErrors()
+        {
+            lock (_snapshots)
+            {
+                if (_folderLintSnapshot != null)
+                {
+                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    _folderLintSnapshot = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a folder lint error (from Lint Folder command).
+        /// Call ClearFolderLintErrors first, then add all errors, for best performance.
+        /// </summary>
+        public void AddFolderLintError(
+            string filePath,
+            int line,
+            int startColumn,
+            string ruleId,
+            string message,
+            DiagnosticSeverity severity)
+        {
+            lock (_snapshots)
+            {
+                // Get existing errors or create new list
+                List<MarkdownLintError> errors;
+                if (_folderLintSnapshot != null)
+                {
+                    // Remove old snapshot, we'll create a new one
+                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    errors = [.. _folderLintSnapshot.GetErrors()];
+                }
+                else
+                {
+                    errors = [];
+                }
+
+                // Add new error
+                RuleInfo ruleInfo = Linting.RuleRegistry.GetRule(ruleId);
+                errors.Add(new MarkdownLintError(filePath, line, startColumn, ruleId, message, ruleInfo?.Description, ruleInfo?.DocumentationUrl, severity));
+
+                // Create and add new snapshot
+                _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", errors);
+                NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
+            }
+        }
+
+        /// <summary>
+        /// Removes folder lint errors for a specific file.
+        /// Called when a file is opened and linted individually to avoid duplicates.
+        /// </summary>
+        private void RemoveFolderLintErrorsForFile(string filePath)
+        {
+            // Must be called within lock(_snapshots)
+            if (_folderLintSnapshot == null)
+                return;
+
+            var existingErrors = _folderLintSnapshot.GetErrors().ToList();
+            var filteredErrors = existingErrors
+                .Where(e => !string.Equals(e.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            // Only update if we actually removed something
+            if (filteredErrors.Count < existingErrors.Count)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+
+                if (filteredErrors.Count > 0)
+                {
+                    _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", filteredErrors);
+                    NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
+                }
+                else
+                {
+                    _folderLintSnapshot = null;
+                }
             }
         }
 
@@ -149,10 +251,11 @@ namespace MarkdownLintVS.ErrorList
     /// </summary>
     internal class TableEntriesSnapshot(string filePath, List<MarkdownLintError> errors) : ITableEntriesSnapshot
     {
-
         public string FilePath { get; } = filePath;
         public int VersionNumber { get; } = 1;
         public int Count => errors.Count;
+
+        public IEnumerable<MarkdownLintError> GetErrors() => errors;
 
         public int IndexOf(int currentIndex, ITableEntriesSnapshot newerSnapshot)
         {
@@ -256,7 +359,27 @@ namespace MarkdownLintVS.ErrorList
             Severity = GetSeverity(violation.Severity);
         }
 
-        private __VSERRORCATEGORY GetSeverity(Linting.DiagnosticSeverity severity)
+        public MarkdownLintError(
+            string filePath,
+            int line,
+            int column,
+            string errorCode,
+            string message,
+            string description,
+            string helpLink,
+            Linting.DiagnosticSeverity severity)
+        {
+            FilePath = filePath;
+            Line = line;
+            Column = column;
+            ErrorCode = errorCode;
+            Message = message;
+            Description = description ?? "";
+            HelpLink = helpLink ?? "";
+            Severity = GetSeverity(severity);
+        }
+
+        private static __VSERRORCATEGORY GetSeverity(Linting.DiagnosticSeverity severity)
         {
             return severity switch
             {

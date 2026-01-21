@@ -13,10 +13,11 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Quick fixes** - Press `Ctrl+.` for automatic fixes (light bulb suggestions)  
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
 ✅ **Format Document** - Auto-fix all issues via Format Document (`Ctrl+K, Ctrl+D`)  
+✅ **Lint Folder/Solution** - Lint all Markdown files in a folder, project, or solution  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
 ✅ **Context menu** - Quick access to enable/disable linting and settings  
-✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD060)
+✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD060)  
 ✅ **Works with any Markdown editor** - Including the built-in Markdown editor and most Markdown extensions
 
 ## Installation
@@ -45,6 +46,19 @@ Right-click in any Markdown file to access the **Markdown Lint** submenu:
 - **Enabled** - Toggle linting on/off (checkmark indicates current state)
 - **Settings...** - Open the Rules options page directly
 
+### Lint Folder / Solution
+
+Right-click on any folder, project, or solution in **Solution Explorer** to lint all Markdown files:
+
+- **Lint Markdown Files** - Lint all `.md` files in the selected folder or project
+- **Lint All Markdown Files** - Lint all `.md` files in the entire solution
+
+Results appear in the **Error List** window, with clickable entries to navigate directly to issues. Files are processed in parallel for fast performance.
+
+**Ignored folders:** By default, common folders like `node_modules`, `vendor`, `.git`, `bin`, and `obj` are automatically ignored. You can customize this list in **Tools → Options → Markdown Lint → General → Ignored Folders**.
+
+**`.markdownlintignore` support:** Create a `.markdownlintignore` file in your project root to exclude additional files or patterns (uses `.gitignore` syntax).
+
 ### Format Document
 
 Use **Format Document** (`Ctrl+K, Ctrl+D`) or **Format Selection** (`Ctrl+K, Ctrl+F`) to automatically fix all auto-fixable violations. The first time you use this feature, you'll be prompted to enable or disable automatic fixing on format commands. You can change this setting later in **Tools → Options → Markdown Lint → General**.
@@ -66,6 +80,7 @@ Go to **Tools → Options → Markdown Lint → General** to configure:
 |---------|-------------|
 | Linting Enabled | Enable or disable all markdown linting |
 | Format Document Behavior | Control auto-fixing on Format Document/Selection (Ask, On, Off) |
+| Ignored Folders | Comma-separated list of folders to ignore when linting (default: `node_modules, vendor, .git, bin, obj, packages, TestResults`) |
 
 ### Rules Options
 
