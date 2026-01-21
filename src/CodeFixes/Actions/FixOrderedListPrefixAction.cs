@@ -22,10 +22,8 @@ namespace MarkdownLintVS.CodeFixes.Actions
         /// </summary>
         public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
         {
-            Match match = Regex.Match(violation.Message, @"should be '(\d+)'");
-            if (match.Success && int.TryParse(match.Groups[1].Value, out var number))
-                return new FixOrderedListPrefixAction(snapshot, span, number);
-            return null;
+            var number = ViolationMessageParser.ExtractExpectedNumber(violation.Message);
+            return number.HasValue ? new FixOrderedListPrefixAction(snapshot, span, number.Value) : null;
         }
 
         public override void ApplyFix(ITextEdit edit)

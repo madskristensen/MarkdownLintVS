@@ -21,19 +21,8 @@ namespace MarkdownLintVS.CodeFixes.Actions
         /// </summary>
         public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
         {
-            var marker = ExtractExpectedMarker(violation.Message);
+            var marker = ViolationMessageParser.ExtractExpectedMarker(violation.Message);
             return marker.HasValue ? new ChangeListMarkerAction(snapshot, span, marker.Value) : null;
-        }
-
-        private static char? ExtractExpectedMarker(string message)
-        {
-            if (message.Contains("expected 'dash'") || message.Contains("should use dash"))
-                return '-';
-            if (message.Contains("expected 'asterisk'") || message.Contains("should use asterisk"))
-                return '*';
-            if (message.Contains("expected 'plus'") || message.Contains("should use plus"))
-                return '+';
-            return null;
         }
 
         public override void ApplyFix(ITextEdit edit)

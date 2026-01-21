@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
 
@@ -22,16 +21,8 @@ namespace MarkdownLintVS.CodeFixes.Actions
         /// </summary>
         public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
         {
-            var style = ExtractExpectedStyle(violation.Message);
+            var style = ViolationMessageParser.ExtractExpectedStyle(violation.Message);
             return style != null ? new ChangeStrongStyleAction(snapshot, span, style) : null;
-        }
-
-        private static string ExtractExpectedStyle(string message)
-        {
-            Match match = Regex.Match(message, @"expected '([^']+)'|Expected:\s*(\w+)");
-            if (match.Success)
-                return match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
-            return null;
         }
     }
 }

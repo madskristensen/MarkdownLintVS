@@ -9,10 +9,10 @@ namespace MarkdownLintVS.Linting
     /// <summary>
     /// Main analyzer service that coordinates rule execution and EditorConfig integration.
     /// </summary>
-    public class MarkdownLintAnalyzer
+    public class MarkdownLintAnalyzer : IMarkdownLintAnalyzer
     {
         private static readonly Lazy<MarkdownLintAnalyzer> _instance =
-            new(() => new MarkdownLintAnalyzer());
+            new(() => new MarkdownLintAnalyzer(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
         public static MarkdownLintAnalyzer Instance => _instance.Value;
 
@@ -24,6 +24,11 @@ namespace MarkdownLintVS.Linting
             _rules = CreateRules();
             _editorConfigParser = new EditorConfigParser();
         }
+
+        /// <summary>
+        /// Gets the list of all registered rules.
+        /// </summary>
+        public IReadOnlyList<IMarkdownRule> Rules => _rules;
 
         private List<IMarkdownRule> CreateRules()
         {
@@ -140,7 +145,7 @@ namespace MarkdownLintVS.Linting
             Dictionary<string, RuleConfiguration> ruleConfigs,
             Dictionary<string, RuleConfiguration> editorConfigSettings)
         {
-            List<IMarkdownRule> rules = Instance._rules;
+            IReadOnlyList<IMarkdownRule> rules = Instance.Rules;
 
             foreach (IMarkdownRule rule in rules)
             {

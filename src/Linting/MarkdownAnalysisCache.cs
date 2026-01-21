@@ -97,16 +97,17 @@ namespace MarkdownLintVS.Linting
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var text = snapshot.GetText();
 
-            PerformAnalysisAsync(buffer, filePath, cts, snapshot, text).FireAndForget();
+            // Pass the token, not the CTS, to avoid accessing disposed CTS
+            PerformAnalysisAsync(buffer, filePath, cts.Token, snapshot, text).FireAndForget();
         }
 
-        private async Task PerformAnalysisAsync(ITextBuffer buffer, string filePath, CancellationTokenSource cts, ITextSnapshot snapshot, string text)
+        private async Task PerformAnalysisAsync(ITextBuffer buffer, string filePath, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
         {
             try
             {
-                await Task.Delay(_debounceDelayMs, cts.Token);
+                await Task.Delay(_debounceDelayMs, cancellationToken);
 
-                if (!cts.Token.IsCancellationRequested)
+                if (!cancellationToken.IsCancellationRequested)
                 {
                     PerformAnalysis(buffer, snapshot, text, filePath);
                 }
@@ -114,6 +115,10 @@ namespace MarkdownLintVS.Linting
             catch (OperationCanceledException)
             {
                 // Expected when user types again before delay expires
+            }
+            catch (ObjectDisposedException)
+            {
+                // CancellationTokenSource was disposed - this is fine, just stop
             }
         }
 

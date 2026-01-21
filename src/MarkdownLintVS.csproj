@@ -90,6 +90,7 @@
     <Compile Include="ContentTypes.cs" />
     <Compile Include="ErrorList\MarkdownDocumentListener.cs" />
     <Compile Include="ErrorList\MarkdownLintTableDataSource.cs" />
+    <Compile Include="Linting\IMarkdownLintAnalyzer.cs" />
     <Compile Include="Linting\MarkdownAnalysisCache.cs" />
     <Compile Include="Linting\MarkdownDocumentAnalysis.cs" />
     <Compile Include="Linting\MarkdownFileScanner.cs" />
@@ -106,6 +107,7 @@
     <Compile Include="Linting\Rules\MarkdownRuleBase.cs" />
     <Compile Include="Linting\Rules\TableRules.cs" />
     <Compile Include="Linting\Rules\WhitespaceRules.cs" />
+    <Compile Include="Linting\ViolationMessageParser.cs" />
     <Compile Include="Options\GeneralOptions.cs" />
     <Compile Include="Options\RuleOptions.cs" />
     <Compile Include="Options\RuleOptionsProvider.cs" />

@@ -18,11 +18,14 @@ namespace MarkdownLintVS.CodeFixes.Actions
         public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
         {
             var fixDesc = violation.FixDescription ?? violation.Message;
-            if (fixDesc.Contains("before"))
-                return new AddBlankLineBeforeAction(snapshot, span);
-            if (fixDesc.Contains("after"))
-                return new AddBlankLineAfterAction(snapshot, span);
-            return null;
+            var position = ViolationMessageParser.ExtractBlankLinePosition(fixDesc);
+
+            return position switch
+            {
+                "before" => new AddBlankLineBeforeAction(snapshot, span),
+                "after" => new AddBlankLineAfterAction(snapshot, span),
+                _ => null
+            };
         }
     }
 }

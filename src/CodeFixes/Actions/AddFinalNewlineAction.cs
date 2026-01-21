@@ -17,7 +17,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
         /// </summary>
         public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
         {
-            if (violation.Message.Contains("multiple"))
+            if (ViolationMessageParser.IsMultipleNewlines(violation.Message))
                 return new RemoveExtraBlankLinesAction(snapshot, new Span(snapshot.Length - 1, 1));
             else
                 return new AddFinalNewlineAction(snapshot, new Span(snapshot.Length, 0));
