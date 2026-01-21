@@ -11,6 +11,12 @@ namespace MarkdownLintVS.Linting
     /// </summary>
     public class MarkdownDocumentAnalysis
     {
+        // Default compiled pattern for front matter title detection
+        private const string DefaultTitlePattern = @"^\s*title\s*[:=]";
+        private static readonly Regex _defaultTitleRegex = new Regex(
+            DefaultTitlePattern,
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private readonly string _text;
         private readonly string[] _lines;
         private readonly MarkdownDocument _document;
@@ -283,12 +289,15 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         /// <param name="titlePattern">Regex pattern to match title property (default: ^\s*title\s*[:=])</param>
         /// <returns>True if front matter contains a matching title property.</returns>
-        public bool HasFrontMatterTitle(string titlePattern = @"^\s*title\s*[:=]")
+        public bool HasFrontMatterTitle(string titlePattern = null)
         {
-            if (_frontMatterEndLine < 0 || string.IsNullOrEmpty(titlePattern))
+            if (_frontMatterEndLine < 0)
                 return false;
 
-            var pattern = new Regex(titlePattern, RegexOptions.IgnoreCase);
+            // Use cached regex for default pattern, create new one only for custom patterns
+            Regex pattern = string.IsNullOrEmpty(titlePattern) || titlePattern == DefaultTitlePattern
+                ? _defaultTitleRegex
+                : new Regex(titlePattern, RegexOptions.IgnoreCase);
 
             // Search lines between front matter delimiters (excluding the --- lines)
             for (var i = 1; i < _frontMatterEndLine && i < _lines.Length; i++)

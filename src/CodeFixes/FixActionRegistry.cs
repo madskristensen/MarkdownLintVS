@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using MarkdownLintVS.CodeFixes.Actions;
 using MarkdownLintVS.Linting;
@@ -102,8 +103,9 @@ namespace MarkdownLintVS.CodeFixes
                 {
                     return _factory(snapshot, span, violation);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"Failed to create fix action for {violation?.Rule?.Id}: {ex.Message}");
                     return null;
                 }
             }
@@ -122,8 +124,16 @@ namespace MarkdownLintVS.CodeFixes
 
                     if (createMethod != null && typeof(MarkdownFixAction).IsAssignableFrom(createMethod.ReturnType))
                     {
-                        return (snapshot, span, violation) =>
-                            (MarkdownFixAction)createMethod.Invoke(null, [snapshot, span, violation]);
+                        // Build compiled delegate instead of using reflection invoke
+                        var snapshotParam = Expression.Parameter(typeof(ITextSnapshot), "snapshot");
+                        var spanParam = Expression.Parameter(typeof(Span), "span");
+                        var violationParam = Expression.Parameter(typeof(LintViolation), "violation");
+
+                        var call = Expression.Call(createMethod, snapshotParam, spanParam, violationParam);
+                        var cast = Expression.Convert(call, typeof(MarkdownFixAction));
+
+                        return Expression.Lambda<Func<ITextSnapshot, Span, LintViolation, MarkdownFixAction>>(
+                            cast, snapshotParam, spanParam, violationParam).Compile();
                     }
 
                     throw new InvalidOperationException(
@@ -134,8 +144,16 @@ namespace MarkdownLintVS.CodeFixes
                 var ctor = type.GetConstructor([typeof(ITextSnapshot), typeof(Span)]);
                 if (ctor != null)
                 {
-                    return (snapshot, span, _) =>
-                        (MarkdownFixAction)ctor.Invoke([snapshot, span]);
+                    // Build compiled delegate instead of using reflection invoke
+                    var snapshotParam = Expression.Parameter(typeof(ITextSnapshot), "snapshot");
+                    var spanParam = Expression.Parameter(typeof(Span), "span");
+                    var unusedParam = Expression.Parameter(typeof(LintViolation), "_");
+
+                    var newExpr = Expression.New(ctor, snapshotParam, spanParam);
+                    var cast = Expression.Convert(newExpr, typeof(MarkdownFixAction));
+
+                    return Expression.Lambda<Func<ITextSnapshot, Span, LintViolation, MarkdownFixAction>>(
+                        cast, snapshotParam, spanParam, unusedParam).Compile();
                 }
 
                 throw new InvalidOperationException(

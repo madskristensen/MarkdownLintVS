@@ -159,9 +159,20 @@ namespace MarkdownLintVS.Linting
         {
             if (buffer.Properties.TryGetProperty(_debounceKey, out CancellationTokenSource existingCts))
             {
-                existingCts.Cancel();
-                existingCts.Dispose();
                 _ = buffer.Properties.RemoveProperty(_debounceKey);
+                // Cancel first, then dispose - order matters for race condition safety
+                // The token is passed by value to the async method, so accessing IsCancellationRequested
+                // after Cancel() is safe, but we should not dispose until after Task.Delay returns
+                try
+                {
+                    existingCts.Cancel();
+                }
+                finally
+                {
+                    // Dispose is safe here because Task.Delay will throw OperationCanceledException
+                    // before accessing the CTS again, and we catch ObjectDisposedException as a fallback
+                    existingCts.Dispose();
+                }
             }
         }
 

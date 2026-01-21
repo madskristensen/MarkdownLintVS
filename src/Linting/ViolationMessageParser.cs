@@ -8,6 +8,18 @@ namespace MarkdownLintVS.Linting
     /// </summary>
     public static class ViolationMessageParser
     {
+        // Pre-compiled regex patterns for performance
+        private static readonly Regex _expectedNumberPattern = new Regex(
+            @"should be '(\d+)'",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _expectedValuePattern = new Regex(
+            @"expected '([^']+)'",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _expectedColonPattern = new Regex(
+            @"Expected:\s*(\w+)",
+            RegexOptions.Compiled);
         /// <summary>
         /// Extracts the expected list marker character from a violation message.
         /// </summary>
@@ -38,10 +50,10 @@ namespace MarkdownLintVS.Linting
             if (string.IsNullOrEmpty(message))
                 return null;
 
-            Match match = Regex.Match(message, @"should be '(\d+)'");
+            Match match = _expectedNumberPattern.Match(message);
             if (match.Success && int.TryParse(match.Groups[1].Value, out var number))
                 return number;
-            
+
             return null;
         }
 
@@ -56,12 +68,12 @@ namespace MarkdownLintVS.Linting
                 return null;
 
             // Try "expected 'value'" pattern first
-            Match match = Regex.Match(message, @"expected '([^']+)'");
+            Match match = _expectedValuePattern.Match(message);
             if (match.Success)
                 return match.Groups[1].Value;
 
             // Try "Expected: value" pattern
-            match = Regex.Match(message, @"Expected:\s*(\w+)");
+            match = _expectedColonPattern.Match(message);
             if (match.Success)
                 return match.Groups[1].Value;
 

@@ -159,8 +159,9 @@ namespace MarkdownLintVS.Linting
                 {
                     violations = rule.Analyze(analysis, config, config.Severity);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"Rule {rule.Info.Id} threw an exception: {ex.Message}");
                     continue;
                 }
 
@@ -197,9 +198,10 @@ namespace MarkdownLintVS.Linting
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore EditorConfig parsing errors
+                // Log EditorConfig parsing errors for debugging
+                System.Diagnostics.Debug.WriteLine($"EditorConfig parsing error for {directoryPath}: {ex.Message}");
             }
 
             return configurations;
