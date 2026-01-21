@@ -29,6 +29,30 @@ namespace MarkdownLintVS.Options
     }
 
     /// <summary>
+    /// Defines the behavior for running markdown lint fixes on file save.
+    /// </summary>
+    public enum FixOnSaveBehavior
+    {
+        /// <summary>
+        /// Prompt the user to ask whether to run fixes on save.
+        /// </summary>
+        [Description("Ask")]
+        Ask,
+
+        /// <summary>
+        /// Automatically run markdown lint fixes before saving.
+        /// </summary>
+        [Description("On")]
+        On,
+
+        /// <summary>
+        /// Do not run markdown lint fixes on save.
+        /// </summary>
+        [Description("Off")]
+        Off
+    }
+
+    /// <summary>
     /// General options for the Markdown Lint extension.
     /// </summary>
     public class GeneralOptions : BaseOptionModel<GeneralOptions>
@@ -45,6 +69,12 @@ namespace MarkdownLintVS.Options
         [Description("Controls whether markdown lint fixes are automatically applied when using Format Document or Format Selection commands.")]
         [DefaultValue(FormatDocumentBehavior.Ask)]
         public FormatDocumentBehavior FormatDocumentBehavior { get; set; } = FormatDocumentBehavior.Ask;
+
+        [Category("Formatting")]
+        [DisplayName("Fix on Save Behavior")]
+        [Description("Controls whether markdown lint fixes are automatically applied before saving a Markdown file.")]
+        [DefaultValue(FixOnSaveBehavior.Ask)]
+        public FixOnSaveBehavior FixOnSaveBehavior { get; set; } = FixOnSaveBehavior.Ask;
 
         [Category("Folder Linting")]
         [DisplayName("Ignored Folders")]

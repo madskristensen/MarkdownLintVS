@@ -100,7 +100,7 @@ namespace MarkdownLintVS.Commands
 
         private static void FormatDocument(DocumentView doc)
         {
-            ApplyAllFixes(doc.TextBuffer, null);
+            MarkdownFixApplier.ApplyAllFixes(doc.TextBuffer);
         }
 
         private static void FormatSelection(DocumentView doc)
@@ -119,100 +119,7 @@ namespace MarkdownLintVS.Commands
             var startLine = snapshot.GetLineNumberFromPosition(selection.Start);
             var endLine = snapshot.GetLineNumberFromPosition(selection.End);
 
-            ApplyAllFixes(doc.TextBuffer, (startLine, endLine));
-        }
-
-        /// <summary>
-        /// Applies all auto-fixable markdown lint violations in the buffer.
-        /// </summary>
-        /// <param name="buffer">The text buffer to modify.</param>
-        /// <param name="lineRange">Optional line range to restrict fixes to. If null, fixes entire document.</param>
-        private static void ApplyAllFixes(ITextBuffer buffer, (int start, int end)? lineRange)
-        {
-            ITextSnapshot snapshot = buffer.CurrentSnapshot;
-            var text = snapshot.GetText();
-
-            // Get file path for analysis
-            string filePath = null;
-            if (buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document))
-            {
-                filePath = document.FilePath;
-            }
-
-            // Get all auto-fixable violations
-            var violations = MarkdownLintAnalyzer.Instance
-                .Analyze(text, filePath)
-                .Where(v => MarkdownSuggestedActionsSource.IsRuleAutoFixable(v.Rule.Id))
-                .Where(v => lineRange == null || (v.LineNumber >= lineRange.Value.start && v.LineNumber <= lineRange.Value.end))
-                .OrderByDescending(v => v.LineNumber)
-                .ThenByDescending(v => v.ColumnStart)
-                .ToList();
-
-            if (violations.Count == 0)
-                return;
-
-            using ITextEdit edit = buffer.CreateEdit();
-
-            // Track which lines already have a blank line being inserted BEFORE them.
-            var blankLineBeforeLineNumbers = new HashSet<int>();
-
-            foreach (LintViolation violation in violations)
-            {
-                MarkdownFixAction action = MarkdownSuggestedActionsSource.CreateFixActionForViolation(violation, snapshot);
-                if (action == null)
-                    continue;
-
-                // Deduplicate blank line insertions that target the same line boundary
-                if (action is AddBlankLineBeforeAction beforeAction)
-                {
-                    var targetLine = snapshot.GetLineFromPosition(beforeAction.InsertPosition).LineNumber;
-                    if (blankLineBeforeLineNumbers.Contains(targetLine))
-                        continue;
-
-                    blankLineBeforeLineNumbers.Add(targetLine);
-                }
-                else if (action is AddBlankLineAfterAction afterAction)
-                {
-                    var targetLine = snapshot.GetLineFromPosition(afterAction.InsertPosition).LineNumber;
-                    if (blankLineBeforeLineNumbers.Contains(targetLine))
-                        continue;
-
-                    blankLineBeforeLineNumbers.Add(targetLine);
-                }
-                else if (action is SurroundWithBlankLinesAction surroundAction)
-                {
-                    var skipBefore = false;
-                    var skipAfter = false;
-
-                    var beforeLine = surroundAction.InsertBeforeLine;
-                    if (beforeLine >= 0)
-                    {
-                        if (blankLineBeforeLineNumbers.Contains(beforeLine))
-                            skipBefore = true;
-                        else
-                            blankLineBeforeLineNumbers.Add(beforeLine);
-                    }
-
-                    var afterLine = surroundAction.InsertAfterListBeforeLine;
-                    if (afterLine >= 0)
-                    {
-                        if (blankLineBeforeLineNumbers.Contains(afterLine))
-                            skipAfter = true;
-                        else
-                            blankLineBeforeLineNumbers.Add(afterLine);
-                    }
-
-                    if (skipBefore && skipAfter)
-                        continue;
-
-                    surroundAction.ApplyFix(edit, skipBefore, skipAfter);
-                    continue;
-                }
-
-                action.ApplyFix(edit);
-            }
-
-            edit.Apply();
+            MarkdownFixApplier.ApplyAllFixes(doc.TextBuffer, (startLine, endLine));
         }
     }
 }
