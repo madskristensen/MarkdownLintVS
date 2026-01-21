@@ -85,8 +85,10 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD020");
         public override RuleInfo Info => _info;
 
+        // Matches closed ATX headings: # Heading # or ## Heading ##
+        // Using non-greedy .+? to capture content between opening and closing hashes
         private static readonly Regex ClosedAtxPattern = new(
-            @"^(#{1,6})\s+.+\s*(#{1,6})\s*$",
+            @"^(#{1,6})(.+?)(#{1,6})\s*$",
             RegexOptions.Compiled);
 
         public override IEnumerable<LintViolation> Analyze(
@@ -103,16 +105,29 @@ namespace MarkdownLintVS.Linting.Rules
                 Match match = ClosedAtxPattern.Match(line);
                 if (match.Success)
                 {
+                    var content = match.Groups[2].Value;
+                    var hasMissingSpace = false;
+
+                    // Check for missing space after opening hashes
+                    if (content.Length > 0 && content[0] != ' ')
+                    {
+                        hasMissingSpace = true;
+                    }
+
                     // Check for missing space before closing hashes
-                    var lastHash = line.LastIndexOf('#');
-                    if (lastHash > 0 && line[lastHash - 1] != ' ')
+                    if (content.Length > 0 && content[content.Length - 1] != ' ')
+                    {
+                        hasMissingSpace = true;
+                    }
+
+                    if (hasMissingSpace)
                     {
                         yield return CreateLineViolation(
                             i,
                             line,
                             "No space inside hashes on closed atx style heading",
                             severity,
-                            "Add space before closing hashes");
+                            "Add space inside hashes");
                     }
                 }
             }
@@ -186,25 +201,28 @@ namespace MarkdownLintVS.Linting.Rules
 
             foreach (HeadingBlock heading in analysis.GetHeadings())
             {
-                var lineNum = heading.Line;
-
-                if (analysis.IsLineInFrontMatter(lineNum))
+                if (analysis.IsLineInFrontMatter(heading.Line))
                     continue;
 
+                // For setext headings, Markdig reports Line as the underline
+                // The actual heading content starts one line before
+                var startLine = heading.IsSetext ? heading.Line - 1 : heading.Line;
+                var endLine = heading.IsSetext ? heading.Line : heading.Line;
+
                 // Check lines above (except for first heading or just after front matter)
-                if (lineNum > 0 && lineNum > firstContentLine + 1)
+                if (startLine > 0 && startLine > firstContentLine)
                 {
                     var blankAbove = 0;
-                    for (var i = lineNum - 1; i >= 0 && analysis.IsBlankLine(i); i--)
+                    for (var i = startLine - 1; i >= 0 && analysis.IsBlankLine(i); i--)
                     {
                         blankAbove++;
                     }
 
-                    if (blankAbove < linesAbove && lineNum > 0)
+                    if (blankAbove < linesAbove)
                     {
                         yield return CreateLineViolation(
-                            lineNum,
-                            analysis.GetLine(lineNum),
+                            startLine,
+                            analysis.GetLine(startLine),
                             $"Heading should be preceded by {linesAbove} blank line(s)",
                             severity,
                             "Add blank line before heading");
@@ -212,7 +230,6 @@ namespace MarkdownLintVS.Linting.Rules
                 }
 
                 // Check lines below
-                var endLine = heading.IsSetext ? lineNum + 1 : lineNum;
                 if (endLine < analysis.LineCount - 1)
                 {
                     var blankBelow = 0;
@@ -224,8 +241,8 @@ namespace MarkdownLintVS.Linting.Rules
                     if (blankBelow < linesBelow)
                     {
                         yield return CreateLineViolation(
-                            lineNum,
-                            analysis.GetLine(lineNum),
+                            startLine,
+                            analysis.GetLine(startLine),
                             $"Heading should be followed by {linesBelow} blank line(s)",
                             severity,
                             "Add blank line after heading");

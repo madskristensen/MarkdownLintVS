@@ -486,4 +486,491 @@ public sealed class HeadingRuleTests
     }
 
     #endregion
+
+    #region MD018 - No Space After Hash
+
+    [TestMethod]
+    public void MD018_WhenSpaceAfterHashThenNoViolation()
+    {
+        var rule = new MD018_NoMissingSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1\n\n## Heading 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD018_WhenNoSpaceAfterHashThenReportsViolation()
+    {
+        var rule = new MD018_NoMissingSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("#Heading 1\n\n##Heading 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD018"));
+    }
+
+    [TestMethod]
+    public void MD018_WhenInCodeBlockThenNoViolation()
+    {
+        var rule = new MD018_NoMissingSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("```\n#NoSpace\n```");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD018_WhenInFrontMatterThenNoViolation()
+    {
+        var rule = new MD018_NoMissingSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("---\n#tag\n---\n\n# Title");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD018_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD018_NoMissingSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("#NoSpace");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("No space after hash", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD019 - Multiple Spaces After Hash
+
+    [TestMethod]
+    public void MD019_WhenSingleSpaceAfterHashThenNoViolation()
+    {
+        var rule = new MD019_NoMultipleSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1\n\n## Heading 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD019_WhenMultipleSpacesAfterHashThenReportsViolation()
+    {
+        var rule = new MD019_NoMultipleSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("#  Heading 1\n\n##  Heading 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(v => v.Rule.Id == "MD019"));
+    }
+
+    [TestMethod]
+    public void MD019_WhenSetextHeadingThenNoViolation()
+    {
+        var rule = new MD019_NoMultipleSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("Heading\n=======");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD019_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD019_NoMultipleSpaceAtx();
+        var analysis = new MarkdownDocumentAnalysis("#  Multiple Spaces");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("Multiple spaces", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD020 - No Space In Closed ATX
+
+    [TestMethod]
+    public void MD020_WhenSpaceInsideHashesThenNoViolation()
+    {
+        var rule = new MD020_NoMissingSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1 #\n\n## Heading 2 ##");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD020_WhenNoSpaceBeforeClosingHashThenReportsViolation()
+    {
+        var rule = new MD020_NoMissingSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1#");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD020", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD020_WhenInCodeBlockThenNoViolation()
+    {
+        var rule = new MD020_NoMissingSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("```\n# NoSpace#\n```");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD020_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD020_NoMissingSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading#");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("No space inside hashes", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD021 - Multiple Spaces In Closed ATX
+
+    [TestMethod]
+    public void MD021_WhenSingleSpaceInsideHashesThenNoViolation()
+    {
+        var rule = new MD021_NoMultipleSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1 #\n\n## Heading 2 ##");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD021_WhenMultipleSpacesBeforeClosingHashThenReportsViolation()
+    {
+        var rule = new MD021_NoMultipleSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1  #");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD021", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD021_WhenMultipleSpacesAfterOpeningHashThenReportsViolation()
+    {
+        var rule = new MD021_NoMultipleSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("#  Heading 1 #");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD021", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD021_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD021_NoMultipleSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("# Heading  #");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("Multiple spaces", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD022 - Blanks Around Headings
+
+    [TestMethod]
+    public void MD022_WhenBlankLinesAroundHeadingThenNoViolation()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\n\nText\n\n## Another Heading\n\nMore text");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD022_WhenNoBlankLineBeforeHeadingThenReportsViolation()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var analysis = new MarkdownDocumentAnalysis("# First Heading\n\nText\n## Second Heading");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("preceded by", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD022_WhenNoBlankLineAfterHeadingThenReportsViolation()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\nText immediately after");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("followed by", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD022_WhenFirstHeadingAtDocumentStartThenNoViolationForAbove()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\n\nText");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // First heading at start doesn't need blank line above
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD022_WhenLinesAboveSetTo2ThenRequires2BlankLines()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var config = new RuleConfiguration();
+        config.Parameters["lines_above"] = "2";
+        var analysis = new MarkdownDocumentAnalysis("# First\n\nText\n\n## Second");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        // Only 1 blank line above ## Second, but 2 required
+        Assert.HasCount(1, violations);
+        Assert.Contains("2 blank line", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD022_WhenLinesBelowSetTo0ThenNoBlankLineRequired()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        var config = new RuleConfiguration();
+        config.Parameters["lines_below"] = "0";
+        var analysis = new MarkdownDocumentAnalysis("# Heading\nText immediately after");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD022_WhenSetextHeadingThenChecksCorrectly()
+    {
+        var rule = new MD022_BlanksAroundHeadings();
+        // Setext heading at start of document with blank line after
+        var markdown = "Setext Heading\n============\n\nMore text";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Setext heading at document start should not need blank line above
+        // And has blank line after, so should be ok
+        Assert.IsEmpty(violations);
+    }
+
+    #endregion
+
+    #region MD023 - Heading Start Left
+
+    [TestMethod]
+    public void MD023_WhenHeadingStartsAtBeginningThenNoViolation()
+    {
+        var rule = new MD023_HeadingStartLeft();
+        var analysis = new MarkdownDocumentAnalysis("# Heading\n\nText");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD023_WhenHeadingIndentedThenReportsViolation()
+    {
+        var rule = new MD023_HeadingStartLeft();
+        var analysis = new MarkdownDocumentAnalysis("  # Indented heading");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD023", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD023_WhenInCodeBlockThenNoViolation()
+    {
+        var rule = new MD023_HeadingStartLeft();
+        var analysis = new MarkdownDocumentAnalysis("```\n  # Comment in code\n```");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD023_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD023_HeadingStartLeft();
+        var analysis = new MarkdownDocumentAnalysis("  # Indented");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("beginning of the line", violations[0].Message);
+    }
+
+    #endregion
+
+    #region MD024 - No Duplicate Heading
+
+    [TestMethod]
+    public void MD024_WhenUniqueHeadingsThenNoViolation()
+    {
+        var rule = new MD024_NoDuplicateHeading();
+        var analysis = new MarkdownDocumentAnalysis("# Heading 1\n\n## Heading 2\n\n### Heading 3");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD024_WhenDuplicateHeadingsThenReportsViolation()
+    {
+        var rule = new MD024_NoDuplicateHeading();
+        var analysis = new MarkdownDocumentAnalysis("# Some text\n\n## Some text");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD024", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD024_WhenSiblingsOnlyThenAllowsDifferentLevelDuplicates()
+    {
+        // Per docs: with siblings_only, duplicates at different levels are allowed
+        var rule = new MD024_NoDuplicateHeading();
+        var config = new RuleConfiguration();
+        config.Parameters["siblings_only"] = "true";
+        var analysis = new MarkdownDocumentAnalysis("# Features\n\n## Features");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD024_WhenSiblingsOnlyAndSameLevelDuplicatesThenReportsViolation()
+    {
+        var rule = new MD024_NoDuplicateHeading();
+        var config = new RuleConfiguration();
+        config.Parameters["siblings_only"] = "true";
+        var analysis = new MarkdownDocumentAnalysis("## Features\n\nText\n\n## Features");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD024_ViolationMessageContainsHeadingText()
+    {
+        var rule = new MD024_NoDuplicateHeading();
+        var analysis = new MarkdownDocumentAnalysis("# Duplicate\n\n## Duplicate");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("duplicate", violations[0].Message.ToLower());
+    }
+
+    #endregion
+
+    #region MD025 - Single Top-Level Heading
+
+    [TestMethod]
+    public void MD025_WhenSingleH1ThenNoViolation()
+    {
+        var rule = new MD025_SingleTitle();
+        var analysis = new MarkdownDocumentAnalysis("# Title\n\n## Section 1\n\n## Section 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD025_WhenMultipleH1ThenReportsViolation()
+    {
+        var rule = new MD025_SingleTitle();
+        var analysis = new MarkdownDocumentAnalysis("# Title 1\n\n# Title 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD025", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD025_WhenLevelSetTo2ThenChecksH2()
+    {
+        // Per docs: level parameter changes which heading level is checked
+        var rule = new MD025_SingleTitle();
+        var config = new RuleConfiguration();
+        config.Parameters["level"] = "2";
+        var analysis = new MarkdownDocumentAnalysis("# Title\n\n## Section 1\n\n## Section 2");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        // Two H2s when level=2 means second one is a violation
+        Assert.HasCount(1, violations);
+    }
+
+    [TestMethod]
+    public void MD025_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD025_SingleTitle();
+        var analysis = new MarkdownDocumentAnalysis("# First\n\n# Second");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("Multiple top-level", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD025_WhenThreeH1ThenReportsTwoViolations()
+    {
+        var rule = new MD025_SingleTitle();
+        var analysis = new MarkdownDocumentAnalysis("# Title 1\n\n# Title 2\n\n# Title 3");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+    }
+
+    #endregion
 }
