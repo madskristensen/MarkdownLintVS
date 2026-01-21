@@ -160,10 +160,11 @@ namespace MarkdownLintVS.Commands
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            MarkdownLintTableDataSource dataSource = MarkdownLintTableDataSource.Instance;
+            // Ensure the data source is initialized (may not be if no markdown file is open)
+            MarkdownLintTableDataSource dataSource = await MarkdownLintTableDataSource.EnsureInitializedAsync();
             if (dataSource == null)
             {
-                // Data source not yet initialized - just show message
+                // Data source could not be initialized - just show message
                 await VS.StatusBar.ShowMessageAsync(
                     violations.Count > 0
                         ? $"Markdown Lint: {violations.Count} issues found ({totalFiles} files scanned)"

@@ -42,6 +42,10 @@
       <Group guid="MarkdownLintVS" id="SolutionExplorerSolutionGroup" priority="0x0600">
         <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_SOLNNODE"/>
       </Group>
+      <!-- Group for Lint command in Open Folder (Workspace) context menu -->
+      <Group guid="MarkdownLintVS" id="WorkspaceContextMenuGroup" priority="0x0600">
+        <Parent guid="guidWorkspaceExplorerToolWindowPackageCmdSet" id="idmWSE_ContextMenu"/>
+      </Group>
     </Groups>
 
     <Buttons>
@@ -95,6 +99,16 @@
           <LocCanonicalName>.MarkdownLint.LintSolution</LocCanonicalName>
         </Strings>
       </Button>
+      <!-- Lint Folder command for Open Folder (Workspace) context menu -->
+      <Button guid="MarkdownLintVS" id="LintOpenFolderCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="WorkspaceContextMenuGroup"/>
+        <Icon guid="ImageCatalogGuid" id="MarkdownFile"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Lint Markdown Files</ButtonText>
+          <LocCanonicalName>.MarkdownLint.LintOpenFolder</LocCanonicalName>
+        </Strings>
+      </Button>
     </Buttons>
   </Commands>
 
@@ -113,13 +127,19 @@
       <IDSymbol name="SolutionExplorerFolderGroup" value="0x0020"/>
       <IDSymbol name="SolutionExplorerProjectGroup" value="0x0021"/>
       <IDSymbol name="SolutionExplorerSolutionGroup" value="0x0022"/>
+      <IDSymbol name="WorkspaceContextMenuGroup" value="0x0023"/>
       <IDSymbol name="EnabledCommand" value="0x0100"/>
       <IDSymbol name="SettingsCommand" value="0x0101"/>
       <IDSymbol name="LintFolderCommand" value="0x0102"/>
       <IDSymbol name="LintProjectCommand" value="0x0103"/>
       <IDSymbol name="LintSolutionCommand" value="0x0104"/>
+      <IDSymbol name="LintOpenFolderCommand" value="0x0105"/>
     </GuidSymbol>
     <GuidSymbol name="MarkdownFileOpen" value="{a9b85cb7-4e4c-4f7c-9e1a-2d3c5e7f1a2b}">
+    </GuidSymbol>
+    <!-- Workspace Explorer context menu GUID -->
+    <GuidSymbol name="guidWorkspaceExplorerToolWindowPackageCmdSet" value="{cfb400f1-5c60-4f3c-856e-180d28def0b7}">
+      <IDSymbol name="idmWSE_ContextMenu" value="0x0002"/>
     </GuidSymbol>
   </Symbols>
 </CommandTable>

@@ -79,6 +79,7 @@
     <Compile Include="Commands\EnabledCommand.cs" />
     <Compile Include="Commands\Formatting.cs" />
     <Compile Include="Commands\LintFolderCommand.cs" />
+    <Compile Include="Commands\LintOpenFolderCommand.cs" />
     <Compile Include="Commands\MarkdownFixApplier.cs" />
     <Compile Include="Commands\SaveCommandHandler.cs" />
     <Compile Include="Commands\SettingsCommand.cs" />

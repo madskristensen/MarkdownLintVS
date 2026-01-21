@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
 using MarkdownLintVS.Linting;
+using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell.TableControl;
 using Microsoft.VisualStudio.Shell.TableManager;
@@ -28,6 +29,30 @@ namespace MarkdownLintVS.ErrorList
         public string SourceTypeIdentifier => StandardTableDataSources.ErrorTableDataSource;
         public string Identifier => "MarkdownLint";
         public string DisplayName => Vsix.Name;
+
+        /// <summary>
+        /// Ensures the data source singleton is initialized.
+        /// Call this from commands that need the data source before any document is opened.
+        /// </summary>
+        public static async System.Threading.Tasks.Task<MarkdownLintTableDataSource> EnsureInitializedAsync()
+        {
+            if (_instance != null)
+            {
+                return _instance;
+            }
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            // Get the component model to trigger MEF composition
+            IComponentModel componentModel = await VS.GetServiceAsync<SComponentModel, IComponentModel>();
+            if (componentModel != null)
+            {
+                // This will trigger MEF to create the instance
+                return componentModel.GetService<MarkdownLintTableDataSource>();
+            }
+
+            return null;
+        }
 
         [ImportingConstructor]
         public MarkdownLintTableDataSource([Import] ITableManagerProvider tableManagerProvider)

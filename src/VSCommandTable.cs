@@ -18,6 +18,9 @@ namespace MarkdownLintVS
 
         public const string MarkdownFileOpenString = "a9b85cb7-4e4c-4f7c-9e1a-2d3c5e7f1a2b";
         public static Guid MarkdownFileOpen = new Guid(MarkdownFileOpenString);
+
+        public const string guidWorkspaceExplorerToolWindowPackageCmdSetString = "cfb400f1-5c60-4f3c-856e-180d28def0b7";
+        public static Guid guidWorkspaceExplorerToolWindowPackageCmdSet = new Guid(guidWorkspaceExplorerToolWindowPackageCmdSetString);
     }
 
     /// <summary>
@@ -32,10 +35,12 @@ namespace MarkdownLintVS
         public const int SolutionExplorerFolderGroup = 0x0020;
         public const int SolutionExplorerProjectGroup = 0x0021;
         public const int SolutionExplorerSolutionGroup = 0x0022;
+        public const int WorkspaceContextMenuGroup = 0x0023;
         public const int EnabledCommand = 0x0100;
         public const int SettingsCommand = 0x0101;
         public const int LintFolderCommand = 0x0102;
         public const int LintProjectCommand = 0x0103;
         public const int LintSolutionCommand = 0x0104;
+        public const int LintOpenFolderCommand = 0x0105;
     }
 }

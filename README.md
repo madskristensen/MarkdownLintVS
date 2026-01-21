@@ -53,7 +53,9 @@ Right-click on any folder, project, or solution in **Solution Explorer** to lint
 - **Lint Markdown Files** - Lint all `.md` files in the selected folder or project
 - **Lint All Markdown Files** - Lint all `.md` files in the entire solution
 
-Results appear in the **Error List** window, with clickable entries to navigate directly to issues. Files are processed in parallel for fast performance.
+**Open Folder mode:** When using Visual Studio's **Open Folder** feature (without a solution), right-click on any folder or file in the **Folder View** to lint all Markdown files in that location.
+
+Results appear in the **Error List** window, with clickable entries to navigate directly to issues. Files are processed in parallel for fast performance. The error list is automatically cleared when you close the solution or folder.
 
 **Ignored folders:** By default, common folders like `node_modules`, `vendor`, `.git`, `bin`, and `obj` are automatically ignored. You can customize this list in **Tools → Options → Markdown Lint → General → Ignored Folders**.
 

@@ -5,6 +5,7 @@ global using Task = System.Threading.Tasks.Task;
 using System.Runtime.InteropServices;
 using System.Threading;
 using MarkdownLintVS.Commands;
+using MarkdownLintVS.ErrorList;
 using MarkdownLintVS.Options;
 
 namespace MarkdownLintVS
@@ -28,6 +29,25 @@ namespace MarkdownLintVS
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             await Formatting.InitializeAsync();
             await this.RegisterCommandsAsync();
+
+            // Subscribe to solution/folder close events to clear error list
+            VS.Events.SolutionEvents.OnAfterCloseSolution += OnSolutionClosed;
+        }
+
+        private void OnSolutionClosed()
+        {
+            // Clear all markdown lint errors when solution/folder is closed
+            MarkdownLintTableDataSource dataSource = MarkdownLintTableDataSource.Instance;
+            dataSource?.ClearAllErrors();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                VS.Events.SolutionEvents.OnAfterCloseSolution -= OnSolutionClosed;
+            }
+            base.Dispose(disposing);
         }
     }
 }
