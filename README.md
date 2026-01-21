@@ -12,8 +12,10 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Error List integration** - All warnings appear in Visual Studio's Error List  
 ✅ **Quick fixes** - Press `Ctrl+.` for automatic fixes (light bulb suggestions)  
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
+✅ **Format Document** - Auto-fix all issues via Format Document (`Ctrl+K, Ctrl+D`)  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
+✅ **Context menu** - Quick access to enable/disable linting and settings  
 ✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD060)
 ✅ **Works with any Markdown editor** - Including the built-in Markdown editor and most Markdown extensions
 
@@ -36,16 +38,36 @@ Once installed, the extension works automatically on any `.md` file. It is compa
 4. Press `Ctrl+.` on an issue to see available quick fixes
 5. Check the **Error List** (`Ctrl+\, E`) for all issues in the document
 
+### Context Menu
+
+Right-click in any Markdown file to access the **Markdown Lint** submenu:
+
+- **Enabled** - Toggle linting on/off (checkmark indicates current state)
+- **Settings...** - Open the Rules options page directly
+
+### Format Document
+
+Use **Format Document** (`Ctrl+K, Ctrl+D`) or **Format Selection** (`Ctrl+K, Ctrl+F`) to automatically fix all auto-fixable violations. The first time you use this feature, you'll be prompted to enable or disable automatic fixing on format commands. You can change this setting later in **Tools → Options → Markdown Lint → General**.
+
 ## Configuration
 
 Rules can be configured in two ways:
 
-1. **Options Page** - Toggle rules on/off via **Tools → Options → Markdown Lint → Rules**
+1. **Options Page** - Configure general settings and toggle rules via **Tools → Options → Markdown Lint**
 2. **EditorConfig** - Configure rules per-project using `.editorconfig` files
 
 EditorConfig settings take precedence over the Options page. If no EditorConfig rule exists for a specific rule, the Options page setting is used.
 
-### Options Page
+### General Options
+
+Go to **Tools → Options → Markdown Lint → General** to configure:
+
+| Setting | Description |
+|---------|-------------|
+| Linting Enabled | Enable or disable all markdown linting |
+| Format Document Behavior | Control auto-fixing on Format Document/Selection (Ask, On, Off) |
+
+### Rules Options
 
 Go to **Tools → Options → Markdown Lint → Rules** to access all rule settings organized by category:
 
