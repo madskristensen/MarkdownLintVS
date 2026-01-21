@@ -133,6 +133,46 @@ public sealed class LinkRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD051_WhenHtmlAnchorIdThenNoViolations()
+    {
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "[Examples](#example)\n\n" +
+            "## <a id=\"example\">Hello</a>");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenHtmlNameAttributeThenNoViolations()
+    {
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "[Go to section](#mysection)\n\n" +
+            "<a name=\"mysection\"></a>\n" +
+            "Some content here");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD051_WhenHtmlIdWithSingleQuotesThenNoViolations()
+    {
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "[Link](#custom-id)\n\n" +
+            "<div id='custom-id'>Content</div>");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD052 - Reference Links Images

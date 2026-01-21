@@ -136,18 +136,42 @@ namespace MarkdownLintVS.Linting.Rules
             @"\s+",
             RegexOptions.Compiled);
 
+        // Match id attributes in HTML: id="value", id='value', or id=value
+        private static readonly Regex _htmlIdPattern = new(
+            @"(?:id|name)\s*=\s*[""']?([^""'\s>]+)[""']?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
             // Collect all heading IDs
-            var headingIds = new HashSet<string>();
+            var headingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Add IDs from markdown headings
             foreach (HeadingBlock heading in analysis.GetHeadings())
             {
                 var content = GetHeadingContent(heading.Line, analysis);
                 var id = CreateHeadingId(content);
                 headingIds.Add(id);
+
+                // Also check for explicit id in heading line (e.g., ## <a id="custom">Heading</a>)
+                var line = analysis.GetLine(heading.Line);
+                foreach (Match match in _htmlIdPattern.Matches(line))
+                {
+                    headingIds.Add(match.Groups[1].Value);
+                }
+            }
+
+            // Scan all lines for HTML id/name attributes (for anchors outside headings)
+            for (var i = 0; i < analysis.LineCount; i++)
+            {
+                var line = analysis.GetLine(i);
+                foreach (Match match in _htmlIdPattern.Matches(line))
+                {
+                    headingIds.Add(match.Groups[1].Value);
+                }
             }
 
             // Check all links with fragments
@@ -159,7 +183,7 @@ namespace MarkdownLintVS.Linting.Rules
                 // Only check internal fragment links
                 if (link.Url.StartsWith("#"))
                 {
-                    var fragment = link.Url.Substring(1).ToLowerInvariant();
+                    var fragment = link.Url.Substring(1);
 
                     if (!string.IsNullOrEmpty(fragment) && !headingIds.Contains(fragment))
                     {
@@ -168,7 +192,7 @@ namespace MarkdownLintVS.Linting.Rules
                             Line,
                             Column,
                             Column + link.Span.Length,
-                            $"Link fragment '#{fragment}' does not match any heading",
+                            $"Link fragment '#{fragment}' does not match any heading or anchor",
                             severity);
                     }
                 }
