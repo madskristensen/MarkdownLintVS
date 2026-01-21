@@ -13,13 +13,29 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD001");
         public override RuleInfo Info => _info;
 
+        private const string _defaultTitlePattern = @"^\s*title\s*[:=]";
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            var headings = analysis.GetHeadings().OrderBy(h => h.Line).ToList();
+            // Filter out headings in front matter (Markdig parses --- as setext heading markers)
+            var headings = analysis.GetHeadings()
+                .Where(h => !analysis.IsLineInFrontMatter(h.Line))
+                .OrderBy(h => h.Line)
+                .ToList();
+
+            // Get front_matter_title pattern - empty string disables the feature
+            var frontMatterTitlePattern = configuration.GetStringParameter("front_matter_title", _defaultTitlePattern);
+
+            // Determine starting level based on front matter title
             var previousLevel = 0;
+            if (!string.IsNullOrEmpty(frontMatterTitlePattern) && analysis.HasFrontMatterTitle(frontMatterTitlePattern))
+            {
+                // Front matter title acts as H1
+                previousLevel = 1;
+            }
 
             foreach (HeadingBlock heading in headings)
             {
@@ -74,7 +90,7 @@ namespace MarkdownLintVS.Linting.Rules
                     }
                     else if (currentStyle != detectedStyle)
                     {
-                        // Handle setext_with_atx style
+                        // Handle setext_with_atx style - allow ATX for H3+
                         if (detectedStyle == "setext" && currentStyle == "atx" && heading.Level > 2)
                             continue;
 
@@ -83,6 +99,58 @@ namespace MarkdownLintVS.Linting.Rules
                             line,
                             $"Heading style should be consistent (expected {detectedStyle}, found {currentStyle})",
                             severity);
+                    }
+                }
+                else if (style == "setext_with_atx")
+                {
+                    // Setext for H1/H2, ATX for H3+
+                    if (heading.Level <= 2)
+                    {
+                        if (currentStyle != "setext")
+                        {
+                            yield return CreateLineViolation(
+                                heading.Line,
+                                line,
+                                $"Heading style should be setext for h1/h2 (found {currentStyle})",
+                                severity);
+                        }
+                    }
+                    else
+                    {
+                        if (currentStyle != "atx")
+                        {
+                            yield return CreateLineViolation(
+                                heading.Line,
+                                line,
+                                $"Heading style should be atx for h3+ (found {currentStyle})",
+                                severity);
+                        }
+                    }
+                }
+                else if (style == "setext_with_atx_closed")
+                {
+                    // Setext for H1/H2, ATX closed for H3+
+                    if (heading.Level <= 2)
+                    {
+                        if (currentStyle != "setext")
+                        {
+                            yield return CreateLineViolation(
+                                heading.Line,
+                                line,
+                                $"Heading style should be setext for h1/h2 (found {currentStyle})",
+                                severity);
+                        }
+                    }
+                    else
+                    {
+                        if (currentStyle != "atx_closed")
+                        {
+                            yield return CreateLineViolation(
+                                heading.Line,
+                                line,
+                                $"Heading style should be atx_closed for h3+ (found {currentStyle})",
+                                severity);
+                        }
                     }
                 }
                 else if (currentStyle != style)
@@ -262,17 +330,46 @@ namespace MarkdownLintVS.Linting.Rules
         private IEnumerable<LintViolation> AnalyzeList(ListBlock list, MarkdownDocumentAnalysis analysis,
             DiagnosticSeverity severity, Dictionary<int, int> levelIndents, int level)
         {
+            // For ordered lists, we need to detect if they use right-alignment
+            var isOrderedList = list.IsOrdered;
+            var levelMarkerEndPositions = new Dictionary<int, int>();
+            var isRightAligned = new Dictionary<int, bool?>();
+
             foreach (Block item in list)
             {
                 if (item is ListItemBlock listItem)
                 {
                     var line = analysis.GetLine(listItem.Line);
                     var indent = GetIndentLevel(line);
+                    var markerEndPos = isOrderedList ? GetOrderedListMarkerEndPosition(line) : -1;
 
                     if (levelIndents.TryGetValue(level, out var expectedIndent))
                     {
                         if (indent != expectedIndent)
                         {
+                            // For ordered lists, check if this could be right-aligned
+                            if (isOrderedList && markerEndPos >= 0)
+                            {
+                                // Check if we've determined alignment for this level
+                                if (!isRightAligned.TryGetValue(level, out var rightAligned))
+                                {
+                                    // First mismatch - determine if it's right-aligned
+                                    if (levelMarkerEndPositions.TryGetValue(level, out var expectedMarkerEnd))
+                                    {
+                                        rightAligned = markerEndPos == expectedMarkerEnd;
+                                        isRightAligned[level] = rightAligned;
+                                    }
+                                }
+
+                                // If right-aligned and marker ends align, skip violation
+                                if (rightAligned == true &&
+                                    levelMarkerEndPositions.TryGetValue(level, out var expectedEnd) &&
+                                    markerEndPos == expectedEnd)
+                                {
+                                    goto CheckNested;
+                                }
+                            }
+
                             yield return CreateLineViolation(
                                 listItem.Line,
                                 line,
@@ -283,8 +380,13 @@ namespace MarkdownLintVS.Linting.Rules
                     else
                     {
                         levelIndents[level] = indent;
+                        if (isOrderedList && markerEndPos >= 0)
+                        {
+                            levelMarkerEndPositions[level] = markerEndPos;
+                        }
                     }
 
+                CheckNested:
                     // Check nested lists
                     foreach (Block child in listItem)
                     {
@@ -310,6 +412,39 @@ namespace MarkdownLintVS.Linting.Rules
                 else break;
             }
             return indent;
+        }
+
+        /// <summary>
+        /// Gets the position where the ordered list marker ends (after the dot and space).
+        /// Returns -1 if not an ordered list item.
+        /// </summary>
+        private int GetOrderedListMarkerEndPosition(string line)
+        {
+            var trimmedStart = 0;
+            while (trimmedStart < line.Length && (line[trimmedStart] == ' ' || line[trimmedStart] == '\t'))
+            {
+                trimmedStart++;
+            }
+
+            // Find the number
+            var numStart = trimmedStart;
+            while (trimmedStart < line.Length && char.IsDigit(line[trimmedStart]))
+            {
+                trimmedStart++;
+            }
+
+            // Must have at least one digit
+            if (trimmedStart == numStart)
+                return -1;
+
+            // Must be followed by . or )
+            if (trimmedStart >= line.Length || (line[trimmedStart] != '.' && line[trimmedStart] != ')'))
+                return -1;
+
+            trimmedStart++; // Skip the . or )
+
+            // The marker end position is right after the delimiter
+            return trimmedStart;
         }
     }
 

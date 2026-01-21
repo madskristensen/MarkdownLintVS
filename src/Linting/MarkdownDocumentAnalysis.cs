@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -256,6 +257,28 @@ namespace MarkdownLintVS.Linting
         public bool IsLineInFrontMatter(int lineNumber)
         {
             return _frontMatterEndLine >= 0 && lineNumber >= 0 && lineNumber <= _frontMatterEndLine;
+        }
+
+        /// <summary>
+        /// Checks if the front matter contains a title property matching the given pattern.
+        /// </summary>
+        /// <param name="titlePattern">Regex pattern to match title property (default: ^\s*title\s*[:=])</param>
+        /// <returns>True if front matter contains a matching title property.</returns>
+        public bool HasFrontMatterTitle(string titlePattern = @"^\s*title\s*[:=]")
+        {
+            if (_frontMatterEndLine < 0 || string.IsNullOrEmpty(titlePattern))
+                return false;
+
+            var pattern = new Regex(titlePattern, RegexOptions.IgnoreCase);
+
+            // Search lines between front matter delimiters (excluding the --- lines)
+            for (var i = 1; i < _frontMatterEndLine && i < _lines.Length; i++)
+            {
+                if (pattern.IsMatch(_lines[i]))
+                    return true;
+            }
+
+            return false;
         }
 
         public int GetBlockEndLine(Block block)

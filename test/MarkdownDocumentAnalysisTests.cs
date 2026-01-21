@@ -140,6 +140,43 @@ public sealed class MarkdownDocumentAnalysisTests
     }
 
     [TestMethod]
+    public void WhenFrontMatterHasTitleThenHasFrontMatterTitleReturnsTrue()
+    {
+        var markdown = "---\ntitle: My Document\n---\n\n# Content";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsTrue(analysis.HasFrontMatterTitle());
+    }
+
+    [TestMethod]
+    public void WhenFrontMatterHasNoTitleThenHasFrontMatterTitleReturnsFalse()
+    {
+        var markdown = "---\ndescription: Something\nauthor: Me\n---\n\n# Content";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsFalse(analysis.HasFrontMatterTitle());
+    }
+
+    [TestMethod]
+    public void WhenNoFrontMatterThenHasFrontMatterTitleReturnsFalse()
+    {
+        var markdown = "# Title\n\nContent";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsFalse(analysis.HasFrontMatterTitle());
+    }
+
+    [TestMethod]
+    public void WhenCustomPatternMatchesThenHasFrontMatterTitleReturnsTrue()
+    {
+        var markdown = "---\nname: My Document\n---\n\n# Content";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsTrue(analysis.HasFrontMatterTitle(@"^\s*name\s*:"));
+        Assert.IsFalse(analysis.HasFrontMatterTitle(@"^\s*title\s*[:=]"));
+    }
+
+    [TestMethod]
     public void WhenDocumentHasLinksThenGetLinksReturnsAll()
     {
         var markdown = "[Link 1](http://example.com)\n\n[Link 2](http://test.com)";
