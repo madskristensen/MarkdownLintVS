@@ -61,6 +61,11 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD028");
         public override RuleInfo Info => _info;
 
+        // GitHub alert types that should be treated as distinct blocks
+        private static readonly Regex _githubAlertPattern = new(
+            @"^\s*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -68,6 +73,7 @@ namespace MarkdownLintVS.Linting.Rules
         {
             var inBlockquote = false;
             var lastBlockquoteLine = -1;
+            var currentBlockContainsAlert = false;
 
             for (var i = 0; i < analysis.LineCount; i++)
             {
@@ -76,25 +82,45 @@ namespace MarkdownLintVS.Linting.Rules
 
                 var line = analysis.GetLine(i);
                 var isBlockquoteLine = line.TrimStart().StartsWith(">");
+                var isGitHubAlert = _githubAlertPattern.IsMatch(line);
 
                 if (isBlockquoteLine)
                 {
                     if (inBlockquote && i > lastBlockquoteLine + 1)
                     {
-                        // Found a blank line between blockquote lines
-                        yield return CreateLineViolation(
-                            lastBlockquoteLine + 1,
-                            analysis.GetLine(lastBlockquoteLine + 1),
-                            "Blank line inside blockquote",
-                            severity,
-                            "Remove blank line or use '>' prefix");
+                        // Found a blank line between blockquote sections
+                        // Don't flag if either block contains a GitHub alert (they are semantically distinct)
+                        if (!currentBlockContainsAlert && !isGitHubAlert)
+                        {
+                            yield return CreateLineViolation(
+                                lastBlockquoteLine + 1,
+                                analysis.GetLine(lastBlockquoteLine + 1),
+                                "Blank line inside blockquote",
+                                severity,
+                                "Remove blank line or use '>' prefix");
+                        }
+                        // Starting a new block after the blank line - reset alert tracking
+                        currentBlockContainsAlert = isGitHubAlert;
                     }
+                    else if (!inBlockquote)
+                    {
+                        // Starting a new blockquote section
+                        currentBlockContainsAlert = isGitHubAlert;
+                    }
+                    else if (isGitHubAlert)
+                    {
+                        // Mark current block as containing an alert
+                        currentBlockContainsAlert = true;
+                    }
+
                     inBlockquote = true;
                     lastBlockquoteLine = i;
                 }
                 else if (!string.IsNullOrWhiteSpace(line))
                 {
+                    // Non-blockquote content - blocks are clearly separate
                     inBlockquote = false;
+                    currentBlockContainsAlert = false;
                 }
             }
         }

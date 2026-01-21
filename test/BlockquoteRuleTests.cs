@@ -117,6 +117,43 @@ public sealed class BlockquoteRuleTests
         Assert.Contains("Blank line", violations[0].Message);
     }
 
+    [TestMethod]
+    public void MD028_WhenGitHubAlertsThenNoViolation()
+    {
+        // GitHub alerts are semantically distinct blocks and should be separated by blank lines
+        var rule = new MD028_NoBlanksBlockquote();
+        var analysis = new MarkdownDocumentAnalysis(
+            "> [!IMPORTANT]\n> Crucial information.\n\n> [!WARNING]\n> Critical content.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD028_WhenAlertFollowsRegularBlockquoteThenNoViolation()
+    {
+        var rule = new MD028_NoBlanksBlockquote();
+        var analysis = new MarkdownDocumentAnalysis(
+            "> Regular quote.\n\n> [!NOTE]\n> This is a note.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD028_WhenRegularBlockquoteFollowsAlertThenNoViolation()
+    {
+        var rule = new MD028_NoBlanksBlockquote();
+        var analysis = new MarkdownDocumentAnalysis(
+            "> [!TIP]\n> This is a tip.\n\n> Regular quote.");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD027 Additional Tests
