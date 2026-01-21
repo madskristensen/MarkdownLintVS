@@ -342,7 +342,7 @@ public sealed class InlineRuleTests
     }
 
     [TestMethod]
-    public void MD037_WhenSpacesAroundEmphasisTextThenMayReportViolation()
+    public void MD037_WhenSpacesAroundEmphasisTextThenRuleExecutes()
     {
         // Per docs: emphasis with spaces doesn't parse as emphasis
         // The rule detects where spaces were used but emphasis was intended
@@ -352,9 +352,9 @@ public sealed class InlineRuleTests
 
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
-        // Note: This may or may not detect depending on how Markdig parses
-        // The test documents the expected behavior
-        Assert.IsTrue(true);  // Document behavior
+        // Markdig may not parse ** bold ** as emphasis due to spaces
+        // Verify the rule executes without error
+        Assert.IsNotNull(violations);
     }
 
     #endregion

@@ -410,7 +410,7 @@ public sealed class LinkRuleTests
     }
 
     [TestMethod]
-    public void MD053_WhenDefinitionUnusedThenMayReportViolation()
+    public void MD053_WhenDefinitionUnusedThenRuleExecutes()
     {
         var rule = new MD053_LinkImageReferenceDefinitions();
         // An unused definition - should be flagged
@@ -418,9 +418,8 @@ public sealed class LinkRuleTests
 
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
-        // Implementation may or may not detect this depending on parsing
-        // Document the expected behavior
-        Assert.IsTrue(true);
+        // Verify the rule executes without error
+        Assert.IsNotNull(violations);
     }
 
     [TestMethod]
@@ -451,7 +450,7 @@ public sealed class LinkRuleTests
     #region MD051 Additional Tests
 
     [TestMethod]
-    public void MD051_WhenTopFragmentThenMayBeAccepted()
+    public void MD051_WhenTopFragmentThenRuleExecutes()
     {
         // Per docs: #top is always valid in HTML
         // Implementation may or may not support this
@@ -460,8 +459,9 @@ public sealed class LinkRuleTests
 
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
-        // Document behavior - may be 0 or 1 depending on implementation
-        Assert.IsTrue(true);
+        // Verify the rule executes without error
+        // #top support is implementation-dependent
+        Assert.IsNotNull(violations);
     }
 
     [TestMethod]

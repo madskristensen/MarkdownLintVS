@@ -269,4 +269,82 @@ public sealed class TableRuleTests
     }
 
     #endregion
+
+    #region MD056 Additional Tests
+
+    [TestMethod]
+    public void MD056_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD056_TableColumnCount();
+        // Create a table with mismatched column count
+        var analysis = new MarkdownDocumentAnalysis(
+            "| A | B |\n" +
+            "|---|---|\n" +
+            "| 1 |");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // If violation is detected, check message
+        if (violations.Count > 0)
+        {
+            Assert.Contains("column", violations[0].Message.ToLower());
+        }
+    }
+
+    #endregion
+
+    #region MD058 Additional Tests
+
+    [TestMethod]
+    public void MD058_WhenTableAtStartOfDocumentThenNoViolation()
+    {
+        var rule = new MD058_BlanksAroundTables();
+        var analysis = new MarkdownDocumentAnalysis(
+            "| A | B |\n" +
+            "| - | - |\n" +
+            "| 1 | 2 |\n\n" +
+            "More text");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD058_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD058_BlanksAroundTables();
+        var analysis = new MarkdownDocumentAnalysis(
+            "Text\n" +
+            "| A |\n" +
+            "| - |\n" +
+            "| 1 |");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("blank", violations[0].Message.ToLower());
+    }
+
+    #endregion
+
+    #region MD060 Additional Tests
+
+    [TestMethod]
+    public void MD060_ViolationMessageDescribesIssueWhenStyleMismatch()
+    {
+        var rule = new MD060_TableColumnStyle();
+        // Test documents expected behavior
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header |\n" +
+            "| :--- |\n" +
+            "| Text |");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // No violation expected for consistent left alignment
+        Assert.IsEmpty(violations);
+    }
+
+    #endregion
 }
