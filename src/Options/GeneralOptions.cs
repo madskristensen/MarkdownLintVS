@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 
 namespace MarkdownLintVS.Options
 {
-    using Task = System.Threading.Tasks.Task;
     /// <summary>
     /// Defines the behavior for running markdown lint fixes on Format Document/Selection.
     /// </summary>
