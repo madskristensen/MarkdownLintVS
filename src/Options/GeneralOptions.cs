@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace MarkdownLintVS.Options
 {
+    using Task = System.Threading.Tasks.Task;
     /// <summary>
     /// Defines the behavior for running markdown lint fixes on Format Document/Selection.
     /// </summary>
@@ -55,9 +56,8 @@ namespace MarkdownLintVS.Options
     /// <summary>
     /// General options for the Markdown Lint extension.
     /// </summary>
-    public class GeneralOptions : BaseOptionModel<GeneralOptions>
+    public class GeneralOptions : BaseOptionModel<GeneralOptions>, IRatingConfig
     {
-
         [Category("General")]
         [DisplayName("Linting Enabled")]
         [Description("Controls whether markdown linting is enabled.")]
@@ -95,6 +95,15 @@ namespace MarkdownLintVS.Options
                 .Select(f => f.Trim())
                 .Where(f => !string.IsNullOrEmpty(f))];
         }
+
+        // IRatingConfig implementation
+
+        /// <inheritdoc/>
+        [Browsable(false)]
+        public int RatingRequests { get; set; }
+
+        /// <inheritdoc/>
+        Task IRatingConfig.SaveAsync() => SaveAsync();
     }
 
     internal partial class OptionsProvider

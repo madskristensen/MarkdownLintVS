@@ -25,11 +25,17 @@ namespace MarkdownLintVS
     [ProvideFileIcon(".markdownlintignore", "KnownMonikers.DocumentExclude")]
     public sealed class MarkdownLintVSPackage : ToolkitPackage
     {
+        public static RatingPrompt RatingPrompt { get; private set; }
+
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             await Formatting.InitializeAsync();
             await this.RegisterCommandsAsync();
+
+            GeneralOptions options = await GeneralOptions.GetLiveInstanceAsync();
+
+            RatingPrompt = new RatingPrompt("MadsKristensen.MarkdownLintVS", Vsix.Name, options, 10);
 
             // Subscribe to solution/folder close events to clear error list
             VS.Events.SolutionEvents.OnAfterCloseSolution += OnSolutionClosed;

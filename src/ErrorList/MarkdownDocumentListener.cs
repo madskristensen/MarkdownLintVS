@@ -97,6 +97,9 @@ namespace MarkdownLintVS.ErrorList
 
             // Update error list with new results
             _tableDataSource?.UpdateErrors(_filePath, e.Violations);
+
+            // Register successful usage for rating prompt
+            MarkdownLintVSPackage.RatingPrompt?.RegisterSuccessfulUsage();
         }
 
         private void OnGeneralOptionsSaved(GeneralOptions options)
