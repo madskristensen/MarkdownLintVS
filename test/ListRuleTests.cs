@@ -735,5 +735,66 @@ public sealed class ListRuleTests
         Assert.Contains("found 3", violations[0].Message);   // actual
     }
 
+    [TestMethod]
+    public void MD007_WhenEditorConfigIndentSizeSetThenUseAsDefault()
+    {
+        // Issue #6: Respect EditorConfig indent_size over MarkdownLint defaults
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration
+        {
+            EditorConfigIndentSize = 4  // EditorConfig has indent_size = 4
+        };
+        var markdown =
+            "* List item\n" +
+            "    * Nested list item indented by 4 spaces";  // 4 spaces should be valid
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD007_WhenEditorConfigIndentSizeSetAnd2SpacesThenReportsViolation()
+    {
+        // Issue #6: With EditorConfig indent_size = 4, 2 spaces should be flagged
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration
+        {
+            EditorConfigIndentSize = 4  // EditorConfig has indent_size = 4
+        };
+        var markdown =
+            "* List item\n" +
+            "  * Nested list item indented by 2 spaces";  // 2 spaces should be invalid
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.Contains("4 spaces", violations[0].Message);  // expected
+        Assert.Contains("found 2", violations[0].Message);   // actual
+    }
+
+    [TestMethod]
+    public void MD007_WhenExplicitIndentParameterThenOverridesEditorConfigIndentSize()
+    {
+        // Explicit md_ul_indent setting should take precedence over EditorConfig indent_size
+        var rule = new MD007_UlIndent();
+        var config = new RuleConfiguration
+        {
+            EditorConfigIndentSize = 4  // EditorConfig has indent_size = 4
+        };
+        config.Parameters["indent"] = "2";  // But md_ul_indent = 2 is explicitly set
+
+        var markdown =
+            "* List item\n" +
+            "  * Nested list item indented by 2 spaces";  // 2 spaces should be valid
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 }

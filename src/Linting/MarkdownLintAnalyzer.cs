@@ -182,11 +182,19 @@ namespace MarkdownLintVS.Linting
             if (string.IsNullOrEmpty(directoryPath))
                 return configurations;
 
+            int? editorConfigIndentSize = null;
+
             try
             {
                 // Create a dummy file path in the directory to parse EditorConfig
                 var dummyFilePath = Path.Combine(directoryPath, "dummy.md");
                 FileConfiguration fileConfig = Instance._editorConfigParser.Parse(dummyFilePath);
+
+                // Extract the standard EditorConfig indent_size property for use as a fallback
+                if (fileConfig.IndentSize?.NumberOfColumns != null)
+                {
+                    editorConfigIndentSize = fileConfig.IndentSize.NumberOfColumns;
+                }
 
                 foreach (KeyValuePair<string, string> property in fileConfig.Properties)
                 {
@@ -194,9 +202,16 @@ namespace MarkdownLintVS.Linting
                     {
                         var ruleName = property.Key.Substring("md_".Length);
                         RuleConfiguration config = Instance.ParseRuleConfiguration(property.Value);
+                        config.EditorConfigIndentSize = editorConfigIndentSize;
                         configurations[ruleName] = config;
                     }
                 }
+
+                // Store the indent_size for rules that may need it even without explicit md_* settings
+                configurations["__editorconfig_indent_size__"] = new RuleConfiguration
+                {
+                    EditorConfigIndentSize = editorConfigIndentSize
+                };
             }
             catch (Exception ex)
             {
@@ -212,17 +227,34 @@ namespace MarkdownLintVS.Linting
             Dictionary<string, RuleConfiguration> ruleConfigs,
             Dictionary<string, RuleConfiguration> editorConfigSettings)
         {
+            // Get the EditorConfig indent_size if it was stored
+            int? editorConfigIndentSize = null;
+            if (editorConfigSettings != null &&
+                editorConfigSettings.TryGetValue("__editorconfig_indent_size__", out RuleConfiguration indentConfig))
+            {
+                editorConfigIndentSize = indentConfig.EditorConfigIndentSize;
+            }
+
             // EditorConfig takes precedence
             if (editorConfigSettings != null)
             {
                 if (editorConfigSettings.TryGetValue(rule.Id, out RuleConfiguration config))
+                {
+                    config.EditorConfigIndentSize = editorConfigIndentSize;
                     return config;
+                }
                 if (editorConfigSettings.TryGetValue(rule.Name, out config))
+                {
+                    config.EditorConfigIndentSize = editorConfigIndentSize;
                     return config;
+                }
                 foreach (var alias in rule.Aliases)
                 {
                     if (editorConfigSettings.TryGetValue(alias, out config))
+                    {
+                        config.EditorConfigIndentSize = editorConfigIndentSize;
                         return config;
+                    }
                 }
             }
 
@@ -230,16 +262,23 @@ namespace MarkdownLintVS.Linting
             if (ruleConfigs != null)
             {
                 if (ruleConfigs.TryGetValue(rule.Id, out RuleConfiguration config))
+                {
+                    config.EditorConfigIndentSize = editorConfigIndentSize;
                     return config;
+                }
                 if (ruleConfigs.TryGetValue(rule.Name, out config))
+                {
+                    config.EditorConfigIndentSize = editorConfigIndentSize;
                     return config;
+                }
             }
 
             // Default: use rule defaults
             return new RuleConfiguration
             {
                 Enabled = rule.EnabledByDefault,
-                Severity = rule.DefaultSeverity
+                Severity = rule.DefaultSeverity,
+                EditorConfigIndentSize = editorConfigIndentSize
             };
         }
 
@@ -250,9 +289,17 @@ namespace MarkdownLintVS.Linting
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 return configurations;
 
+            int? editorConfigIndentSize = null;
+
             try
             {
                 FileConfiguration fileConfig = _editorConfigParser.Parse(filePath);
+
+                // Extract the standard EditorConfig indent_size property for use as a fallback
+                if (fileConfig.IndentSize?.NumberOfColumns != null)
+                {
+                    editorConfigIndentSize = fileConfig.IndentSize.NumberOfColumns;
+                }
 
                 foreach (KeyValuePair<string, string> property in fileConfig.Properties)
                 {
@@ -261,9 +308,17 @@ namespace MarkdownLintVS.Linting
                     {
                         var ruleName = property.Key.Substring("md_".Length);
                         RuleConfiguration config = ParseRuleConfiguration(property.Value);
+                        config.EditorConfigIndentSize = editorConfigIndentSize;
                         configurations[ruleName] = config;
                     }
                 }
+
+                // Store the indent_size for rules that may need it even without explicit md_* settings
+                // Use a special key to pass this to GetConfigurationForRule
+                configurations["__editorconfig_indent_size__"] = new RuleConfiguration
+                {
+                    EditorConfigIndentSize = editorConfigIndentSize
+                };
             }
             catch (Exception ex)
             {
@@ -339,19 +394,35 @@ namespace MarkdownLintVS.Linting
             RuleInfo rule,
             Dictionary<string, RuleConfiguration> configurations)
         {
+            // Get the EditorConfig indent_size if it was stored
+            int? editorConfigIndentSize = null;
+            if (configurations.TryGetValue("__editorconfig_indent_size__", out RuleConfiguration indentConfig))
+            {
+                editorConfigIndentSize = indentConfig.EditorConfigIndentSize;
+            }
+
             // Check by rule ID (MD001, MD002, etc.)
             if (configurations.TryGetValue(rule.Id, out RuleConfiguration config))
+            {
+                config.EditorConfigIndentSize = editorConfigIndentSize;
                 return config;
+            }
 
             // Check by rule name
             if (configurations.TryGetValue(rule.Name, out config))
+            {
+                config.EditorConfigIndentSize = editorConfigIndentSize;
                 return config;
+            }
 
             // Check by aliases
             foreach (var alias in rule.Aliases)
             {
                 if (configurations.TryGetValue(alias, out config))
+                {
+                    config.EditorConfigIndentSize = editorConfigIndentSize;
                     return config;
+                }
             }
 
             // No .editorconfig setting found - use options page as fallback
@@ -360,7 +431,8 @@ namespace MarkdownLintVS.Linting
             return new RuleConfiguration
             {
                 Enabled = enabledFromOptions && rule.EnabledByDefault,
-                Severity = rule.DefaultSeverity
+                Severity = rule.DefaultSeverity,
+                EditorConfigIndentSize = editorConfigIndentSize
             };
         }
     }

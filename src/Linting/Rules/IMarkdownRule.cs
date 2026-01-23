@@ -35,6 +35,12 @@ namespace MarkdownLintVS.Linting.Rules
         public string Value { get; set; }
         public Dictionary<string, string> Parameters { get; set; } = [];
 
+        /// <summary>
+        /// Gets or sets the EditorConfig indent_size value for this file, if specified.
+        /// This allows rules to use the standard EditorConfig indent setting as a fallback.
+        /// </summary>
+        public int? EditorConfigIndentSize { get; set; }
+
         public int GetIntParameter(string name, int defaultValue)
         {
             if (Parameters.TryGetValue(name, out var value) && int.TryParse(value, out var result))

@@ -461,7 +461,27 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            var indent = configuration.GetIntParameter("indent", 2);
+            // Determine indent value:
+            // 1. Use explicit md_ul_indent parameter if set
+            // 2. Fall back to EditorConfig indent_size if available
+            // 3. Default to 2 spaces
+            int indent;
+            if (configuration.Parameters.ContainsKey("indent") || !string.IsNullOrEmpty(configuration.Value))
+            {
+                // Explicit md_ul_indent setting takes precedence
+                indent = configuration.GetIntParameter("indent", 2);
+            }
+            else if (configuration.EditorConfigIndentSize.HasValue)
+            {
+                // Use EditorConfig indent_size as fallback
+                indent = configuration.EditorConfigIndentSize.Value;
+            }
+            else
+            {
+                // Default to 2 spaces
+                indent = 2;
+            }
+
             var startIndented = configuration.GetBoolParameter("start_indented", false);
             var startIndent = configuration.GetIntParameter("start_indent", indent);
 
