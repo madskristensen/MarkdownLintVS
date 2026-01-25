@@ -166,6 +166,30 @@ public sealed class LinkRuleTests
         Assert.Contains("style", violations[0].Message.ToLower());
     }
 
+    [TestMethod]
+    public void MD050_WhenStrikethroughThenNoViolations()
+    {
+        var rule = new MD050_StrongStyle();
+        var analysis = new MarkdownDocumentAnalysis("This is ~~strikethrough~~");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD050_WhenStrikethroughMixedWithStrongThenOnlyChecksStrong()
+    {
+        var rule = new MD050_StrongStyle();
+        var analysis = new MarkdownDocumentAnalysis("**bold** and ~~strikethrough~~ and __another bold__");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Should report violation for mixed ** and __ styles, but not for ~~
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD050", violations[0].Rule.Id);
+    }
+
     #endregion
 
     #region MD051 - Link Fragments

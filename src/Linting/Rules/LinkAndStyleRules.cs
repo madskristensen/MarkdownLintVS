@@ -82,14 +82,15 @@ namespace MarkdownLintVS.Linting.Rules
 
             string detectedStyle = null;
 
-            foreach (EmphasisInline emphasis in analysis.GetEmphasis().Where(e => e.DelimiterCount == 2))
+            // Filter to only strong emphasis (* or _), excluding strikethrough (~)
+            foreach (EmphasisInline emphasis in analysis.GetEmphasis().Where(e => e.DelimiterCount == 2 && (e.DelimiterChar == '*' || e.DelimiterChar == '_')))
             {
                 (var Line, var Column) = analysis.GetPositionFromOffset(emphasis.Span.Start);
                 var line = analysis.GetLine(Line);
 
                 if (Column >= line.Length) continue;
 
-                var currentStyle = line[Column] == '*' ? "asterisk" : "underscore";
+                var currentStyle = emphasis.DelimiterChar == '*' ? "asterisk" : "underscore";
 
                 if (style == "consistent")
                 {
