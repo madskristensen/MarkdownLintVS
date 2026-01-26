@@ -9,6 +9,7 @@ using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Language.StandardClassification;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
+using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
 namespace MarkdownLintVS.QuickInfo
@@ -21,6 +22,7 @@ namespace MarkdownLintVS.QuickInfo
     [ContentType("markdown")]
     [ContentType("vs-markdown")]
     [Order(Before = "Default Quick Info Presenter")]
+    [TextViewRole(PredefinedTextViewRoles.PrimaryDocument)]
     internal sealed class MarkdownLintQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
     {
         public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)

@@ -4,6 +4,7 @@ using System.Linq;
 using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
@@ -16,6 +17,7 @@ namespace MarkdownLintVS.Tagging
     [ContentType("markdown")]
     [ContentType("vs-markdown")]
     [TagType(typeof(IErrorTag))]
+    [TextViewRole(PredefinedTextViewRoles.PrimaryDocument)]
     public class MarkdownLintTaggerProvider : ITaggerProvider
     {
         [Import]
