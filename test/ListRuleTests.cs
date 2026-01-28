@@ -572,6 +572,56 @@ public sealed class ListRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD032_WhenListInsideTocCommentThenNoViolation()
+    {
+        var rule = new MD032_BlanksAroundLists();
+        var markdown = "# Title\n<!--TOC-->\n- [Section 1](#section-1)\n- [Section 2](#section-2)\n<!--/TOC-->\nContent";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD032_WhenListInsideTocCommentWithWhitespaceThenNoViolation()
+    {
+        var rule = new MD032_BlanksAroundLists();
+        var markdown = "# Title\n<!-- TOC -->\n  - [perhaps this is great](#perhaps-this-is-great)\n    - [or is it?](#or-is-it)\n  - [Syntax highlighting this](#custom-id)\n<!-- /TOC -->\nContent";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD032_WhenListOutsideTocCommentThenReportsViolation()
+    {
+        var rule = new MD032_BlanksAroundLists();
+        var markdown = "# Title\n<!--TOC-->\n- [TOC item](#toc)\n<!--/TOC-->\nSome text\n- item 1\n\nMore text";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Only the list outside the TOC comment should be flagged
+        Assert.HasCount(1, violations);
+        Assert.AreEqual(5, violations[0].LineNumber); // Line with "- item 1"
+    }
+
+    [TestMethod]
+    public void MD032_WhenTocCommentCaseInsensitiveThenNoViolation()
+    {
+        var rule = new MD032_BlanksAroundLists();
+        var markdown = "# Title\n<!--toc-->\n- [Item](#item)\n<!--/toc-->\nContent";
+
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD007 - Unordered List Indentation

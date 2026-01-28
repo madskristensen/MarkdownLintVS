@@ -9,15 +9,15 @@ namespace MarkdownLintVS.Linting
     public static class ViolationMessageParser
     {
         // Pre-compiled regex patterns for performance
-        private static readonly Regex _expectedNumberPattern = new Regex(
+        private static readonly Regex _expectedNumberPattern = new(
             @"should be '(\d+)'",
             RegexOptions.Compiled);
 
-        private static readonly Regex _expectedValuePattern = new Regex(
+        private static readonly Regex _expectedValuePattern = new(
             @"expected '([^']+)'",
             RegexOptions.Compiled);
 
-        private static readonly Regex _expectedColonPattern = new Regex(
+        private static readonly Regex _expectedColonPattern = new(
             @"Expected:\s*(\w+)",
             RegexOptions.Compiled);
         /// <summary>

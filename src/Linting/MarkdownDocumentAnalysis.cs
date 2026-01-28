@@ -12,9 +12,17 @@ namespace MarkdownLintVS.Linting
     public class MarkdownDocumentAnalysis
     {
         // Default compiled pattern for front matter title detection
-        private const string DefaultTitlePattern = @"^\s*title\s*[:=]";
-        private static readonly Regex _defaultTitleRegex = new Regex(
-            DefaultTitlePattern,
+        private const string _defaultTitlePattern = @"^\s*title\s*[:=]";
+        private static readonly Regex _defaultTitleRegex = new(
+            _defaultTitlePattern,
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // Patterns for TOC comment detection
+        private static readonly Regex _tocStartPattern = new(
+            @"<!--\s*TOC\s*-->",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex _tocEndPattern = new(
+            @"<!--\s*/\s*TOC\s*-->",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private readonly string _text;
@@ -27,6 +35,7 @@ namespace MarkdownLintVS.Linting
         private readonly HashSet<int> _codeBlockLines;
         private readonly HashSet<int> _htmlBlockLines;
         private readonly int _frontMatterEndLine;
+        private readonly HashSet<int> _tocCommentLines;
 
         public string Text => _text;
         public string[] Lines => _lines;
@@ -49,6 +58,7 @@ namespace MarkdownLintVS.Linting
             _codeBlockLines = BuildCodeBlockLinesCache();
             _htmlBlockLines = BuildHtmlBlockLinesCache();
             _frontMatterEndLine = ComputeFrontMatterEndLine();
+            _tocCommentLines = BuildTocCommentLinesCache();
         }
 
         private static (string[] Lines, int[] LineStartOffsets) SplitLinesWithOffsets(string text)
@@ -132,6 +142,33 @@ namespace MarkdownLintVS.Linting
                 }
             }
             return -1; // No front matter
+        }
+
+        private HashSet<int> BuildTocCommentLinesCache()
+        {
+            var tocLines = new HashSet<int>();
+            var inTocComment = false;
+
+            for (var i = 0; i < _lines.Length; i++)
+            {
+                var line = _lines[i];
+
+                if (!inTocComment && _tocStartPattern.IsMatch(line))
+                {
+                    inTocComment = true;
+                    tocLines.Add(i);
+                }
+                else if (inTocComment)
+                {
+                    tocLines.Add(i);
+                    if (_tocEndPattern.IsMatch(line))
+                    {
+                        inTocComment = false;
+                    }
+                }
+            }
+
+            return tocLines;
         }
 
         private int GetLineFromOffset(int offset)
@@ -279,6 +316,15 @@ namespace MarkdownLintVS.Linting
             return _htmlBlockLines.Contains(lineNumber);
         }
 
+        /// <summary>
+        /// Checks if a line is inside a TOC (Table of Contents) HTML comment block.
+        /// TOC comments are delimited by &lt;!--TOC--&gt; and &lt;!--/TOC--&gt; with optional whitespace.
+        /// </summary>
+        public bool IsLineInTocComment(int lineNumber)
+        {
+            return _tocCommentLines.Contains(lineNumber);
+        }
+
         public bool IsLineInFrontMatter(int lineNumber)
         {
             return _frontMatterEndLine >= 0 && lineNumber >= 0 && lineNumber <= _frontMatterEndLine;
@@ -295,7 +341,7 @@ namespace MarkdownLintVS.Linting
                 return false;
 
             // Use cached regex for default pattern, create new one only for custom patterns
-            Regex pattern = string.IsNullOrEmpty(titlePattern) || titlePattern == DefaultTitlePattern
+            Regex pattern = string.IsNullOrEmpty(titlePattern) || titlePattern == _defaultTitlePattern
                 ? _defaultTitleRegex
                 : new Regex(titlePattern, RegexOptions.IgnoreCase);
 

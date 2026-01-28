@@ -390,8 +390,19 @@ namespace MarkdownLintVS.Linting.Rules
                 var startLine = list.Line;
                 var endLine = analysis.GetBlockEndLine(list);
 
+                // Skip lists inside TOC comments
+                if (analysis.IsLineInTocComment(startLine))
+                    continue;
+
                 var needsBlankBefore = startLine > 0 && !analysis.IsBlankLine(startLine - 1);
                 var needsBlankAfter = endLine < analysis.LineCount - 1 && !analysis.IsBlankLine(endLine + 1);
+
+                // Don't require blank lines if adjacent line is a TOC comment boundary
+                if (needsBlankBefore && analysis.IsLineInTocComment(startLine - 1))
+                    needsBlankBefore = false;
+
+                if (needsBlankAfter && analysis.IsLineInTocComment(endLine + 1))
+                    needsBlankAfter = false;
 
                 // Report a single violation if either blank line is missing
                 if (needsBlankBefore || needsBlankAfter)

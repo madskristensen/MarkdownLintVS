@@ -253,4 +253,67 @@ public sealed class MarkdownDocumentAnalysisTests
         Assert.HasCount(1, definitions);
         Assert.AreEqual("label", definitions[0].Label);
     }
+
+    #region TOC Comment Detection
+
+    [TestMethod]
+    public void WhenLineInTocCommentThenIsLineInTocCommentReturnsTrue()
+    {
+        var markdown = "# Title\n\n<!--TOC-->\n- [Section 1](#section-1)\n- [Section 2](#section-2)\n<!--/TOC-->\n\nContent";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsFalse(analysis.IsLineInTocComment(0)); // # Title
+        Assert.IsTrue(analysis.IsLineInTocComment(2));  // <!--TOC-->
+        Assert.IsTrue(analysis.IsLineInTocComment(3));  // - [Section 1]
+        Assert.IsTrue(analysis.IsLineInTocComment(4));  // - [Section 2]
+        Assert.IsTrue(analysis.IsLineInTocComment(5));  // <!--/TOC-->
+        Assert.IsFalse(analysis.IsLineInTocComment(7)); // Content
+    }
+
+    [TestMethod]
+    public void WhenTocCommentHasWhitespaceThenIsLineInTocCommentReturnsTrue()
+    {
+        var markdown = "<!-- TOC -->\n- [Item](#item)\n<!-- /TOC -->";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsTrue(analysis.IsLineInTocComment(0));
+        Assert.IsTrue(analysis.IsLineInTocComment(1));
+        Assert.IsTrue(analysis.IsLineInTocComment(2));
+    }
+
+    [TestMethod]
+    public void WhenTocCommentHasExtraWhitespaceThenIsLineInTocCommentReturnsTrue()
+    {
+        var markdown = "<!--  TOC  -->\n- [Item](#item)\n<!--  /  TOC  -->";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsTrue(analysis.IsLineInTocComment(0));
+        Assert.IsTrue(analysis.IsLineInTocComment(1));
+        Assert.IsTrue(analysis.IsLineInTocComment(2));
+    }
+
+    [TestMethod]
+    public void WhenNoTocCommentThenIsLineInTocCommentReturnsFalse()
+    {
+        var markdown = "# Title\n\n- Item 1\n- Item 2\n\nContent";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        for (var i = 0; i < analysis.LineCount; i++)
+        {
+            Assert.IsFalse(analysis.IsLineInTocComment(i));
+        }
+    }
+
+    [TestMethod]
+    public void WhenTocCommentIsCaseInsensitiveThenIsLineInTocCommentReturnsTrue()
+    {
+        var markdown = "<!--toc-->\n- [Item](#item)\n<!--/toc-->";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        Assert.IsTrue(analysis.IsLineInTocComment(0));
+        Assert.IsTrue(analysis.IsLineInTocComment(1));
+        Assert.IsTrue(analysis.IsLineInTocComment(2));
+    }
+
+    #endregion
 }
