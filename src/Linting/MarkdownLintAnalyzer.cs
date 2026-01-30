@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using EditorConfig.Core;
 using MarkdownLintVS.Linting.Rules;
+using MarkdownLintVS.Options;
 
 namespace MarkdownLintVS.Linting
 {
@@ -115,6 +116,9 @@ namespace MarkdownLintVS.Linting
             var analysis = new MarkdownDocumentAnalysis(text, filePath);
             Dictionary<string, RuleConfiguration> configurations = GetRuleConfigurations(filePath);
 
+            // Set root path from editorconfig and options
+            SetRootPathOnAnalysis(analysis, configurations);
+
             foreach (IMarkdownRule rule in _rules)
             {
                 RuleConfiguration config = GetConfigurationForRule(rule.Info, configurations);
@@ -154,6 +158,9 @@ namespace MarkdownLintVS.Linting
             Dictionary<string, RuleConfiguration> editorConfigSettings)
         {
             IReadOnlyList<IMarkdownRule> rules = Instance.Rules;
+
+            // Set root path from editorconfig and options
+            SetRootPathOnAnalysisStatic(analysis, editorConfigSettings, ruleConfigs);
 
             foreach (IMarkdownRule rule in rules)
             {
@@ -340,7 +347,7 @@ namespace MarkdownLintVS.Linting
             return configurations;
         }
 
-        private RuleConfiguration ParseRuleConfiguration(string value)
+        internal RuleConfiguration ParseRuleConfiguration(string value)
         {
             var config = new RuleConfiguration();
 
@@ -362,44 +369,59 @@ namespace MarkdownLintVS.Linting
                 return config;
             }
 
-            // Check for severity suffix (value:severity)
-            var parts = value.Split(':');
-            if (parts.Length >= 2)
+            // Check if the entire value is a severity
+            if (TryParseSeverity(trimmed, out DiagnosticSeverity severity))
             {
-                config.Severity = ParseSeverity(parts[parts.Length - 1]);
-                config.Value = string.Join(":", parts.Take(parts.Length - 1));
+                config.Severity = severity;
+                return config;
             }
-            else
+
+            // Check for severity suffix (value:severity)
+            // Only split on the last colon if the suffix is a valid severity
+            var lastColonIndex = value.LastIndexOf(':');
+            if (lastColonIndex > 0 && lastColonIndex < value.Length - 1)
             {
-                // Try to parse as severity first
-                DiagnosticSeverity severity = ParseSeverity(trimmed);
-                if (severity != DiagnosticSeverity.Warning)
+                var potentialSeverity = value.Substring(lastColonIndex + 1).Trim();
+                if (TryParseSeverity(potentialSeverity.ToLowerInvariant(), out severity))
                 {
                     config.Severity = severity;
-                }
-                else
-                {
-                    config.Value = value;
+                    config.Value = value.Substring(0, lastColonIndex);
+                    return config;
                 }
             }
 
+            // No severity suffix found - treat the entire value as the configuration value
+            config.Value = value;
             return config;
         }
 
-        private DiagnosticSeverity ParseSeverity(string value)
+        private static bool TryParseSeverity(string value, out DiagnosticSeverity severity)
         {
-            if (string.IsNullOrEmpty(value))
-                return DiagnosticSeverity.Warning;
-
-            return value.Trim().ToLowerInvariant() switch
+            switch (value)
             {
-                "error" => DiagnosticSeverity.Error,
-                "warning" => DiagnosticSeverity.Warning,
-                "suggestion" or "info" or "information" or "hint" => DiagnosticSeverity.Suggestion,
-                "silent" or "refactoring" => DiagnosticSeverity.Silent,
-                "none" or "false" or "off" => DiagnosticSeverity.None,
-                _ => DiagnosticSeverity.Warning,
-            };
+                case "error":
+                    severity = DiagnosticSeverity.Error;
+                    return true;
+                case "warning":
+                    severity = DiagnosticSeverity.Warning;
+                    return true;
+                case "suggestion":
+                case "info":
+                case "information":
+                case "hint":
+                    severity = DiagnosticSeverity.Suggestion;
+                    return true;
+                case "silent":
+                case "refactoring":
+                    severity = DiagnosticSeverity.Silent;
+                    return true;
+                case "none":
+                    severity = DiagnosticSeverity.None;
+                    return true;
+                default:
+                    severity = DiagnosticSeverity.Warning;
+                    return false;
+            }
         }
 
         private RuleConfiguration GetConfigurationForRule(
@@ -446,6 +468,53 @@ namespace MarkdownLintVS.Linting
                 Severity = rule.DefaultSeverity,
                 EditorConfigIndentSize = editorConfigIndentSize
             };
+        }
+
+        /// <summary>
+        /// Sets the root path on the analysis from editorconfig and options.
+        /// </summary>
+        private void SetRootPathOnAnalysis(MarkdownDocumentAnalysis analysis, Dictionary<string, RuleConfiguration> configurations)
+        {
+            // Get root path from editorconfig
+            if (configurations != null && configurations.TryGetValue("root_path", out RuleConfiguration rootPathConfig))
+            {
+                analysis.EditorConfigRootPath = rootPathConfig.Value;
+            }
+
+            // Get root path from options page
+            try
+            {
+                analysis.OptionsRootPath = RuleOptions.Instance?.RootPath;
+            }
+            catch
+            {
+                // Options not available (e.g., in unit tests without VS Shell)
+            }
+        }
+
+        /// <summary>
+        /// Static version of SetRootPathOnAnalysis for parallel processing.
+        /// </summary>
+        private static void SetRootPathOnAnalysisStatic(
+            MarkdownDocumentAnalysis analysis,
+            Dictionary<string, RuleConfiguration> editorConfigSettings,
+            Dictionary<string, RuleConfiguration> ruleConfigs)
+        {
+            // Get root path from editorconfig
+            if (editorConfigSettings != null && editorConfigSettings.TryGetValue("root_path", out RuleConfiguration rootPathConfig))
+            {
+                analysis.EditorConfigRootPath = rootPathConfig.Value;
+            }
+
+            // Get root path from options page
+            try
+            {
+                analysis.OptionsRootPath = RuleOptions.Instance?.RootPath;
+            }
+            catch
+            {
+                // Options not available (e.g., in unit tests without VS Shell)
+            }
         }
     }
 }

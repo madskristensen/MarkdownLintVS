@@ -37,6 +37,7 @@ namespace MarkdownLintVS.Linting
         private readonly int _frontMatterEndLine;
         private readonly HashSet<int> _tocCommentLines;
         private readonly SuppressionMap _suppressionMap;
+        private readonly string _frontMatterRootPath;
 
         public string Text => _text;
         public string[] Lines => _lines;
@@ -48,6 +49,42 @@ namespace MarkdownLintVS.Linting
         /// Used by rules that need to resolve relative paths (e.g., MD061, MD062).
         /// </summary>
         public string FilePath { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the root path from .editorconfig (md_root_path setting).
+        /// This is set by the analyzer after parsing EditorConfig.
+        /// </summary>
+        public string EditorConfigRootPath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the root path from the VS Options page.
+        /// This is set by the analyzer after reading options.
+        /// </summary>
+        public string OptionsRootPath { get; set; }
+
+        /// <summary>
+        /// Gets the effective root path for resolving root-relative paths.
+        /// Precedence: front matter > .editorconfig > VS options.
+        /// </summary>
+        public string RootPath
+        {
+            get
+            {
+                // Front matter takes highest precedence
+                if (!string.IsNullOrWhiteSpace(_frontMatterRootPath))
+                    return _frontMatterRootPath;
+
+                // Then .editorconfig
+                if (!string.IsNullOrWhiteSpace(EditorConfigRootPath))
+                    return EditorConfigRootPath;
+
+                // Finally VS options
+                if (!string.IsNullOrWhiteSpace(OptionsRootPath))
+                    return OptionsRootPath;
+
+                return null;
+            }
+        }
 
         /// <summary>
         /// Gets the suppression map containing inline suppression comments parsed from the document.
@@ -77,10 +114,62 @@ namespace MarkdownLintVS.Linting
             _frontMatterEndLine = ComputeFrontMatterEndLine();
             _tocCommentLines = BuildTocCommentLinesCache();
             _suppressionMap = BuildSuppressionMap();
+            _frontMatterRootPath = ExtractRootPathFromFrontMatter();
+        }
+
+        /// <summary>
+        /// Gets the root_path value from YAML front matter, if present.
+        /// This is used by MD061/MD062 to resolve root-relative paths (starting with /).
+        /// </summary>
+        public string FrontMatterRootPath => _frontMatterRootPath;
+
+        /// <summary>
+        /// Extracts the root_path value from YAML front matter in the document.
+        /// Uses the same approach as HasFrontMatterTitle for consistency.
+        /// </summary>
+        private string ExtractRootPathFromFrontMatter()
+        {
+            // No front matter means no root_path
+            if (_frontMatterEndLine < 0)
+                return null;
+
+            // Search lines between front matter delimiters (excluding the --- lines)
+            for (var i = 1; i < _frontMatterEndLine && i < _lines.Length; i++)
+            {
+                var lineText = _lines[i].Trim();
+
+                // Look for root_path: value (case-insensitive)
+                if (lineText.StartsWith("root_path:", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Extract the value after the colon
+                    var colonIndex = lineText.IndexOf(':');
+                    if (colonIndex >= 0 && colonIndex < lineText.Length - 1)
+                    {
+                        var value = lineText.Substring(colonIndex + 1).Trim();
+
+                        // Remove matching quotes if present (both single or double)
+                        if (value.Length >= 2)
+                        {
+                            var firstChar = value[0];
+                            var lastChar = value[value.Length - 1];
+
+                            if ((firstChar == '"' && lastChar == '"') ||
+                                (firstChar == '\'' && lastChar == '\''))
+                            {
+                                value = value.Substring(1, value.Length - 2);
+                            }
+                        }
+
+                        return string.IsNullOrWhiteSpace(value) ? null : value;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private SuppressionMap BuildSuppressionMap()
-        {            
+        {
             var parser = new SuppressionCommentParser();
             return parser.Parse(_lines);
         }

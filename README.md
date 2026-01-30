@@ -3,7 +3,7 @@
 [![Build](https://github.com/madskristensen/MarkdownLintVS/actions/workflows/build.yaml/badge.svg)](https://github.com/madskristensen/MarkdownLintVS/actions/workflows/build.yaml)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/madskristensen)
 
-A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD060).
+A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD062).
 
 ## Features
 
@@ -17,7 +17,7 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
 ✅ **Context menu** - Quick access to enable/disable linting and settings  
-✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD060)  
+✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD062)  
 ✅ **Works with any Markdown editor** - Including the built-in Markdown editor and most Markdown extensions
 
 ## Installation
@@ -94,7 +94,7 @@ Go to **Tools → Options → Markdown Lint → Rules** to access all rule setti
 | 2. Lists         | MD004, MD005, MD007, MD029, MD030, MD032       |
 | 3. Whitespace    | MD009, MD010, MD012, MD013, MD047              |
 | 4. Code Blocks   | MD014, MD031, MD040, MD046, MD048              |
-| 5. Links         | MD011, MD034, MD039, MD042, MD045, MD051-MD054 |
+| 5. Links         | MD011, MD034, MD039, MD042, MD045, MD051-MD054, MD061, MD062 |
 | 6. Inline        | MD033, MD035-MD038, MD049, MD050               |
 | 7. Blockquotes   | MD027, MD028                                   |
 | 8. Tables        | MD055, MD056, MD058, MD060                     |
@@ -213,6 +213,9 @@ md_no_trailing_spaces = false
 | `md_blanks_around_tables`             | MD058 | Tables should be surrounded by blank lines                               |
 | `md_descriptive_link_text`            | MD059 | Link text should be descriptive                                          |
 | `md_table_column_style`               | MD060 | Table column style should be consistent                                  |
+| `md_file_links_exist`                 | MD061 | Local file links should exist (disabled by default)                      |
+| `md_image_links_exist`                | MD062 | Local image links should exist (disabled by default)                     |
+| `md_root_path`                        | -     | Root path for resolving root-relative links (e.g., `/images/logo.png`)   |
 
 </details>
 

@@ -167,4 +167,135 @@ public sealed class MarkdownLintAnalyzerTests
 
         Assert.AreEqual(violation.Rule.Id, violation.GetErrorCode());
     }
+
+    #region ParseRuleConfiguration Tests
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenWindowsPathThenPreservesFullPath()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration(@"C:\Users\site\docs");
+
+        Assert.AreEqual(@"C:\Users\site\docs", config.Value);
+        Assert.IsTrue(config.Enabled);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenPathWithMultipleColonsThenPreservesFullPath()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration(@"D:\Projects\My:Special:Folder");
+
+        Assert.AreEqual(@"D:\Projects\My:Special:Folder", config.Value);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenValueWithSeveritySuffixThenParsesBoth()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("asterisk:error");
+
+        Assert.AreEqual("asterisk", config.Value);
+        Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenWindowsPathWithSeveritySuffixThenParsesBoth()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration(@"C:\Users\site:warning");
+
+        Assert.AreEqual(@"C:\Users\site", config.Value);
+        Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenBooleanFalseThenDisabled()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("false");
+
+        Assert.IsFalse(config.Enabled);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenBooleanTrueThenEnabled()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("true");
+
+        Assert.IsTrue(config.Enabled);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenSeverityOnlyThenSetsSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("error");
+
+        Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenSuggestionSeverityThenSetsSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("suggestion");
+
+        Assert.AreEqual(DiagnosticSeverity.Suggestion, config.Severity);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenEmptyThenReturnsDefault()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("");
+
+        Assert.IsTrue(config.Enabled);
+        Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
+        Assert.IsNull(config.Value);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenNullThenReturnsDefault()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration(null!);
+
+        Assert.IsTrue(config.Enabled);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenUnrecognizedValueThenTreatsAsValue()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("consistent");
+
+        Assert.AreEqual("consistent", config.Value);
+        Assert.IsTrue(config.Enabled);
+    }
+
+    [TestMethod]
+    public void ParseRuleConfiguration_WhenColonButNotSeverityThenPreservesValue()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        // "test:value" - "value" is not a valid severity, so preserve the whole thing
+        var config = analyzer.ParseRuleConfiguration("test:value");
+
+        Assert.AreEqual("test:value", config.Value);
+    }
+
+    #endregion
 }

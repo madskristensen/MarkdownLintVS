@@ -494,6 +494,14 @@
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/madskristensen/MarkdownLintVS#md062"
+    },
+    {
+      "name": "md_root_path",
+      "description": "Root path for resolving root-relative links (starting with /). Used for Jekyll/GitHub Pages sites. Can be overridden by 'root_path' in YAML front matter.",
+      "values": [ ],
+      "defaultValue": [ "" ],
+      "severity": false,
+      "documentationLink": "https://github.com/madskristensen/MarkdownLintVS#root-path"
     }
   ]
 }

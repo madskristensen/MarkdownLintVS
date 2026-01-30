@@ -8,6 +8,7 @@ namespace MarkdownLintVS.Linting.Rules
     /// <summary>
     /// MD061: File links should reference existing files.
     /// Validates that relative links to local files point to files that actually exist.
+    /// Supports root-relative paths (starting with /) when root_path is configured.
     /// </summary>
     public class MD061_FileLinkExists : MarkdownRuleBase
     {
@@ -25,6 +26,8 @@ namespace MarkdownLintVS.Linting.Rules
             var baseDirectory = Path.GetDirectoryName(analysis.FilePath);
             if (string.IsNullOrEmpty(baseDirectory))
                 yield break;
+
+            var rootPath = analysis.RootPath;
 
             foreach (LinkInline link in analysis.GetLinks())
             {
@@ -46,7 +49,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 // Check if the local file exists
-                if (!LocalFileExists(url, baseDirectory))
+                if (!LocalFileExists(url, baseDirectory, rootPath))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
                     var cleanUrl = GetPathWithoutFragment(url);
@@ -77,7 +80,13 @@ namespace MarkdownLintVS.Linting.Rules
             return fragmentIndex >= 0 ? url.Substring(0, fragmentIndex) : url;
         }
 
-        private static bool LocalFileExists(string url, string baseDirectory)
+        /// <summary>
+        /// Checks if a local file exists, using the same path resolution logic as MarkdownEditor2022.
+        /// </summary>
+        /// <param name="url">The URL/path from the link.</param>
+        /// <param name="baseDirectory">The directory containing the markdown file.</param>
+        /// <param name="rootPath">Optional root path for resolving root-relative paths (starting with /).</param>
+        private static bool LocalFileExists(string url, string baseDirectory, string rootPath)
         {
             try
             {
@@ -96,8 +105,32 @@ namespace MarkdownLintVS.Linting.Rules
                 if (queryIndex >= 0)
                     path = path.Substring(0, queryIndex);
 
-                // Combine with base directory
-                var fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
+                string fullPath;
+
+                // Check if this is a root-relative path (starts with /)
+                if (path.StartsWith("/", StringComparison.Ordinal))
+                {
+                    // Root-relative paths require a root_path to be configured
+                    if (string.IsNullOrEmpty(rootPath))
+                    {
+                        // No root path configured - cannot resolve root-relative paths
+                        // Fall back to treating it as relative to base directory
+                        fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path.TrimStart('/')));
+                    }
+                    else
+                    {
+                        // Remove leading slash and normalize path separators
+                        var pathWithoutLeadingSlash = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+
+                        // Resolve against the root path
+                        fullPath = Path.GetFullPath(Path.Combine(rootPath, pathWithoutLeadingSlash));
+                    }
+                }
+                else
+                {
+                    // Regular relative path - resolve against base directory
+                    fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
+                }
 
                 // Check if it's a file or directory
                 return File.Exists(fullPath) || Directory.Exists(fullPath);
@@ -113,6 +146,7 @@ namespace MarkdownLintVS.Linting.Rules
     /// <summary>
     /// MD062: Image links should reference existing files.
     /// Validates that relative image links point to files that actually exist.
+    /// Supports root-relative paths (starting with /) when root_path is configured.
     /// </summary>
     public class MD062_ImageLinkExists : MarkdownRuleBase
     {
@@ -130,6 +164,8 @@ namespace MarkdownLintVS.Linting.Rules
             var baseDirectory = Path.GetDirectoryName(analysis.FilePath);
             if (string.IsNullOrEmpty(baseDirectory))
                 yield break;
+
+            var rootPath = analysis.RootPath;
 
             foreach (LinkInline link in analysis.GetLinks())
             {
@@ -150,7 +186,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 // Check if the local file exists
-                if (!LocalFileExists(url, baseDirectory))
+                if (!LocalFileExists(url, baseDirectory, rootPath))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
 
@@ -172,7 +208,13 @@ namespace MarkdownLintVS.Linting.Rules
                    url.StartsWith("//", StringComparison.Ordinal);
         }
 
-        private static bool LocalFileExists(string url, string baseDirectory)
+        /// <summary>
+        /// Checks if a local image file exists, using the same path resolution logic as MarkdownEditor2022.
+        /// </summary>
+        /// <param name="url">The URL/path from the image link.</param>
+        /// <param name="baseDirectory">The directory containing the markdown file.</param>
+        /// <param name="rootPath">Optional root path for resolving root-relative paths (starting with /).</param>
+        private static bool LocalFileExists(string url, string baseDirectory, string rootPath)
         {
             try
             {
@@ -184,8 +226,32 @@ namespace MarkdownLintVS.Linting.Rules
                 if (queryIndex >= 0)
                     path = path.Substring(0, queryIndex);
 
-                // Combine with base directory
-                var fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
+                string fullPath;
+
+                // Check if this is a root-relative path (starts with /)
+                if (path.StartsWith("/", StringComparison.Ordinal))
+                {
+                    // Root-relative paths require a root_path to be configured
+                    if (string.IsNullOrEmpty(rootPath))
+                    {
+                        // No root path configured - cannot resolve root-relative paths
+                        // Fall back to treating it as relative to base directory
+                        fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path.TrimStart('/')));
+                    }
+                    else
+                    {
+                        // Remove leading slash and normalize path separators
+                        var pathWithoutLeadingSlash = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+
+                        // Resolve against the root path
+                        fullPath = Path.GetFullPath(Path.Combine(rootPath, pathWithoutLeadingSlash));
+                    }
+                }
+                else
+                {
+                    // Regular relative path - resolve against base directory
+                    fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
+                }
 
                 return File.Exists(fullPath);
             }

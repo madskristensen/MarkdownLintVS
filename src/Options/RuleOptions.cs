@@ -253,6 +253,12 @@ namespace MarkdownLintVS.Options
         [DefaultValue(true)]
         public bool MD062 { get; set; } = true;
 
+        [Category("5. Links")]
+        [DisplayName("Root Path")]
+        [Description("Root path for resolving root-relative links (starting with /). Used for Jekyll/GitHub Pages sites. Can be overridden by 'root_path' in YAML front matter or 'md_root_path' in .editorconfig.")]
+        [DefaultValue("")]
+        public string RootPath { get; set; } = "";
+
         // ===== Inline Rules =====
 
         [Category("6. Inline")]

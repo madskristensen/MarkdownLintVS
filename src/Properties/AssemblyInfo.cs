@@ -1,7 +1,8 @@
-﻿using MarkdownLintVS;
+using MarkdownLintVS;
 
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 [assembly: AssemblyTitle(Vsix.Name)]
 [assembly: AssemblyDescription(Vsix.Description)]
@@ -16,6 +17,8 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyVersion(Vsix.Version)]
 [assembly: AssemblyFileVersion(Vsix.Version)]
+
+[assembly: InternalsVisibleTo("MarkdownLintVS.Test")]
 
 namespace System.Runtime.CompilerServices
 {
