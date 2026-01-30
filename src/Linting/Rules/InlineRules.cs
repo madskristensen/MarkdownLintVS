@@ -102,6 +102,10 @@ namespace MarkdownLintVS.Linting.Rules
                     if (beforeChar == '<' || beforeChar == '(' || beforeChar == '[')
                         continue;
 
+                    // Skip URLs inside inline code spans
+                    if (analysis.IsPositionInInlineCode(i, match.Index))
+                        continue;
+
                     yield return CreateViolation(
                         i,
                         match.Index,

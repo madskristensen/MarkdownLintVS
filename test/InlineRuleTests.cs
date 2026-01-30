@@ -176,6 +176,17 @@ public sealed class InlineRuleTests
         Assert.Contains("Bare URL", violations[0].Message);
     }
 
+    [TestMethod]
+    public void MD034_WhenInInlineCodeThenNoViolation()
+    {
+        var rule = new MD034_NoBareUrls();
+        var analysis = new MarkdownDocumentAnalysis("Use `https://example.com` for the URL");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD035 - Horizontal Rule Style

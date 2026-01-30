@@ -140,6 +140,19 @@ public sealed class MarkdownDocumentAnalysisTests
     }
 
     [TestMethod]
+    public void WhenPositionInInlineCodeThenIsPositionInInlineCodeReturnsTrue()
+    {
+        var markdown = "Text with `inline code` here";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        // Position inside "inline code" (after the opening backtick)
+        Assert.IsTrue(analysis.IsPositionInInlineCode(0, 11));  // 'i' of 'inline'
+        Assert.IsTrue(analysis.IsPositionInInlineCode(0, 15));  // 'n' of 'inline'
+        Assert.IsFalse(analysis.IsPositionInInlineCode(0, 0));  // 'T' of 'Text'
+        Assert.IsFalse(analysis.IsPositionInInlineCode(0, 24)); // 'h' of 'here'
+    }
+
+    [TestMethod]
     public void WhenFrontMatterHasTitleThenHasFrontMatterTitleReturnsTrue()
     {
         var markdown = "---\ntitle: My Document\n---\n\n# Content";

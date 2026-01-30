@@ -554,5 +554,24 @@ namespace MarkdownLintVS.Linting
             }
             return newlineCount > 1;
         }
+
+        /// <summary>
+        /// Checks if a position (specified by line number and column) is inside an inline code span.
+        /// </summary>
+        /// <param name="lineNumber">The zero-based line number.</param>
+        /// <param name="column">The zero-based column position within the line.</param>
+        /// <returns>True if the position is inside an inline code span.</returns>
+        public bool IsPositionInInlineCode(int lineNumber, int column)
+        {
+            var offset = GetOffsetFromPosition(lineNumber, column);
+
+            foreach (CodeInline codeSpan in GetCodeSpans())
+            {
+                if (offset >= codeSpan.Span.Start && offset < codeSpan.Span.End)
+                    return true;
+            }
+
+            return false;
+        }
     }
 }
