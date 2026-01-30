@@ -92,6 +92,52 @@ public sealed class LinkRuleTests
         Assert.Contains("style", violations[0].Message.ToLower());
     }
 
+    [TestMethod]
+    public void MD049_WhenSubscriptThenNoViolations()
+    {
+        var rule = new MD049_EmphasisStyle();
+        var analysis = new MarkdownDocumentAnalysis("H~2~O is water");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD049_WhenSuperscriptThenNoViolations()
+    {
+        var rule = new MD049_EmphasisStyle();
+        var analysis = new MarkdownDocumentAnalysis("E=mc^2^");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD049_WhenHighlightThenNoViolations()
+    {
+        var rule = new MD049_EmphasisStyle();
+        var analysis = new MarkdownDocumentAnalysis("This is =highlighted= text");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD049_WhenSubscriptMixedWithEmphasisThenOnlyChecksEmphasis()
+    {
+        var rule = new MD049_EmphasisStyle();
+        var analysis = new MarkdownDocumentAnalysis("*italic* and ~subscript~ and _another italic_");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        // Should report violation for mixed * and _ styles, but not for ~
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD049", violations[0].Rule.Id);
+    }
+
     #endregion
 
     #region MD050 - Strong Style

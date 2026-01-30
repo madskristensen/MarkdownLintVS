@@ -25,7 +25,8 @@ namespace MarkdownLintVS.Linting.Rules
 
             string detectedStyle = null;
 
-            foreach (EmphasisInline emphasis in analysis.GetEmphasis().Where(e => e.DelimiterCount == 1))
+            // Filter to only emphasis (* or _), excluding subscript (~), superscript (^), and highlight (=)
+            foreach (EmphasisInline emphasis in analysis.GetEmphasis().Where(e => e.DelimiterCount == 1 && (e.DelimiterChar == '*' || e.DelimiterChar == '_')))
             {
                 (var Line, var Column) = analysis.GetPositionFromOffset(emphasis.Span.Start);
                 var line = analysis.GetLine(Line);
