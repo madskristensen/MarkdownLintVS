@@ -43,6 +43,7 @@ namespace MarkdownLintVS.ErrorList
     /// <summary>
     /// Handles document events for a specific text view.
     /// Listens to shared analysis cache for results.
+    /// Note: Debouncing is handled by MarkdownAnalysisCache, not here.
     /// </summary>
     internal class DocumentHandler : IDisposable
     {
@@ -50,7 +51,6 @@ namespace MarkdownLintVS.ErrorList
         private readonly MarkdownLintTableDataSource _tableDataSource;
         private readonly MarkdownAnalysisCache _analysisCache;
         private readonly string _filePath;
-        private readonly System.Timers.Timer _debounceTimer;
         private bool _disposed;
 
         public DocumentHandler(
@@ -64,30 +64,21 @@ namespace MarkdownLintVS.ErrorList
             _analysisCache = analysisCache;
             _filePath = filePath;
 
-            _debounceTimer = new System.Timers.Timer(500)
-            {
-                AutoReset = false
-            };
-            _debounceTimer.Elapsed += OnDebounceTimerElapsed;
-
             _textView.TextBuffer.Changed += OnTextBufferChanged;
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
             GeneralOptions.Saved += OnGeneralOptionsSaved;
 
-            // Initial analysis - request from cache
-            RequestAnalysis();
+            // Initial analysis - request immediate analysis on file open
+            _analysisCache.AnalyzeImmediate(_textView.TextBuffer, _filePath);
         }
 
         private void OnTextBufferChanged(object sender, TextContentChangedEventArgs e)
         {
-            // Reset debounce timer
-            _debounceTimer.Stop();
-            _debounceTimer.Start();
-        }
-
-        private void OnDebounceTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            RequestAnalysis();
+            // Debouncing is handled by MarkdownAnalysisCache.InvalidateAndAnalyze
+            if (!_disposed)
+            {
+                _analysisCache.InvalidateAndAnalyze(_textView.TextBuffer, _filePath);
+            }
         }
 
         private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
@@ -105,16 +96,10 @@ namespace MarkdownLintVS.ErrorList
         private void OnGeneralOptionsSaved(GeneralOptions options)
         {
             // Trigger re-analysis when linting is enabled/disabled
-            RequestAnalysis();
-        }
-
-        private void RequestAnalysis()
-        {
-            if (_disposed)
-                return;
-
-            // The cache will analyze and notify via AnalysisUpdated event
-            _analysisCache.InvalidateAndAnalyze(_textView.TextBuffer, _filePath);
+            if (!_disposed)
+            {
+                _analysisCache.AnalyzeImmediate(_textView.TextBuffer, _filePath);
+            }
         }
 
         public void Dispose()
@@ -122,8 +107,6 @@ namespace MarkdownLintVS.ErrorList
             if (!_disposed)
             {
                 _disposed = true;
-                _debounceTimer.Stop();
-                _debounceTimer.Dispose();
                 _textView.TextBuffer.Changed -= OnTextBufferChanged;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
                 GeneralOptions.Saved -= OnGeneralOptionsSaved;

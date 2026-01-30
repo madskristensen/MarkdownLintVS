@@ -96,7 +96,7 @@ namespace MarkdownLintVS.QuickInfo
                     if (rule != null)
                     {
                         // Create the QuickInfo content
-                        var content = CreateQuickInfoContent(rule);
+                        ContainerElement content = CreateQuickInfoContent(rule);
                         var ruleSpan = new SnapshotSpan(
                             _textBuffer.CurrentSnapshot,
                             line.Start.Position + ruleStartInLine,

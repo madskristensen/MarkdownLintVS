@@ -143,7 +143,7 @@ namespace MarkdownLintVS.Completion
 
         private ImmutableArray<CompletionItem> BuildCompletionItems()
         {
-            var builder = ImmutableArray.CreateBuilder<CompletionItem>();
+            ImmutableArray<CompletionItem>.Builder builder = ImmutableArray.CreateBuilder<CompletionItem>();
 
             // Icons for completion items
             var codeIcon = new ImageElement(KnownMonikers.Constant.ToImageId());

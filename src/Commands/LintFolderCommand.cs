@@ -102,36 +102,60 @@ namespace MarkdownLintVS.Commands
         }
 
         private static async Task<List<(string FilePath, LintViolation Violation)>> LintFilesInParallelAsync(
-            IReadOnlyList<string> files)
+            IReadOnlyList<string> files,
+            CancellationToken cancellationToken = default)
         {
-            var results = new ConcurrentBag<(string FilePath, LintViolation Violation)>();
+            var results = new List<(string FilePath, LintViolation Violation)>();
+            var resultsLock = new object();
             var processedCount = 0;
             var totalCount = files.Count;
+            var lastReportedProgress = 0;
 
-            // Get rule configurations
+            // Get rule configurations once
             Dictionary<string, RuleConfiguration> ruleConfigs = RuleOptionsProvider.Instance.GetRuleConfigurations();
+
+            // Cache EditorConfig settings by directory to avoid repeated parsing
+            var editorConfigCache = new ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>>(StringComparer.OrdinalIgnoreCase);
 
             // Use parallel processing with progress reporting
             await Task.Run(() =>
             {
-                Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                Parallel.ForEach(files,
+                    new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = Environment.ProcessorCount,
+                        CancellationToken = cancellationToken
+                    },
                     filePath =>
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
+
                         try
                         {
                             var text = File.ReadAllText(filePath);
                             var analysis = new MarkdownDocumentAnalysis(text, filePath);
 
-                            // Get EditorConfig settings for this file's directory
+                            // Get EditorConfig settings from cache or parse and cache
                             var fileDir = Path.GetDirectoryName(filePath);
-                            Dictionary<string, RuleConfiguration> editorConfigSettings = MarkdownLintAnalyzer.GetEditorConfigSettings(fileDir);
+                            Dictionary<string, RuleConfiguration> editorConfigSettings = editorConfigCache.GetOrAdd(
+                                fileDir,
+                                dir => MarkdownLintAnalyzer.GetEditorConfigSettings(dir));
 
                             IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(analysis, ruleConfigs, editorConfigSettings);
 
-                            foreach (LintViolation violation in violations)
+                            // Collect results with lock (more efficient than ConcurrentBag for this pattern)
+                            var fileViolations = violations.Select(v => (filePath, v)).ToList();
+                            if (fileViolations.Count > 0)
                             {
-                                results.Add((filePath, violation));
+                                lock (resultsLock)
+                                {
+                                    results.AddRange(fileViolations);
+                                }
                             }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            throw; // Propagate cancellation
                         }
                         catch (Exception ex)
                         {
@@ -139,19 +163,35 @@ namespace MarkdownLintVS.Commands
                             System.Diagnostics.Debug.WriteLine($"Error linting {filePath}: {ex.Message}");
                         }
 
-                        // Update progress
+                        // Update progress without blocking (fire-and-forget to UI thread)
                         var current = Interlocked.Increment(ref processedCount);
                         if (current % 10 == 0 || current == totalCount)
                         {
-                            ThreadHelper.JoinableTaskFactory.Run(async () =>
+                            // Only update if we haven't reported this milestone yet
+                            var previousReported = Interlocked.Exchange(ref lastReportedProgress, current);
+                            if (previousReported < current)
                             {
-                                await VS.StatusBar.ShowMessageAsync($"Linting Markdown files... ({current}/{totalCount})");
-                            });
+                                // Fire-and-forget async status update - no blocking
+                                _ = UpdateProgressAsync(current, totalCount);
+                            }
                         }
                     });
-            });
+            }, cancellationToken);
 
-            return [.. results];
+            return results;
+        }
+
+        private static async Task UpdateProgressAsync(int current, int total)
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                await VS.StatusBar.ShowMessageAsync($"Linting Markdown files... ({current}/{total})");
+            }
+            catch
+            {
+                // Ignore errors during progress updates
+            }
         }
 
         private static async Task ReportResultsAsync(
@@ -172,19 +212,15 @@ namespace MarkdownLintVS.Commands
                 return;
             }
 
-            // Clear previous folder lint results and add new ones
-            dataSource.ClearFolderLintErrors();
-
-            foreach ((var filePath, LintViolation violation) in violations)
-            {
-                dataSource.AddFolderLintError(
-                    filePath,
-                    violation.LineNumber,
-                    violation.ColumnStart,
-                    violation.Rule.Id,
-                    violation.Message,
-                    violation.Severity);
-            }
+            // Use batch method for efficient error reporting (O(n) instead of O(n²))
+            dataSource.AddFolderLintErrors(
+                violations.Select(v => (
+                    v.FilePath,
+                    v.Violation.LineNumber,
+                    v.Violation.ColumnStart,
+                    v.Violation.Rule.Id,
+                    v.Violation.Message,
+                    v.Violation.Severity)));
 
             // Show summary in status bar
             var fileCount = violations.Select(v => v.FilePath).Distinct().Count();

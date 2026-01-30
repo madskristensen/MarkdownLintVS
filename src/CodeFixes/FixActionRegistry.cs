@@ -43,10 +43,10 @@ namespace MarkdownLintVS.CodeFixes
             ITextSnapshot snapshot,
             ITextSnapshotLine line)
         {
-            if (!_registry.TryGetValue(violation.Rule.Id, out var info))
+            if (!_registry.TryGetValue(violation.Rule.Id, out FixActionInfo info))
                 return null;
 
-            var span = info.SpanType == FixSpanType.Line
+            Span span = info.SpanType == FixSpanType.Line
                 ? new Span(line.Start, line.Length)
                 : new Span(line.Start + violation.ColumnStart, violation.ColumnEnd - violation.ColumnStart);
 
@@ -57,13 +57,13 @@ namespace MarkdownLintVS.CodeFixes
         {
             var result = new Dictionary<string, FixActionInfo>(StringComparer.OrdinalIgnoreCase);
 
-            var fixActionTypes = typeof(MarkdownFixAction).Assembly.GetTypes()
+            IEnumerable<Type> fixActionTypes = typeof(MarkdownFixAction).Assembly.GetTypes()
                 .Where(t => !t.IsAbstract && typeof(MarkdownFixAction).IsAssignableFrom(t));
 
-            foreach (var type in fixActionTypes)
+            foreach (Type type in fixActionTypes)
             {
-                var attributes = type.GetCustomAttributes<FixForRuleAttribute>();
-                foreach (var attr in attributes)
+                IEnumerable<FixForRuleAttribute> attributes = type.GetCustomAttributes<FixForRuleAttribute>();
+                foreach (FixForRuleAttribute attr in attributes)
                 {
                     try
                     {
@@ -116,7 +116,7 @@ namespace MarkdownLintVS.CodeFixes
                 if (requiresFactory)
                 {
                     // Look for static Create method: MarkdownFixAction Create(ITextSnapshot, Span, LintViolation)
-                    var createMethod = type.GetMethod("Create",
+                    MethodInfo createMethod = type.GetMethod("Create",
                         BindingFlags.Public | BindingFlags.Static,
                         null,
                         [typeof(ITextSnapshot), typeof(Span), typeof(LintViolation)],
@@ -125,12 +125,12 @@ namespace MarkdownLintVS.CodeFixes
                     if (createMethod != null && typeof(MarkdownFixAction).IsAssignableFrom(createMethod.ReturnType))
                     {
                         // Build compiled delegate instead of using reflection invoke
-                        var snapshotParam = Expression.Parameter(typeof(ITextSnapshot), "snapshot");
-                        var spanParam = Expression.Parameter(typeof(Span), "span");
-                        var violationParam = Expression.Parameter(typeof(LintViolation), "violation");
+                        ParameterExpression snapshotParam = Expression.Parameter(typeof(ITextSnapshot), "snapshot");
+                        ParameterExpression spanParam = Expression.Parameter(typeof(Span), "span");
+                        ParameterExpression violationParam = Expression.Parameter(typeof(LintViolation), "violation");
 
-                        var call = Expression.Call(createMethod, snapshotParam, spanParam, violationParam);
-                        var cast = Expression.Convert(call, typeof(MarkdownFixAction));
+                        MethodCallExpression call = Expression.Call(createMethod, snapshotParam, spanParam, violationParam);
+                        UnaryExpression cast = Expression.Convert(call, typeof(MarkdownFixAction));
 
                         return Expression.Lambda<Func<ITextSnapshot, Span, LintViolation, MarkdownFixAction>>(
                             cast, snapshotParam, spanParam, violationParam).Compile();
@@ -141,16 +141,16 @@ namespace MarkdownLintVS.CodeFixes
                 }
 
                 // Simple constructor: (ITextSnapshot, Span)
-                var ctor = type.GetConstructor([typeof(ITextSnapshot), typeof(Span)]);
+                ConstructorInfo ctor = type.GetConstructor([typeof(ITextSnapshot), typeof(Span)]);
                 if (ctor != null)
                 {
                     // Build compiled delegate instead of using reflection invoke
-                    var snapshotParam = Expression.Parameter(typeof(ITextSnapshot), "snapshot");
-                    var spanParam = Expression.Parameter(typeof(Span), "span");
-                    var unusedParam = Expression.Parameter(typeof(LintViolation), "_");
+                    ParameterExpression snapshotParam = Expression.Parameter(typeof(ITextSnapshot), "snapshot");
+                    ParameterExpression spanParam = Expression.Parameter(typeof(Span), "span");
+                    ParameterExpression unusedParam = Expression.Parameter(typeof(LintViolation), "_");
 
-                    var newExpr = Expression.New(ctor, snapshotParam, spanParam);
-                    var cast = Expression.Convert(newExpr, typeof(MarkdownFixAction));
+                    NewExpression newExpr = Expression.New(ctor, snapshotParam, spanParam);
+                    UnaryExpression cast = Expression.Convert(newExpr, typeof(MarkdownFixAction));
 
                     return Expression.Lambda<Func<ITextSnapshot, Span, LintViolation, MarkdownFixAction>>(
                         cast, snapshotParam, spanParam, unusedParam).Compile();

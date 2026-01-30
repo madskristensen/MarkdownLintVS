@@ -13,6 +13,8 @@ namespace MarkdownLintVS.Linting
     /// - capture/restore (scoped suppression)
     /// - disable-file/disable-file RULES (file-level suppression)
     /// - configure-file (inline configuration - treated as suppress)
+    /// 
+    /// Optimized to use a single pass through the document for better performance.
     /// </summary>
     public class SuppressionCommentParser
     {
@@ -29,7 +31,18 @@ namespace MarkdownLintVS.Linting
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /// <summary>
+        /// Represents a parsed directive from a line.
+        /// </summary>
+        private readonly struct ParsedDirective(string directive, string rulesText, int lineNumber)
+        {
+            public readonly string Directive = directive;
+            public readonly string RulesText = rulesText;
+            public readonly int LineNumber = lineNumber;
+        }
+
+        /// <summary>
         /// Parses all suppression comments from the given lines and returns a SuppressionMap.
+        /// Uses a single pass for optimal performance.
         /// </summary>
         /// <param name="lines">The lines of the markdown document.</param>
         /// <returns>A SuppressionMap containing all parsed suppressions.</returns>
@@ -40,10 +53,58 @@ namespace MarkdownLintVS.Linting
 
             var map = new SuppressionMap(lines.Length);
 
-            // First pass: scan for file-level suppressions (they apply to all lines)
+            // Single pass: parse all directives and collect file-level ones
+            var directives = new List<ParsedDirective>(lines.Length / 10); // Estimate ~10% of lines have directives
             var fileLevelSuppressions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var fileLevelDisableAll = false;
-            ScanForFileLevelSuppressions(lines, ref fileLevelDisableAll, fileLevelSuppressions);
+
+            // Parse all lines in one pass
+            for (var lineNumber = 0; lineNumber < lines.Length; lineNumber++)
+            {
+                var line = lines[lineNumber];
+                Match match = _commentPattern.Match(line);
+
+                if (!match.Success)
+                    continue;
+
+                var directive = match.Groups[1].Value.ToLowerInvariant();
+                var rulesText = match.Groups[2].Success ? match.Groups[2].Value : null;
+
+                // Check for file-level suppressions immediately
+                switch (directive)
+                {
+                    case "disable-file":
+                        if (string.IsNullOrWhiteSpace(rulesText))
+                        {
+                            fileLevelDisableAll = true;
+                        }
+                        else
+                        {
+                            HashSet<string> rules = ParseRules(rulesText);
+                            foreach (var rule in rules)
+                            {
+                                fileLevelSuppressions.Add(rule);
+                            }
+                        }
+                        break;
+
+                    case "configure-file":
+                        if (!string.IsNullOrWhiteSpace(rulesText))
+                        {
+                            HashSet<string> rules = ParseRules(rulesText);
+                            foreach (var rule in rules)
+                            {
+                                fileLevelSuppressions.Add(rule);
+                            }
+                        }
+                        break;
+
+                    default:
+                        // Store non-file-level directives for processing
+                        directives.Add(new ParsedDirective(directive, rulesText, lineNumber));
+                        break;
+                }
+            }
 
             // If file-level disable-all is active, suppress all lines and return early
             if (fileLevelDisableAll)
@@ -67,66 +128,20 @@ namespace MarkdownLintVS.Linting
                 }
             }
 
-            // Second pass: process scoped suppressions
-            ProcessScopedSuppressions(lines, map);
+            // Process scoped suppressions using the cached directives
+            ProcessScopedSuppressions(lines.Length, directives, map);
 
             return map;
         }
 
         /// <summary>
-        /// First pass: scan for file-level suppressions (disable-file, configure-file).
+        /// Process scoped suppressions using pre-parsed directives.
         /// </summary>
-        private void ScanForFileLevelSuppressions(string[] lines, ref bool fileLevelDisableAll, HashSet<string> fileLevelSuppressions)
+        private void ProcessScopedSuppressions(int lineCount, List<ParsedDirective> directives, SuppressionMap map)
         {
-            for (var lineNumber = 0; lineNumber < lines.Length; lineNumber++)
-            {
-                var line = lines[lineNumber];
-                var match = _commentPattern.Match(line);
+            if (directives.Count == 0)
+                return;
 
-                if (!match.Success)
-                    continue;
-
-                var directive = match.Groups[1].Value.ToLowerInvariant();
-                var rulesText = match.Groups[2].Success ? match.Groups[2].Value : null;
-
-                switch (directive)
-                {
-                    case "disable-file":
-                        if (string.IsNullOrWhiteSpace(rulesText))
-                        {
-                            fileLevelDisableAll = true;
-                            return; // No need to scan further
-                        }
-                        else
-                        {
-                            var rules = ParseRules(rulesText);
-                            foreach (var rule in rules)
-                            {
-                                fileLevelSuppressions.Add(rule);
-                            }
-                        }
-                        break;
-
-                    case "configure-file":
-                        // configure-file with { "rule": false } patterns
-                        if (!string.IsNullOrWhiteSpace(rulesText))
-                        {
-                            var rules = ParseRules(rulesText);
-                            foreach (var rule in rules)
-                            {
-                                fileLevelSuppressions.Add(rule);
-                            }
-                        }
-                        break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Second pass: process scoped suppressions (disable/enable, disable-line, disable-next-line, capture/restore).
-        /// </summary>
-        private void ProcessScopedSuppressions(string[] lines, SuppressionMap map)
-        {
             // Track disable/enable state for scoped suppressions
             var activeDisables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var disableAllActive = false;
@@ -134,128 +149,115 @@ namespace MarkdownLintVS.Linting
             // Stack for capture/restore
             var captureStack = new Stack<(bool DisableAllActive, HashSet<string> ActiveDisables)>();
 
-            for (var lineNumber = 0; lineNumber < lines.Length; lineNumber++)
+            var directiveIndex = 0;
+            var nextDirectiveLine = directives[0].LineNumber;
+
+            for (var lineNumber = 0; lineNumber < lineCount; lineNumber++)
             {
-                var line = lines[lineNumber];
-                var match = _commentPattern.Match(line);
-
-                if (!match.Success)
+                // Check if current line has a directive
+                if (lineNumber == nextDirectiveLine && directiveIndex < directives.Count)
                 {
-                    // Apply current suppression state to this line
-                    if (disableAllActive)
+                    ParsedDirective parsed = directives[directiveIndex];
+                    HashSet<string> rules = ParseRules(parsed.RulesText);
+
+                    switch (parsed.Directive)
                     {
-                        map.SuppressAllRules(lineNumber);
-                    }
-                    else
-                    {
-                        // Apply scoped rule suppressions
-                        foreach (var rule in activeDisables)
-                        {
-                            map.SuppressRule(lineNumber, rule);
-                        }
-                    }
-                    continue;
-                }
-
-                var directive = match.Groups[1].Value.ToLowerInvariant();
-                var rulesText = match.Groups[2].Success ? match.Groups[2].Value : null;
-                var rules = ParseRules(rulesText);
-
-                switch (directive)
-                {
-                    case "disable":
-                        if (rules.Count == 0)
-                        {
-                            disableAllActive = true;
-                        }
-                        else
-                        {
-                            foreach (var rule in rules)
-                            {
-                                activeDisables.Add(rule);
-                            }
-                        }
-                        break;
-
-                    case "enable":
-                        if (rules.Count == 0)
-                        {
-                            disableAllActive = false;
-                            activeDisables.Clear();
-                        }
-                        else
-                        {
-                            foreach (var rule in rules)
-                            {
-                                activeDisables.Remove(rule);
-                            }
-                        }
-                        break;
-
-                    case "disable-line":
-                        // Suppress this line only
-                        if (rules.Count == 0)
-                        {
-                            map.SuppressAllRules(lineNumber);
-                        }
-                        else
-                        {
-                            foreach (var rule in rules)
-                            {
-                                map.SuppressRule(lineNumber, rule);
-                            }
-                        }
-                        break;
-
-                    case "disable-next-line":
-                        // Suppress the next line only
-                        var nextLine = lineNumber + 1;
-                        if (nextLine < lines.Length)
-                        {
+                        case "disable":
                             if (rules.Count == 0)
                             {
-                                map.SuppressAllRules(nextLine);
+                                disableAllActive = true;
                             }
                             else
                             {
                                 foreach (var rule in rules)
                                 {
-                                    map.SuppressRule(nextLine, rule);
+                                    activeDisables.Add(rule);
                                 }
                             }
-                        }
-                        break;
+                            break;
 
-                    case "capture":
-                        // Save current state to stack
-                        captureStack.Push((disableAllActive, new HashSet<string>(activeDisables, StringComparer.OrdinalIgnoreCase)));
-                        break;
+                        case "enable":
+                            if (rules.Count == 0)
+                            {
+                                disableAllActive = false;
+                                activeDisables.Clear();
+                            }
+                            else
+                            {
+                                foreach (var rule in rules)
+                                {
+                                    activeDisables.Remove(rule);
+                                }
+                            }
+                            break;
 
-                    case "restore":
-                        // Restore previous state from stack
-                        if (captureStack.Count > 0)
-                        {
-                            var (savedDisableAll, savedDisables) = captureStack.Pop();
-                            disableAllActive = savedDisableAll;
-                            activeDisables = savedDisables;
-                        }
-                        else
-                        {
-                            // No capture to restore - reset to default state
-                            disableAllActive = false;
-                            activeDisables.Clear();
-                        }
-                        break;
+                        case "disable-line":
+                            // Suppress this line only
+                            if (rules.Count == 0)
+                            {
+                                map.SuppressAllRules(lineNumber);
+                            }
+                            else
+                            {
+                                foreach (var rule in rules)
+                                {
+                                    map.SuppressRule(lineNumber, rule);
+                                }
+                            }
+                            break;
 
-                    // disable-file and configure-file are handled in first pass
+                        case "disable-next-line":
+                            // Suppress the next line only
+                            var nextLine = lineNumber + 1;
+                            if (nextLine < lineCount)
+                            {
+                                if (rules.Count == 0)
+                                {
+                                    map.SuppressAllRules(nextLine);
+                                }
+                                else
+                                {
+                                    foreach (var rule in rules)
+                                    {
+                                        map.SuppressRule(nextLine, rule);
+                                    }
+                                }
+                            }
+                            break;
+
+                        case "capture":
+                            // Save current state to stack
+                            captureStack.Push((disableAllActive, new HashSet<string>(activeDisables, StringComparer.OrdinalIgnoreCase)));
+                            break;
+
+                        case "restore":
+                            // Restore previous state from stack
+                            if (captureStack.Count > 0)
+                            {
+                                (var savedDisableAll, HashSet<string> savedDisables) = captureStack.Pop();
+                                disableAllActive = savedDisableAll;
+                                activeDisables = savedDisables;
+                            }
+                            else
+                            {
+                                // No capture to restore - reset to default state
+                                disableAllActive = false;
+                                activeDisables.Clear();
+                            }
+                            break;
+                    }
+
+                    // Move to next directive
+                    directiveIndex++;
+                    nextDirectiveLine = directiveIndex < directives.Count ? directives[directiveIndex].LineNumber : int.MaxValue;
                 }
 
-                // Apply current suppression state to the directive line itself
+                // Apply current suppression state to this line
                 if (disableAllActive)
                 {
                     map.SuppressAllRules(lineNumber);
                 }
-                else
+                else if (activeDisables.Count > 0)
                 {
                     foreach (var rule in activeDisables)
                     {
@@ -275,7 +277,7 @@ namespace MarkdownLintVS.Linting
             if (string.IsNullOrWhiteSpace(rulesText))
                 return rules;
 
-            var matches = _rulePattern.Matches(rulesText);
+            MatchCollection matches = _rulePattern.Matches(rulesText);
             foreach (Match match in matches)
             {
                 var rule = match.Value;

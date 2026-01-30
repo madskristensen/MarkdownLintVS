@@ -8,34 +8,51 @@ namespace MarkdownLintVS.Options
     /// <summary>
     /// Provides access to rule options for the markdown lint analyzer.
     /// Returns whether a rule is enabled based on the options page when no .editorconfig setting exists.
-    /// Uses reflection to automatically discover rule properties from RuleOptions.
+    /// Uses compiled property accessors to avoid reflection overhead during analysis.
     /// </summary>
     public class RuleOptionsProvider
     {
         private static RuleOptionsProvider _instance;
         public static RuleOptionsProvider Instance => _instance ??= new RuleOptionsProvider();
 
-        private readonly Dictionary<string, PropertyInfo> _ruleProperties;
+        private readonly Dictionary<string, Func<RuleOptions, bool>> _ruleAccessors;
+        private readonly List<string> _ruleIds;
 
         private RuleOptionsProvider()
         {
-            _ruleProperties = BuildRulePropertyCache();
+            (_ruleAccessors, _ruleIds) = BuildRuleAccessorCache();
+
+            // Subscribe to options changes to be aware of when they change
+            RuleOptions.Saved += OnRuleOptionsSaved;
         }
 
-        private static Dictionary<string, PropertyInfo> BuildRulePropertyCache()
+        private void OnRuleOptionsSaved(RuleOptions options)
         {
-            var cache = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+            // Options have changed - any cached configurations should be refreshed by callers
+            // This is a notification hook for future caching if needed
+        }
+
+        private static (Dictionary<string, Func<RuleOptions, bool>>, List<string>) BuildRuleAccessorCache()
+        {
+            var accessors = new Dictionary<string, Func<RuleOptions, bool>>(StringComparer.OrdinalIgnoreCase);
+            var ruleIds = new List<string>();
 
             foreach (PropertyInfo prop in typeof(RuleOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
                 // Rule properties are named like "MD001", "MD003", etc.
                 if (prop.PropertyType == typeof(bool) && prop.Name.StartsWith("MD", StringComparison.OrdinalIgnoreCase))
                 {
-                    cache[prop.Name] = prop;
+                    // Create a compiled delegate for fast property access (avoids reflection on each call)
+                    var getter = (Func<RuleOptions, bool>)Delegate.CreateDelegate(
+                        typeof(Func<RuleOptions, bool>),
+                        prop.GetGetMethod());
+
+                    accessors[prop.Name] = getter;
+                    ruleIds.Add(prop.Name);
                 }
             }
 
-            return cache;
+            return (accessors, ruleIds);
         }
 
         /// <summary>
@@ -59,9 +76,9 @@ namespace MarkdownLintVS.Options
                 return true;
             }
 
-            if (Instance._ruleProperties.TryGetValue(ruleId, out PropertyInfo prop))
+            if (Instance._ruleAccessors.TryGetValue(ruleId, out Func<RuleOptions, bool> accessor))
             {
-                return (bool)prop.GetValue(options);
+                return accessor(options);
             }
 
             // Unknown rule ID - default to enabled
@@ -83,11 +100,11 @@ namespace MarkdownLintVS.Options
                 yield break;
             }
 
-            foreach (KeyValuePair<string, PropertyInfo> kvp in Instance._ruleProperties)
+            foreach (var ruleId in Instance._ruleIds)
             {
-                if ((bool)kvp.Value.GetValue(options))
+                if (Instance._ruleAccessors[ruleId](options))
                 {
-                    yield return kvp.Key;
+                    yield return ruleId;
                 }
             }
         }
@@ -110,12 +127,12 @@ namespace MarkdownLintVS.Options
                 return configs;
             }
 
-            foreach (KeyValuePair<string, PropertyInfo> kvp in _ruleProperties)
+            foreach (var ruleId in _ruleIds)
             {
-                var enabled = (bool)kvp.Value.GetValue(options);
-                RuleInfo ruleInfo = RuleRegistry.GetRule(kvp.Key);
+                var enabled = _ruleAccessors[ruleId](options);
+                RuleInfo ruleInfo = RuleRegistry.GetRule(ruleId);
 
-                configs[kvp.Key] = new RuleConfiguration
+                configs[ruleId] = new RuleConfiguration
                 {
                     Enabled = enabled,
                     Severity = ruleInfo?.DefaultSeverity ?? DiagnosticSeverity.Warning

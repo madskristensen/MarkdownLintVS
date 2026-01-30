@@ -98,6 +98,11 @@ namespace MarkdownLintVS.ErrorList
 
         public void UpdateErrors(string filePath, IEnumerable<Linting.LintViolation> violations)
         {
+            if (string.IsNullOrEmpty(filePath))
+                return;
+
+            violations ??= [];
+
             var errors = violations.Select(v => new MarkdownLintError(v, filePath)).ToList();
 
             lock (_snapshots)
@@ -170,8 +175,47 @@ namespace MarkdownLintVS.ErrorList
         }
 
         /// <summary>
+        /// Adds multiple folder lint errors in a single batch operation.
+        /// Much more efficient than calling AddFolderLintError repeatedly.
+        /// </summary>
+        public void AddFolderLintErrors(IEnumerable<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)> errors)
+        {
+            lock (_snapshots)
+            {
+                // Clear any existing folder lint snapshot
+                if (_folderLintSnapshot != null)
+                {
+                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    _folderLintSnapshot = null;
+                }
+
+                // Build all errors at once
+                var errorList = new List<MarkdownLintError>();
+                foreach ((var FilePath, var Line, var StartColumn, var RuleId, var Message, DiagnosticSeverity Severity) in errors)
+                {
+                    RuleInfo ruleInfo = RuleRegistry.GetRule(RuleId);
+                    errorList.Add(new MarkdownLintError(
+                        FilePath,
+                        Line,
+                        StartColumn,
+                        RuleId,
+                        Message,
+                        ruleInfo?.Description,
+                        ruleInfo?.DocumentationUrl,
+                        Severity));
+                }
+
+                if (errorList.Count > 0)
+                {
+                    _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", errorList);
+                    NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
+                }
+            }
+        }
+
+        /// <summary>
         /// Adds a folder lint error (from Lint Folder command).
-        /// Call ClearFolderLintErrors first, then add all errors, for best performance.
+        /// For bulk operations, prefer AddFolderLintErrors for better performance.
         /// </summary>
         public void AddFolderLintError(
             string filePath,

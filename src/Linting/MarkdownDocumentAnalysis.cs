@@ -25,10 +25,15 @@ namespace MarkdownLintVS.Linting
             @"<!--\s*/\s*TOC\s*-->",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        // Shared pipeline instance - thread-safe for parsing (configuration is immutable)
+        private static readonly MarkdownPipeline _sharedPipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UsePreciseSourceLocation()
+            .Build();
+
         private readonly string _text;
         private readonly string[] _lines;
         private readonly MarkdownDocument _document;
-        private readonly MarkdownPipeline _pipeline;
 
         // Precomputed caches for O(1) lookups
         private readonly int[] _lineStartOffsets;
@@ -101,12 +106,7 @@ namespace MarkdownLintVS.Linting
             _text = text ?? string.Empty;
             (_lines, _lineStartOffsets) = SplitLinesWithOffsets(_text);
 
-            _pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .UsePreciseSourceLocation()
-                .Build();
-
-            _document = Markdown.Parse(_text, _pipeline);
+            _document = Markdown.Parse(_text, _sharedPipeline);
 
             // Precompute expensive lookups once
             _codeBlockLines = BuildCodeBlockLinesCache();
