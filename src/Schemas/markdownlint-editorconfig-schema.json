@@ -476,6 +476,24 @@
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md060.md"
+    },
+    {
+      "name": "md_file_links_exist",
+      "description": "MD061 - File links should reference existing files",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/madskristensen/MarkdownLintVS#md061"
+    },
+    {
+      "name": "md_image_links_exist",
+      "description": "MD062 - Image links should reference existing files",
+      "values": [ true, false ],
+      "defaultValue": [ true ],
+      "severity": true,
+      "defaultSeverity": "warning",
+      "documentationLink": "https://github.com/madskristensen/MarkdownLintVS#md062"
     }
   ]
 }

@@ -93,6 +93,10 @@ namespace MarkdownLintVS.Linting
                 new MD052_ReferenceLinksImages(),
                 new MD053_LinkImageReferenceDefinitions(),
 
+                // File link rules
+                new MD061_FileLinkExists(),
+                new MD062_ImageLinkExists(),
+
                 // Table rules
                 new MD055_TablePipeStyle(),
                 new MD056_TableColumnCount(),
@@ -108,7 +112,7 @@ namespace MarkdownLintVS.Linting
             if (string.IsNullOrEmpty(text))
                 yield break;
 
-            var analysis = new MarkdownDocumentAnalysis(text);
+            var analysis = new MarkdownDocumentAnalysis(text, filePath);
             Dictionary<string, RuleConfiguration> configurations = GetRuleConfigurations(filePath);
 
             foreach (IMarkdownRule rule in _rules)

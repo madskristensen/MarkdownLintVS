@@ -44,12 +44,23 @@ namespace MarkdownLintVS.Linting
         public int LineCount => _lines.Length;
 
         /// <summary>
+        /// Gets the file path of the document being analyzed, if available.
+        /// Used by rules that need to resolve relative paths (e.g., MD061, MD062).
+        /// </summary>
+        public string FilePath { get; private set; }
+
+        /// <summary>
         /// Gets the suppression map containing inline suppression comments parsed from the document.
         /// </summary>
         public SuppressionMap Suppressions => _suppressionMap;
 
-        public MarkdownDocumentAnalysis(string text)
+        public MarkdownDocumentAnalysis(string text) : this(text, null)
         {
+        }
+
+        public MarkdownDocumentAnalysis(string text, string filePath)
+        {
+            FilePath = filePath;
             _text = text ?? string.Empty;
             (_lines, _lineStartOffsets) = SplitLinesWithOffsets(_text);
 

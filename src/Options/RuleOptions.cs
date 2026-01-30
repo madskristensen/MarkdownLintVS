@@ -241,6 +241,18 @@ namespace MarkdownLintVS.Options
         [DefaultValue(true)]
         public bool MD054 { get; set; } = true;
 
+        [Category("5. Links")]
+        [DisplayName("MD061 - file-links-exist")]
+        [Description("File links should reference existing files")]
+        [DefaultValue(true)]
+        public bool MD061 { get; set; } = true;
+
+        [Category("5. Links")]
+        [DisplayName("MD062 - image-links-exist")]
+        [Description("Image links should reference existing files")]
+        [DefaultValue(true)]
+        public bool MD062 { get; set; } = true;
+
         // ===== Inline Rules =====
 
         [Category("6. Inline")]

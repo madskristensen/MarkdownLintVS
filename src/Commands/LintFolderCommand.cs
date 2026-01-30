@@ -120,7 +120,7 @@ namespace MarkdownLintVS.Commands
                         try
                         {
                             var text = File.ReadAllText(filePath);
-                            var analysis = new MarkdownDocumentAnalysis(text);
+                            var analysis = new MarkdownDocumentAnalysis(text, filePath);
 
                             // Get EditorConfig settings for this file's directory
                             var fileDir = Path.GetDirectoryName(filePath);

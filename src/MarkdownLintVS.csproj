@@ -104,6 +104,7 @@
     <Compile Include="Linting\RuleRegistry.cs" />
     <Compile Include="Linting\Rules\BlockquoteAndListRules.cs" />
     <Compile Include="Linting\Rules\CodeBlockRules.cs" />
+    <Compile Include="Linting\Rules\FileLinkRules.cs" />
     <Compile Include="Linting\Rules\HeadingAndListRules.cs" />
     <Compile Include="Linting\Rules\HeadingStyleRules.cs" />
     <Compile Include="Linting\Rules\IMarkdownRule.cs" />
