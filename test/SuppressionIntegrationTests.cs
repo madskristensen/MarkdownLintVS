@@ -134,7 +134,7 @@ Line with trailing spaces
         // MD010 should be suppressed until the enable
         // MD009 should only be suppressed between capture and restore
         var md010Violations = violations.Where(v => v.Rule.Id == "MD010").ToList();
-        Assert.AreEqual(1, md010Violations.Count, "Should have exactly one MD010 violation (on line after enable)");
+        Assert.HasCount(1, md010Violations, "Should have exactly one MD010 violation (on line after enable)");
         Assert.AreEqual(11, md010Violations[0].LineNumber);
 
         // MD009 in the capture region should be suppressed
@@ -172,7 +172,7 @@ Line with trailing spaces
 
         // MD010 should be reported for line 0 but not line 2
         var md010Violations = violations.Where(v => v.Rule.Id == "MD010").ToList();
-        Assert.AreEqual(1, md010Violations.Count);
+        Assert.HasCount(1, md010Violations);
         Assert.AreEqual(0, md010Violations[0].LineNumber);
     }
 

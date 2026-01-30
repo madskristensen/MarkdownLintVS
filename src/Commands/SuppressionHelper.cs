@@ -29,7 +29,7 @@ namespace MarkdownLintVS.Commands
             var lineText = snapshotLine.GetText();
 
             // Check if the line already has an inline suppression comment
-            if (lineText.Contains("markdownlint-disable-line", StringComparison.OrdinalIgnoreCase))
+            if (SuppressionCommentBuilder.HasSuppressionComment(lineText))
             {
                 AddRuleToExistingComment(textBuffer, snapshotLine, lineText, errorCode);
             }
@@ -57,9 +57,7 @@ namespace MarkdownLintVS.Commands
             string lineText,
             string errorCode)
         {
-            // Determine the appropriate spacing
-            var spacing = string.IsNullOrWhiteSpace(lineText) ? "" : " ";
-            var comment = $"{spacing}<!-- markdownlint-disable-line {errorCode} -->";
+            var comment = SuppressionCommentBuilder.BuildSuppressionCommentForLine(lineText, errorCode);
 
             using (ITextEdit edit = textBuffer.CreateEdit())
             {
@@ -74,46 +72,21 @@ namespace MarkdownLintVS.Commands
             string lineText,
             string errorCode)
         {
-            // Find the existing markdownlint-disable-line comment
-            var commentStart = lineText.IndexOf("<!-- markdownlint-disable-line", StringComparison.OrdinalIgnoreCase);
+            var (commentStart, commentLength) = SuppressionCommentBuilder.FindSuppressionCommentSpan(lineText);
             if (commentStart < 0)
                 return;
 
-            var commentEnd = lineText.IndexOf("-->", commentStart);
-            if (commentEnd < 0)
+            var existingComment = lineText.Substring(commentStart, commentLength);
+            var newComment = SuppressionCommentBuilder.AppendRuleToComment(existingComment, errorCode);
+
+            // If the comment didn't change (rule already exists), don't make an edit
+            if (existingComment == newComment)
                 return;
-
-            var existingComment = lineText.Substring(commentStart, commentEnd - commentStart + 3);
-
-            // Check if the rule is already in the comment
-            if (existingComment.Contains(errorCode, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            // Find where to insert the new rule (before the closing -->)
-            // Check if there are already rules specified
-            var directivePart = "markdownlint-disable-line";
-            var directiveEnd = existingComment.IndexOf(directivePart, StringComparison.OrdinalIgnoreCase) + directivePart.Length;
-            var afterDirective = existingComment.Substring(directiveEnd);
-
-            // Check if there are existing rules (anything before the closing -->)
-            var trimmed = afterDirective.TrimEnd().TrimEnd('-', '>').Trim();
-            string newComment;
-
-            if (string.IsNullOrWhiteSpace(trimmed))
-            {
-                // No rules specified yet, add the rule
-                newComment = $"<!-- markdownlint-disable-line {errorCode} -->";
-            }
-            else
-            {
-                // Rules exist, append our rule
-                newComment = $"<!-- markdownlint-disable-line {trimmed} {errorCode} -->";
-            }
 
             using (ITextEdit edit = textBuffer.CreateEdit())
             {
                 var absoluteStart = line.Start.Position + commentStart;
-                edit.Replace(absoluteStart, existingComment.Length, newComment);
+                edit.Replace(absoluteStart, commentLength, newComment);
                 edit.Apply();
             }
         }

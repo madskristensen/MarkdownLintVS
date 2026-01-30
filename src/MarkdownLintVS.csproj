@@ -88,6 +88,7 @@
     <Compile Include="Commands\SaveCommandHandler.cs" />
     <Compile Include="Commands\SettingsCommand.cs" />
     <Compile Include="Commands\SuppressInCodeCommand.cs" />
+    <Compile Include="Commands\SuppressionCommentBuilder.cs" />
     <Compile Include="Commands\SuppressionHelper.cs" />
     <Compile Include="Completion\SuppressionCommentAsyncCompletionSource.cs" />
     <Compile Include="Completion\SuppressionCommentCompletionCommitManager.cs" />
