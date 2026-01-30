@@ -131,6 +131,10 @@ namespace MarkdownLintVS.Linting
 
                 foreach (LintViolation violation in violations)
                 {
+                    // Check if the violation is suppressed by inline comments
+                    if (analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
+                        continue;
+
                     yield return violation;
                 }
             }
@@ -167,6 +171,10 @@ namespace MarkdownLintVS.Linting
 
                 foreach (LintViolation violation in violations)
                 {
+                    // Check if the violation is suppressed by inline comments
+                    if (analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
+                        continue;
+
                     yield return violation;
                 }
             }

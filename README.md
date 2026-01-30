@@ -11,6 +11,7 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Error List integration** - All warnings appear in Visual Studio's Error List  
 ✅ **Quick fixes** - Press `Ctrl+.` for automatic fixes (light bulb suggestions)  
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
+✅ **Inline suppression** - Suppress rules with `<!-- markdownlint-disable-line -->` comments  
 ✅ **Format Document** - Auto-fix all issues via Format Document (`Ctrl+K, Ctrl+D`)  
 ✅ **Lint Folder/Solution** - Lint all Markdown files in a folder, project, or solution  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
@@ -245,6 +246,56 @@ Right-click on any fixable issue to access bulk fix options:
 
 - **Fix all [rule] violations in document** - Fix all instances of a specific rule
 - **Fix all auto-fixable violations in document** - Fix all auto-fixable issues at once
+
+## Inline Suppression
+
+Suppress specific rules directly in your Markdown files using HTML comments, compatible with the standard [markdownlint](https://github.com/DavidAnson/markdownlint) suppression syntax.
+
+### Suppressing Errors
+
+There are multiple ways to suppress an error:
+
+1. **From QuickInfo** - Hover over an error and click the "Suppress in code" link
+2. **From Error List** - Right-click an error in the Error List and select "Suppress in code"
+3. **Manually** - Type `<!-- markdownlint-disable-line -->` and use IntelliSense to add rule codes
+
+### Suppression Comment Syntax
+
+```markdown
+<!-- markdownlint-disable-line MD013 -->
+This line is excluded from the MD013 (line length) rule.
+
+<!-- markdownlint-disable-line MD013 MD033 -->
+This line is excluded from multiple rules.
+
+<!-- markdownlint-disable MD013 -->
+All lines below are excluded from MD013...
+<!-- markdownlint-enable MD013 -->
+
+<!-- markdownlint-disable-next-line MD041 -->
+The next line is excluded from MD041.
+
+<!-- markdownlint-disable-file MD013 -->
+The entire file is excluded from MD013.
+```
+
+### IntelliSense Support
+
+When typing suppression comments, IntelliSense provides:
+
+- **Rule code completion** - Type `MD` to see all available rule codes (MD001, MD003, etc.)
+- **Rule name completion** - Type the rule name like `heading-increment` or `line-length`
+- **QuickInfo tooltips** - Hover over rule codes in suppression comments to see the rule description
+
+### Supported Directives
+
+| Directive | Description |
+| --------- | ----------- |
+| `disable-line` | Suppress rules on the current line |
+| `disable-next-line` | Suppress rules on the next line |
+| `disable` / `enable` | Suppress rules for a block of lines |
+| `disable-file` | Suppress rules for the entire file |
+| `capture` / `restore` | Save and restore suppression state |
 
 ## Contributing
 

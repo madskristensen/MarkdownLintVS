@@ -36,11 +36,17 @@ namespace MarkdownLintVS.Linting
         private readonly HashSet<int> _htmlBlockLines;
         private readonly int _frontMatterEndLine;
         private readonly HashSet<int> _tocCommentLines;
+        private readonly SuppressionMap _suppressionMap;
 
         public string Text => _text;
         public string[] Lines => _lines;
         public MarkdownDocument Document => _document;
         public int LineCount => _lines.Length;
+
+        /// <summary>
+        /// Gets the suppression map containing inline suppression comments parsed from the document.
+        /// </summary>
+        public SuppressionMap Suppressions => _suppressionMap;
 
         public MarkdownDocumentAnalysis(string text)
         {
@@ -59,6 +65,13 @@ namespace MarkdownLintVS.Linting
             _htmlBlockLines = BuildHtmlBlockLinesCache();
             _frontMatterEndLine = ComputeFrontMatterEndLine();
             _tocCommentLines = BuildTocCommentLinesCache();
+            _suppressionMap = BuildSuppressionMap();
+        }
+
+        private SuppressionMap BuildSuppressionMap()
+        {            
+            var parser = new SuppressionCommentParser();
+            return parser.Parse(_lines);
         }
 
         private static (string[] Lines, int[] LineStartOffsets) SplitLinesWithOffsets(string text)

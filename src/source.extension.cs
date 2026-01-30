@@ -12,7 +12,7 @@ namespace MarkdownLintVS
         public const string Name = "Markdown Lint";
         public const string Description = @"Markdown linting extension for Visual Studio. Provides lint warnings and errors for markdown files based on markdownlint rules (MD001-MD058). Configure rules via .editorconfig files.";
         public const string Language = "en-US";
-        public const string Version = "1.0";
+        public const string Version = "1.0.900";
         public const string Author = "Mads Kristensen";
         public const string Tags = "markdown,lint,linting,md,documentation";
         public const bool IsPreview = false;

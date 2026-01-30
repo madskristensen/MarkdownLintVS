@@ -46,6 +46,10 @@
       <Group guid="MarkdownLintVS" id="WorkspaceContextMenuGroup" priority="0x0600">
         <Parent guid="guidWorkspaceExplorerToolWindowPackageCmdSet" id="idmWSE_ContextMenu"/>
       </Group>
+      <!-- Group for Suppress command in Error List context menu -->
+      <Group guid="MarkdownLintVS" id="ErrorListContextMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ERRORLIST"/>
+      </Group>
     </Groups>
 
     <Buttons>
@@ -109,6 +113,18 @@
           <LocCanonicalName>.MarkdownLint.LintOpenFolder</LocCanonicalName>
         </Strings>
       </Button>
+      <!-- Suppress in code command for Error List context menu -->
+      <Button guid="MarkdownLintVS" id="SuppressInCodeCommand" priority="0x0100" type="Button">
+        <Parent guid="MarkdownLintVS" id="ErrorListContextMenuGroup"/>
+        <Icon guid="ImageCatalogGuid" id="CodeSuppressedRule"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Suppress in code</ButtonText>
+          <LocCanonicalName>.MarkdownLint.SuppressInCode</LocCanonicalName>
+        </Strings>
+      </Button>
     </Buttons>
   </Commands>
 
@@ -128,12 +144,14 @@
       <IDSymbol name="SolutionExplorerProjectGroup" value="0x0021"/>
       <IDSymbol name="SolutionExplorerSolutionGroup" value="0x0022"/>
       <IDSymbol name="WorkspaceContextMenuGroup" value="0x0023"/>
+      <IDSymbol name="ErrorListContextMenuGroup" value="0x0024"/>
       <IDSymbol name="EnabledCommand" value="0x0100"/>
       <IDSymbol name="SettingsCommand" value="0x0101"/>
       <IDSymbol name="LintFolderCommand" value="0x0102"/>
       <IDSymbol name="LintProjectCommand" value="0x0103"/>
       <IDSymbol name="LintSolutionCommand" value="0x0104"/>
       <IDSymbol name="LintOpenFolderCommand" value="0x0105"/>
+      <IDSymbol name="SuppressInCodeCommand" value="0x0106"/>
     </GuidSymbol>
     <GuidSymbol name="MarkdownFileOpen" value="{a9b85cb7-4e4c-4f7c-9e1a-2d3c5e7f1a2b}">
     </GuidSymbol>

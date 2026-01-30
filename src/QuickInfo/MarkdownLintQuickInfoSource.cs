@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MarkdownLintVS.Commands;
 using MarkdownLintVS.Tagging;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Language.StandardClassification;
@@ -68,7 +69,7 @@ namespace MarkdownLintVS.QuickInfo
                         new ClassifiedTextRun(PredefinedClassificationTypeNames.WhiteSpace, string.Empty)));
                 }
 
-                elements.Add(CreateQuickInfoContent(result));
+                elements.Add(CreateQuickInfoContent(result, triggerPoint.Value));
             }
 
             // Get the span to track
@@ -85,7 +86,7 @@ namespace MarkdownLintVS.QuickInfo
                 new ContainerElement(ContainerElementStyle.Stacked, elements)));
         }
 
-        private ContainerElement CreateQuickInfoContent(LintResult result)
+        private ContainerElement CreateQuickInfoContent(LintResult result, SnapshotPoint triggerPoint)
         {
             // First line: error message (without the rule ID prefix since we show it below)
             var message = result.Message;
@@ -108,9 +109,23 @@ namespace MarkdownLintVS.QuickInfo
                     () => OpenDocumentation(result.DocumentationUrl),
                     result.DocumentationUrl));
 
+            // Action links line: "Suppress"
+            var actionsElement = new ClassifiedTextElement(
+                new ClassifiedTextRun(
+                    PredefinedClassificationTypeNames.Text,
+                    "Suppress in code",
+                    () => SuppressError(triggerPoint, result.RuleId),
+                    "Suppress this error with an inline comment"));
+
             return new ContainerElement(
                 ContainerElementStyle.Stacked,
-                linkElement, messageElement);
+                linkElement, messageElement, actionsElement);
+        }
+
+        private void SuppressError(SnapshotPoint triggerPoint, string ruleId)
+        {
+            // Use the helper to insert the suppression comment
+            SuppressionHelper.SuppressAtPoint(textBuffer, triggerPoint, ruleId);
         }
 
         private void OpenDocumentation(string url)

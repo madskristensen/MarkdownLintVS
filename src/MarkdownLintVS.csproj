@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
@@ -87,6 +87,10 @@
     <Compile Include="Commands\MarkdownFixApplier.cs" />
     <Compile Include="Commands\SaveCommandHandler.cs" />
     <Compile Include="Commands\SettingsCommand.cs" />
+    <Compile Include="Commands\SuppressInCodeCommand.cs" />
+    <Compile Include="Commands\SuppressionHelper.cs" />
+    <Compile Include="Completion\SuppressionCommentAsyncCompletionSource.cs" />
+    <Compile Include="Completion\SuppressionCommentCompletionCommitManager.cs" />
     <Compile Include="ContentTypes.cs" />
     <Compile Include="ErrorList\MarkdownDocumentListener.cs" />
     <Compile Include="ErrorList\MarkdownLintTableDataSource.cs" />
@@ -107,6 +111,8 @@
     <Compile Include="Linting\Rules\MarkdownRuleBase.cs" />
     <Compile Include="Linting\Rules\TableRules.cs" />
     <Compile Include="Linting\Rules\WhitespaceRules.cs" />
+    <Compile Include="Linting\SuppressionCommentParser.cs" />
+    <Compile Include="Linting\SuppressionMap.cs" />
     <Compile Include="Linting\ViolationMessageParser.cs" />
     <Compile Include="Options\GeneralOptions.cs" />
     <Compile Include="Options\RuleOptions.cs" />
@@ -114,6 +120,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MarkdownLintVSPackage.cs" />
     <Compile Include="QuickInfo\MarkdownLintQuickInfoSource.cs" />
+    <Compile Include="QuickInfo\SuppressionCommentQuickInfoSource.cs" />
     <Compile Include="source.extension.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -156,6 +163,7 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Design" />
     <Reference Include="System.ComponentModel.Composition" />
