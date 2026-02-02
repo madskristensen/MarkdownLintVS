@@ -485,7 +485,7 @@
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/madskristensen/MarkdownLintVS/blob/master/doc/md061.md"
-    }
+    },
     {
       "name": "md_image_links_exist",
       "description": "MD062 - Image links should reference existing files",
@@ -494,7 +494,7 @@
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/madskristensen/MarkdownLintVS/blob/master/doc/md062.md"
-    }
+    },
     {
       "name": "md_root_path",
       "description": "Root path for resolving root-relative links (starting with /). Used for Jekyll/GitHub Pages sites. Can be overridden by 'root_path' in YAML front matter.",
