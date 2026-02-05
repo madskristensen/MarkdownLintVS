@@ -1,5 +1,3 @@
-using System;
-using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -11,17 +9,6 @@ namespace MarkdownLintVS.CodeFixes.Actions
     public class AddFinalNewlineAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Add newline at end of file";
-
-        /// <summary>
-        /// Creates the appropriate action based on whether there are multiple newlines or none.
-        /// </summary>
-        public static MarkdownFixAction Create(ITextSnapshot snapshot, Span span, LintViolation violation)
-        {
-            if (ViolationMessageParser.IsMultipleNewlines(violation.Message))
-                return new RemoveExtraBlankLinesAction(snapshot, new Span(snapshot.Length - 1, 1));
-            else
-                return new AddFinalNewlineAction(snapshot, new Span(snapshot.Length, 0));
-        }
 
         public override void ApplyFix(ITextEdit edit)
         {

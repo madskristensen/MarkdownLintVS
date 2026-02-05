@@ -5,6 +5,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Differencing;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Utilities;
@@ -35,7 +36,7 @@ namespace MarkdownLintVS.Commands
         public bool ExecuteCommand(SaveCommandArgs args, CommandExecutionContext executionContext)
         {
             // Check if linting is enabled
-            if (!GeneralOptions.Instance.LintingEnabled)
+            if (args.TextView.Roles.Contains(DifferenceViewerRoles.DiffTextViewRole) || !GeneralOptions.Instance.LintingEnabled)
                 return false; // Let the next handler process the save
 
             // Check user preference for fix on save

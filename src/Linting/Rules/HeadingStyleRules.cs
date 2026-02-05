@@ -22,7 +22,7 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            foreach ((int lineNumber, string line) in analysis.GetAnalyzableLines())
+            foreach ((var lineNumber, var line) in analysis.GetAnalyzableLines())
             {
                 if (AtxNoSpacePattern.IsMatch(line))
                 {
@@ -92,7 +92,7 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            foreach ((int lineNumber, string line) in analysis.GetAnalyzableLines())
+            foreach ((var lineNumber, var line) in analysis.GetAnalyzableLines())
             {
                 Match match = ClosedAtxPattern.Match(line);
                 if (match.Success)
@@ -143,7 +143,7 @@ namespace MarkdownLintVS.Linting.Rules
             RuleConfiguration configuration,
             DiagnosticSeverity severity)
         {
-            foreach ((int lineNumber, string line) in analysis.GetAnalyzableLines())
+            foreach ((var lineNumber, var line) in analysis.GetAnalyzableLines())
             {
                 if (line.Contains("#") && line.TrimEnd().EndsWith("#"))
                 {

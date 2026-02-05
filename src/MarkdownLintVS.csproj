@@ -67,6 +67,7 @@
     <Compile Include="CodeFixes\Actions\NormalizeWhitespaceAction.cs" />
     <Compile Include="CodeFixes\Actions\RemoveDollarSignAction.cs" />
     <Compile Include="CodeFixes\Actions\RemoveExtraBlankLinesAction.cs" />
+    <Compile Include="CodeFixes\Actions\RemoveExtraTrailingNewlinesAction.cs" />
     <Compile Include="CodeFixes\Actions\RemoveLeadingWhitespaceAction.cs" />
     <Compile Include="CodeFixes\Actions\RemoveSpaceInCodeSpanAction.cs" />
     <Compile Include="CodeFixes\Actions\RemoveSpaceInEmphasisAction.cs" />

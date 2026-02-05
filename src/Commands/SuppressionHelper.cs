@@ -72,7 +72,7 @@ namespace MarkdownLintVS.Commands
             string lineText,
             string errorCode)
         {
-            (int commentStart, int commentLength) = SuppressionCommentBuilder.FindSuppressionCommentSpan(lineText);
+            (var commentStart, var commentLength) = SuppressionCommentBuilder.FindSuppressionCommentSpan(lineText);
             if (commentStart < 0)
                 return;
 
