@@ -145,7 +145,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("error");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("error");
 
         Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
     }
@@ -155,7 +155,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("warning");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("warning");
 
         Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
     }
@@ -165,7 +165,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("suggestion");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("suggestion");
 
         Assert.AreEqual(DiagnosticSeverity.Suggestion, config.Severity);
     }
@@ -175,7 +175,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("none");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("none");
 
         Assert.IsFalse(config.Enabled);
     }
@@ -185,7 +185,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("silent");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("silent");
 
         Assert.AreEqual(DiagnosticSeverity.Silent, config.Severity);
     }
@@ -195,7 +195,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("atx:error");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("atx:error");
 
         Assert.AreEqual("atx", config.Value);
         Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
@@ -206,7 +206,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("120:suggestion");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("120:suggestion");
 
         Assert.AreEqual("120", config.Value);
         Assert.AreEqual(DiagnosticSeverity.Suggestion, config.Severity);
@@ -217,7 +217,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("true:error");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("true:error");
 
         Assert.AreEqual("true", config.Value);
         Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
@@ -228,7 +228,7 @@ public sealed class RuleConfigurationTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("false");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("false");
 
         Assert.IsFalse(config.Enabled);
     }
@@ -256,6 +256,62 @@ public sealed class RuleConfigurationTests
                 $"Rule {rule.Id} ({rule.Name}) should have Warning as default severity");
         }
     }
+
+    #endregion
+
+    #region EditorConfig Cache Tests
+
+    [TestMethod]
+    public void WhenAnalyzingTwiceWithSameFilePath_ThenCacheIsUsed()
+    {
+        // Verifies the cache doesn't cause incorrect results —
+        // two analyses of the same content with the same path should produce identical results
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown = "# Title\n\nSome text   \n";
+
+        var violations1 = analyzer.Analyze(markdown, "test.md", TestContext.CancellationToken).ToList();
+        var violations2 = analyzer.Analyze(markdown, "test.md", TestContext.CancellationToken).ToList();
+
+        Assert.HasCount(violations1.Count, violations2);
+        for (var i = 0; i < violations1.Count; i++)
+        {
+            Assert.AreEqual(violations1[i].Rule.Id, violations2[i].Rule.Id);
+            Assert.AreEqual(violations1[i].LineNumber, violations2[i].LineNumber);
+        }
+    }
+
+    [TestMethod]
+    public void WhenClearEditorConfigCache_ThenNoException()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        // Should not throw even when cache is empty
+        analyzer.ClearEditorConfigCache();
+
+        // Should still analyze correctly after clearing
+        var violations = analyzer.Analyze("# Title\n", "test.md", TestContext.CancellationToken).ToList();
+        Assert.IsNotNull(violations);
+    }
+
+    [TestMethod]
+    public void WhenClearEditorConfigCacheAfterAnalysis_ThenNextAnalysisStillWorks()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown = "# Title\n\nSome text   \n";
+
+        // First analysis populates the cache
+        var violations1 = analyzer.Analyze(markdown, "test.md", TestContext.CancellationToken).ToList();
+
+        // Clear the cache
+        analyzer.ClearEditorConfigCache();
+
+        // Second analysis should re-parse and produce the same results
+        var violations2 = analyzer.Analyze(markdown, "test.md", TestContext.CancellationToken).ToList();
+
+        Assert.HasCount(violations1.Count, violations2);
+    }
+
+    public TestContext TestContext { get; set; }
 
     #endregion
 }
