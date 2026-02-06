@@ -1,4 +1,4 @@
-{
+﻿{
   "properties": [
     {
       "name": "md_heading_increment",
@@ -39,8 +39,8 @@
     {
       "name": "md_ul_indent",
       "description": "MD007 - Unordered list indentation (default: 2 spaces)",
-      "values": [ true, false, 2, 4 ],
-      "defaultValue": [ 2 ],
+      "values": [ true, false, "2", "4" ],
+      "defaultValue": [ "2" ],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md007.md"
@@ -84,8 +84,8 @@
     {
       "name": "md_line_length",
       "description": "MD013 - Line length (default: 80 characters)",
-      "values": [ true, false, 80, 100, 120, 150 ],
-      "defaultValue": [ 80 ],
+      "values": [ true, false, "80", "100", "120", "150" ],
+      "defaultValue": [ "80" ],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md013.md"
@@ -498,7 +498,7 @@
     {
       "name": "md_root_path",
       "description": "Root path for resolving root-relative links (starting with /). Used for Jekyll/GitHub Pages sites. Can be overridden by 'root_path' in YAML front matter.",
-      "values": [ ],
+      "values": [  ],
       "defaultValue": [ "" ],
       "severity": false,
       "documentationLink": "https://github.com/madskristensen/MarkdownLintVS/blob/master/doc/root-path.md"

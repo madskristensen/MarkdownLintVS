@@ -138,11 +138,13 @@ md_line_length = 120:suggestion
 md_heading_style = atx:warning
 ```
 
+The **default severity for all rules is `warning`**.
+
 Available severity levels:
 
 - `error` - Shown as error (red squiggle)
-- `warning` - Shown as warning (green squiggle) [default]
-- `suggestion` - Shown as suggestion/hint
+- `warning` - Shown as warning (green squiggle) **[default]**
+- `suggestion` - Shown as suggestion/hint (gray dots)
 - `silent` - Rule runs but doesn't report
 - `none` - Rule is disabled
 

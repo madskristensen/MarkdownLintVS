@@ -2,10 +2,12 @@ global using System;
 global using Community.VisualStudio.Toolkit;
 global using Microsoft.VisualStudio.Shell;
 global using Task = System.Threading.Tasks.Task;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using MarkdownLintVS.Commands;
 using MarkdownLintVS.ErrorList;
+using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 
 namespace MarkdownLintVS
@@ -39,6 +41,9 @@ namespace MarkdownLintVS
 
             // Subscribe to solution/folder close events to clear error list
             VS.Events.SolutionEvents.OnAfterCloseSolution += OnSolutionClosed;
+
+            // Invalidate EditorConfig cache when .editorconfig files are saved
+            VS.Events.DocumentEvents.Saved += OnDocumentSaved;
         }
 
         private void OnSolutionClosed()
@@ -48,11 +53,28 @@ namespace MarkdownLintVS
             dataSource?.ClearAllErrors();
         }
 
+        private void OnDocumentSaved(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return;
+            }
+
+            var fileName = Path.GetFileName(filePath);
+            if (!fileName.Equals(".editorconfig", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            MarkdownLintAnalyzer.Instance.ClearEditorConfigCache();
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
                 VS.Events.SolutionEvents.OnAfterCloseSolution -= OnSolutionClosed;
+                VS.Events.DocumentEvents.Saved -= OnDocumentSaved;
             }
             base.Dispose(disposing);
         }

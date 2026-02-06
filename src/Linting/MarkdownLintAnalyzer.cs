@@ -41,6 +41,12 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         public IReadOnlyList<IMarkdownRule> Rules => _rules;
 
+        /// <summary>
+        /// Clears the EditorConfig configuration cache, forcing a fresh parse on the next analysis.
+        /// Call this when a .editorconfig file is saved.
+        /// </summary>
+        public void ClearEditorConfigCache() => _editorConfigCache.Clear();
+
         private List<IMarkdownRule> CreateRules()
         {
             return
@@ -368,7 +374,6 @@ namespace MarkdownLintVS.Linting
 
                 foreach (KeyValuePair<string, string> property in fileConfig.Properties)
                 {
-                    // Look for md_* properties (new format)
                     if (property.Key.StartsWith("md_", StringComparison.OrdinalIgnoreCase))
                     {
                         var ruleName = property.Key.Substring("md_".Length);

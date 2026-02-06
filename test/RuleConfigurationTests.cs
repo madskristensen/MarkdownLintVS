@@ -1,3 +1,4 @@
+using MarkdownLintVS.Linting;
 using MarkdownLintVS.Linting.Rules;
 
 namespace MarkdownLintVS.Test;
@@ -136,4 +137,125 @@ public sealed class RuleConfigurationTests
 
         Assert.IsTrue(result);
     }
+
+    #region ParseRuleConfiguration Severity Tests
+
+    [TestMethod]
+    public void WhenSeverityIsErrorThenConfigHasErrorSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("error");
+
+        Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenSeverityIsWarningThenConfigHasWarningSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("warning");
+
+        Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenSeverityIsSuggestionThenConfigHasSuggestionSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("suggestion");
+
+        Assert.AreEqual(DiagnosticSeverity.Suggestion, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenSeverityIsNoneThenConfigIsDisabled()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("none");
+
+        Assert.IsFalse(config.Enabled);
+    }
+
+    [TestMethod]
+    public void WhenSeverityIsSilentThenConfigHasSilentSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("silent");
+
+        Assert.AreEqual(DiagnosticSeverity.Silent, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenValueWithSeveritySuffixThenBothAreParsed()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("atx:error");
+
+        Assert.AreEqual("atx", config.Value);
+        Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenValueWithSuggestionSuffixThenSeverityIsSuggestion()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("120:suggestion");
+
+        Assert.AreEqual("120", config.Value);
+        Assert.AreEqual(DiagnosticSeverity.Suggestion, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenTrueWithErrorSuffixThenEnabledWithErrorSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("true:error");
+
+        Assert.AreEqual("true", config.Value);
+        Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenFalseThenDisabledRegardlessOfSeverity()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+
+        var config = analyzer.ParseRuleConfiguration("false");
+
+        Assert.IsFalse(config.Enabled);
+    }
+
+    #endregion
+
+    #region Default Severity Tests
+
+    [TestMethod]
+    public void WhenDefaultConfigurationThenSeverityIsWarning()
+    {
+        var config = new RuleConfiguration();
+
+        Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
+    }
+
+    [TestMethod]
+    public void WhenAllRuleInfosThenDefaultSeverityIsWarning()
+    {
+        foreach (RuleInfo rule in RuleRegistry.AllRules)
+        {
+            Assert.AreEqual(
+                DiagnosticSeverity.Warning,
+                rule.DefaultSeverity,
+                $"Rule {rule.Id} ({rule.Name}) should have Warning as default severity");
+        }
+    }
+
+    #endregion
 }
