@@ -68,8 +68,9 @@ namespace MarkdownLintVS.Linting
         }
 
         /// <summary>
-        /// Triggers immediate analysis on a background thread and notifies all listeners. Use this for initial file
-        /// open or when options change.
+        /// Performs immediate synchronous analysis and notifies all listeners. Use this for initial file open,
+        /// when options change, or after applying fixes on save. Runs synchronously so the tagger is updated
+        /// before the caller returns, avoiding stale squiggles from snapshot version races.
         /// </summary>
         public void AnalyzeImmediate(ITextBuffer buffer, string filePath)
         {
@@ -79,7 +80,7 @@ namespace MarkdownLintVS.Linting
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var text = snapshot.GetText();
 
-            ThreadHelper.JoinableTaskFactory.StartOnIdle(() => PerformAnalysis(buffer, snapshot, text, filePath)).FireAndForget();
+            PerformAnalysis(buffer, snapshot, text, filePath);
         }
 
         /// <summary>
