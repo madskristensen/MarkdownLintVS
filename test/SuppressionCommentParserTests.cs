@@ -22,7 +22,7 @@ public sealed class SuppressionCommentParserTests
             "Back to normal"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.AreAllRulesSuppressed(0), "Line 0 should not be suppressed");
         Assert.IsTrue(map.AreAllRulesSuppressed(1), "Line 1 (disable comment) should be suppressed");
@@ -44,7 +44,7 @@ public sealed class SuppressionCommentParserTests
             "Normal content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.IsRuleSuppressed(0, "MD001"));
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"), "MD001 should be suppressed on line 1");
@@ -68,7 +68,7 @@ public sealed class SuppressionCommentParserTests
             "None suppressed"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"));
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD009"));
@@ -91,7 +91,7 @@ public sealed class SuppressionCommentParserTests
             "Normal again"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.AreAllRulesSuppressed(0));
         Assert.IsTrue(map.AreAllRulesSuppressed(1));
@@ -108,7 +108,7 @@ public sealed class SuppressionCommentParserTests
             "Normal again"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.IsRuleSuppressed(0, "MD013"));
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD013"), "MD013 should be suppressed on line 1");
@@ -131,7 +131,7 @@ public sealed class SuppressionCommentParserTests
             "Normal again"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.AreAllRulesSuppressed(0));
         Assert.IsFalse(map.AreAllRulesSuppressed(1));
@@ -150,7 +150,7 @@ public sealed class SuppressionCommentParserTests
             "Normal again"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(2, "MD013"));
         Assert.IsTrue(map.IsRuleSuppressed(2, "MD033"));
@@ -167,7 +167,7 @@ public sealed class SuppressionCommentParserTests
             "<!-- markdownlint-disable-next-line -->"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.AreAllRulesSuppressed(0));
         Assert.IsFalse(map.AreAllRulesSuppressed(1));
@@ -193,7 +193,7 @@ public sealed class SuppressionCommentParserTests
             "Nothing suppressed"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"));
         Assert.IsFalse(map.IsRuleSuppressed(1, "MD009"));
@@ -215,7 +215,7 @@ public sealed class SuppressionCommentParserTests
             "Nothing should be suppressed"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"));
         Assert.IsFalse(map.IsRuleSuppressed(3, "MD001"), "MD001 should be cleared after restore with no capture");
@@ -236,7 +236,7 @@ public sealed class SuppressionCommentParserTests
             "Line 3"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.AreAllRulesSuppressed(0));
         Assert.IsTrue(map.AreAllRulesSuppressed(1));
@@ -254,7 +254,7 @@ public sealed class SuppressionCommentParserTests
             "More content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(0, "MD041"));
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD041"));
@@ -272,7 +272,7 @@ public sealed class SuppressionCommentParserTests
             "Line after"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         // File-level suppression applies to ALL lines, even those before the comment
         Assert.IsTrue(map.IsRuleSuppressed(0, "MD001"));
@@ -294,7 +294,7 @@ public sealed class SuppressionCommentParserTests
             "More content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(0, "MD041"));
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD041"));
@@ -314,7 +314,7 @@ public sealed class SuppressionCommentParserTests
             "Content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, null, "heading-increment"));
     }
@@ -328,7 +328,7 @@ public sealed class SuppressionCommentParserTests
             "Content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"));
     }
@@ -342,7 +342,7 @@ public sealed class SuppressionCommentParserTests
             "Content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"));
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD009"));
@@ -358,7 +358,7 @@ public sealed class SuppressionCommentParserTests
     {
         var lines = Array.Empty<string>();
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.HasSuppressions);
     }
@@ -374,7 +374,7 @@ public sealed class SuppressionCommentParserTests
             "More content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.HasSuppressions);
     }
@@ -389,7 +389,7 @@ public sealed class SuppressionCommentParserTests
             "Content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsFalse(map.HasSuppressions);
     }
@@ -403,7 +403,7 @@ public sealed class SuppressionCommentParserTests
             "Content"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(1, "MD001"));
     }
@@ -427,7 +427,7 @@ public sealed class SuppressionCommentParserTests
             "Only MD001 suppressed"
         };
 
-        var map = _parser.Parse(lines);
+        SuppressionMap map = _parser.Parse(lines);
 
         Assert.IsTrue(map.IsRuleSuppressed(7, "MD001"));
         Assert.IsTrue(map.IsRuleSuppressed(7, "MD009"));

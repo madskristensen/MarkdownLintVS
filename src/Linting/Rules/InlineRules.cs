@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Markdig.Syntax;
@@ -17,7 +18,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var allowedElements = configuration.GetStringParameter("allowed_elements", "")
                 .Split(',')
@@ -85,7 +87,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             for (var i = 0; i < analysis.LineCount; i++)
             {
@@ -129,7 +132,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var style = configuration.GetStringParameter("style", "consistent");
             if (style == "false")
@@ -197,7 +201,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var punctuation = configuration.GetStringParameter("punctuation", ".,;:!?。，；：！？");
 
@@ -268,7 +273,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (EmphasisInline emphasis in analysis.GetEmphasis())
             {
@@ -322,7 +328,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (CodeInline codeSpan in analysis.GetCodeSpans())
             {
@@ -365,7 +372,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (LinkInline link in analysis.GetLinks())
             {

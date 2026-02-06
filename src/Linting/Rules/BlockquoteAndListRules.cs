@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Markdig.Syntax;
@@ -25,7 +26,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var listItems = configuration.GetBoolParameter("list_items", true);
 
@@ -69,7 +71,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var inBlockquote = false;
             var lastBlockquoteLine = -1;
@@ -141,7 +144,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var style = configuration.GetStringParameter("style", "one_or_ordered");
             if (style == "false")
@@ -226,7 +230,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var ulSingle = configuration.GetIntParameter("ul_single", 1);
             var olSingle = configuration.GetIntParameter("ol_single", 1);
@@ -318,7 +323,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var listItems = configuration.GetBoolParameter("list_items", true);
 
@@ -379,7 +385,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (ListBlock list in analysis.GetLists())
             {

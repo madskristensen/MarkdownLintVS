@@ -131,6 +131,13 @@ namespace MarkdownLintVS.CodeFixes
                     {
                         seenRules.Add(violation.Rule.Id);
                         fixAllActions.Add(new FixAllInDocumentAction(range.Snapshot, violation.Rule.Id, filePath));
+
+                        // For style-consistency rules, add a more descriptive "Convert all" action
+                        var convertAction = ConvertAllStyleAction.TryCreate(violation, range.Snapshot, filePath);
+                        if (convertAction != null)
+                        {
+                            fixAllActions.Add(convertAction);
+                        }
                     }
                 }
             }

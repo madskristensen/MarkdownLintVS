@@ -141,7 +141,7 @@ namespace MarkdownLintVS.Commands
                                 fileDir,
                                 dir => MarkdownLintAnalyzer.GetEditorConfigSettings(dir));
 
-                            IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(analysis, ruleConfigs, editorConfigSettings);
+                            IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(analysis, ruleConfigs, editorConfigSettings, cancellationToken);
 
                             // Collect results with lock (more efficient than ConcurrentBag for this pattern)
                             var fileViolations = violations.Select(v => (filePath, v)).ToList();

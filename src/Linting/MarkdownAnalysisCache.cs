@@ -110,7 +110,7 @@ namespace MarkdownLintVS.Linting
 
                 if (!cancellationToken.IsCancellationRequested)
                 {
-                    PerformAnalysis(buffer, snapshot, text, filePath);
+                    PerformAnalysis(buffer, snapshot, text, filePath, cancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -126,7 +126,7 @@ namespace MarkdownLintVS.Linting
         /// <summary>
         /// Performs the actual analysis and updates the cache.
         /// </summary>
-        private void PerformAnalysis(ITextBuffer buffer, ITextSnapshot snapshot, string text, string filePath)
+        private void PerformAnalysis(ITextBuffer buffer, ITextSnapshot snapshot, string text, string filePath, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -134,7 +134,7 @@ namespace MarkdownLintVS.Linting
                 List<LintViolation> violations;
                 if (GeneralOptions.Instance.LintingEnabled)
                 {
-                    violations = [.. MarkdownLintAnalyzer.Instance.Analyze(text, filePath)];
+                    violations = [.. MarkdownLintAnalyzer.Instance.Analyze(text, filePath, cancellationToken)];
                 }
                 else
                 {
@@ -146,6 +146,10 @@ namespace MarkdownLintVS.Linting
                 buffer.Properties[_propertyKey] = result;
 
                 AnalysisUpdated?.Invoke(this, new AnalysisUpdatedEventArgs(buffer, snapshot, violations, filePath));
+            }
+            catch (OperationCanceledException)
+            {
+                // Analysis was cancelled — don't update cache or notify listeners
             }
             catch (Exception ex)
             {

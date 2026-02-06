@@ -1,6 +1,9 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EditorConfig.Core;
 using MarkdownLintVS.Linting.Rules;
 using MarkdownLintVS.Options;
@@ -19,6 +22,13 @@ namespace MarkdownLintVS.Linting
 
         private readonly List<IMarkdownRule> _rules;
         private readonly EditorConfigParser _editorConfigParser;
+
+        /// <summary>
+        /// TTL cache for EditorConfig configurations. Avoids re-parsing .editorconfig
+        /// files from disk on every debounced keystroke. Entries expire after <see cref="_cacheTtl"/>.
+        /// </summary>
+        private readonly ConcurrentDictionary<string, CachedEditorConfig> _editorConfigCache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly TimeSpan _cacheTtl = TimeSpan.FromSeconds(30);
 
         public MarkdownLintAnalyzer()
         {
@@ -107,11 +117,12 @@ namespace MarkdownLintVS.Linting
 
         /// <summary>
         /// Analyzes a markdown document and returns all violations.
+        /// Rules are executed in parallel for improved throughput on large documents.
         /// </summary>
-        public IEnumerable<LintViolation> Analyze(string text, string filePath)
+        public IEnumerable<LintViolation> Analyze(string text, string filePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(text))
-                yield break;
+                return [];
 
             var analysis = new MarkdownDocumentAnalysis(text, filePath);
             Dictionary<string, RuleConfiguration> configurations = GetRuleConfigurations(filePath);
@@ -119,33 +130,7 @@ namespace MarkdownLintVS.Linting
             // Set root path from editorconfig and options
             SetRootPathOnAnalysis(analysis, configurations);
 
-            foreach (IMarkdownRule rule in _rules)
-            {
-                RuleConfiguration config = GetConfigurationForRule(rule.Info, configurations);
-
-                if (!config.Enabled || config.Severity == DiagnosticSeverity.None)
-                    continue;
-
-                IEnumerable<LintViolation> violations;
-                try
-                {
-                    violations = rule.Analyze(analysis, config, config.Severity);
-                }
-                catch (Exception ex)
-                {
-                    ex.Log($"Rule {rule.Info.Id} threw an exception");
-                    continue;
-                }
-
-                foreach (LintViolation violation in violations)
-                {
-                    // Check if the violation is suppressed by inline comments
-                    if (analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
-                        continue;
-
-                    yield return violation;
-                }
-            }
+            return RunRulesInParallel(_rules, analysis, configurations, cancellationToken, GetConfigurationForRule);
         }
 
         /// <summary>
@@ -155,40 +140,86 @@ namespace MarkdownLintVS.Linting
         public static IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             Dictionary<string, RuleConfiguration> ruleConfigs,
-            Dictionary<string, RuleConfiguration> editorConfigSettings)
+            Dictionary<string, RuleConfiguration> editorConfigSettings,
+            CancellationToken cancellationToken = default)
         {
             IReadOnlyList<IMarkdownRule> rules = Instance.Rules;
 
             // Set root path from editorconfig and options
-            SetRootPathOnAnalysisStatic(analysis, editorConfigSettings, ruleConfigs);
+            SetRootPathOnAnalysisStatic(analysis, editorConfigSettings);
 
+            return RunRulesInParallel(
+                rules,
+                analysis,
+                editorConfigSettings,
+                cancellationToken,
+                (rule, configs) => GetConfigurationForRuleStatic(rule, ruleConfigs, configs));
+        }
+
+        /// <summary>
+        /// Executes enabled rules in parallel and returns unsuppressed violations.
+        /// The MarkdownDocumentAnalysis is read-only after construction, so rules can safely
+        /// share it across threads. Results are collected into a ConcurrentBag and returned
+        /// sorted by line number for deterministic output.
+        /// </summary>
+        private static List<LintViolation> RunRulesInParallel(
+            IReadOnlyList<IMarkdownRule> rules,
+            MarkdownDocumentAnalysis analysis,
+            Dictionary<string, RuleConfiguration> configurations,
+            CancellationToken cancellationToken,
+            Func<RuleInfo, Dictionary<string, RuleConfiguration>, RuleConfiguration> getConfig)
+        {
+            // Pre-filter to only enabled rules
+            var enabledRules = new List<(IMarkdownRule Rule, RuleConfiguration Config)>();
             foreach (IMarkdownRule rule in rules)
             {
-                RuleConfiguration config = GetConfigurationForRuleStatic(rule.Info, ruleConfigs, editorConfigSettings);
-
-                if (!config.Enabled || config.Severity == DiagnosticSeverity.None)
-                    continue;
-
-                IEnumerable<LintViolation> violations;
-                try
+                RuleConfiguration config = getConfig(rule.Info, configurations);
+                if (config.Enabled && config.Severity != DiagnosticSeverity.None)
                 {
-                    violations = rule.Analyze(analysis, config, config.Severity);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Rule {rule.Info.Id} threw an exception: {ex.Message}");
-                    continue;
-                }
-
-                foreach (LintViolation violation in violations)
-                {
-                    // Check if the violation is suppressed by inline comments
-                    if (analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
-                        continue;
-
-                    yield return violation;
+                    enabledRules.Add((rule, config));
                 }
             }
+
+            if (enabledRules.Count == 0)
+                return [];
+
+            var results = new ConcurrentBag<LintViolation>();
+
+            Parallel.ForEach(enabledRules,
+                new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Environment.ProcessorCount,
+                    CancellationToken = cancellationToken
+                },
+                entry =>
+                {
+                    try
+                    {
+                        foreach (LintViolation violation in entry.Rule.Analyze(
+                            analysis, entry.Config, entry.Config.Severity, cancellationToken))
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            if (!analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
+                            {
+                                results.Add(violation);
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw; // Propagate cancellation
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Rule {entry.Rule.Info.Id} threw an exception: {ex.Message}");
+                    }
+                });
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Sort by line number then column for deterministic output
+            return [.. results.OrderBy(v => v.LineNumber).ThenBy(v => v.ColumnStart)];
         }
 
         /// <summary>
@@ -303,11 +334,26 @@ namespace MarkdownLintVS.Linting
 
         private Dictionary<string, RuleConfiguration> GetRuleConfigurations(string filePath)
         {
-            var configurations = new Dictionary<string, RuleConfiguration>(StringComparer.OrdinalIgnoreCase);
-
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                return configurations;
+                return new(StringComparer.OrdinalIgnoreCase);
 
+            // Check TTL cache first
+            if (_editorConfigCache.TryGetValue(filePath, out CachedEditorConfig cached) &&
+                cached.IsValid(_cacheTtl))
+            {
+                return cached.Configurations;
+            }
+
+            Dictionary<string, RuleConfiguration> configurations = ParseEditorConfig(filePath);
+
+            _editorConfigCache[filePath] = new CachedEditorConfig(configurations);
+
+            return configurations;
+        }
+
+        private Dictionary<string, RuleConfiguration> ParseEditorConfig(string filePath)
+        {
+            var configurations = new Dictionary<string, RuleConfiguration>(StringComparer.OrdinalIgnoreCase);
             int? editorConfigIndentSize = null;
 
             try
@@ -497,8 +543,7 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         private static void SetRootPathOnAnalysisStatic(
             MarkdownDocumentAnalysis analysis,
-            Dictionary<string, RuleConfiguration> editorConfigSettings,
-            Dictionary<string, RuleConfiguration> ruleConfigs)
+            Dictionary<string, RuleConfiguration> editorConfigSettings)
         {
             // Get root path from editorconfig
             if (editorConfigSettings != null && editorConfigSettings.TryGetValue("root_path", out RuleConfiguration rootPathConfig))
@@ -516,5 +561,17 @@ namespace MarkdownLintVS.Linting
                 // Options not available (e.g., in unit tests without VS Shell)
             }
         }
+    }
+
+    /// <summary>
+    /// Cached EditorConfig result with a timestamp for TTL-based expiration.
+    /// </summary>
+    internal sealed class CachedEditorConfig(Dictionary<string, RuleConfiguration> configurations)
+    {
+        private readonly DateTime _createdUtc = DateTime.UtcNow;
+
+        public Dictionary<string, RuleConfiguration> Configurations { get; } = configurations;
+
+        public bool IsValid(TimeSpan ttl) => DateTime.UtcNow - _createdUtc < ttl;
     }
 }

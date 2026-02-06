@@ -113,7 +113,7 @@ public sealed class SuppressionCommentBuilderTests
     {
         var line = "Some text <!-- markdownlint-disable-line MD001 --> more text";
 
-        var (start, length) = SuppressionCommentBuilder.FindSuppressionCommentSpan(line);
+        (int start, int length) = SuppressionCommentBuilder.FindSuppressionCommentSpan(line);
 
         Assert.AreEqual(10, start);
         Assert.AreEqual(40, length);

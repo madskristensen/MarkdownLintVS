@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Markdig.Syntax;
@@ -17,7 +18,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var style = configuration.GetStringParameter("style", "consistent");
             if (style == "false")
@@ -75,7 +77,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var style = configuration.GetStringParameter("style", "consistent");
             if (style == "false")
@@ -169,7 +172,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             // Collect all heading IDs
             var headingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -307,7 +311,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var shortcutSyntax = configuration.GetBoolParameter("shortcut_syntax", true);
 
@@ -426,7 +431,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var ignoredDefinitions = configuration.GetStringParameter("ignored_definitions", "//")
                 .Split(',')
@@ -550,7 +556,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             // Get additional allowed texts from configuration
             var allowedTexts = configuration.GetStringParameter("allowed_texts", "")

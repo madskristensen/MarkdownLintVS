@@ -1,6 +1,7 @@
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -17,7 +18,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var allowedLanguages = configuration.GetStringParameter("allowed_languages", "")
                 .Split(',')
@@ -63,7 +65,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var level = configuration.GetIntParameter("level", 1);
             var frontMatterTitle = configuration.GetStringParameter("front_matter_title", "title");
@@ -140,7 +143,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (LinkInline link in analysis.GetLinks())
             {
@@ -173,7 +177,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (LinkInline link in analysis.GetLinks().Where(l => l.IsImage))
             {
@@ -216,7 +221,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var style = configuration.GetStringParameter("style", "consistent");
             if (style == "false")
@@ -269,7 +275,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             if (analysis.Text.Length == 0)
                 yield break;
@@ -308,7 +315,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var style = configuration.GetStringParameter("style", "consistent");
             if (style == "false")

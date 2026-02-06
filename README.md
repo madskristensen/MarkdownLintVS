@@ -229,25 +229,39 @@ The extension provides intelligent quick fixes (`Ctrl+.`) for many common issues
 
 | Rule                    | Quick Fix                               |
 | ----------------------- | --------------------------------------- |
+| MD004                   | Change list marker style                |
 | MD009                   | Remove trailing whitespace              |
 | MD010                   | Replace tabs with spaces                |
 | MD011                   | Fix reversed link syntax                |
 | MD012                   | Remove extra blank lines                |
+| MD014                   | Remove dollar signs from commands       |
 | MD018                   | Add space after heading hash            |
 | MD019/MD021/MD027       | Normalize multiple spaces               |
+| MD020                   | Add space inside closed atx heading     |
 | MD022/MD031/MD032/MD058 | Add blank lines around elements         |
 | MD023                   | Remove leading whitespace from headings |
 | MD026                   | Remove trailing punctuation             |
+| MD028                   | Add blockquote prefix                   |
+| MD029                   | Fix ordered list prefix                 |
+| MD030                   | Normalize list marker spacing           |
 | MD034                   | Wrap bare URLs in angle brackets        |
+| MD035                   | Change horizontal rule style            |
+| MD037                   | Remove spaces in emphasis               |
+| MD038                   | Remove spaces in code spans             |
+| MD039                   | Remove spaces in link text              |
 | MD040                   | Add language identifier to code blocks  |
 | MD045                   | Add alt text placeholder to images      |
 | MD047                   | Add/remove trailing newline             |
+| MD048                   | Change code fence style                 |
+| MD049                   | Change emphasis style                   |
+| MD050                   | Change strong/bold style                |
 
 ### Fix All Actions
 
 Right-click on any fixable issue to access bulk fix options:
 
 - **Fix all [rule] violations in document** - Fix all instances of a specific rule
+- **Convert all [style] to [target] style** - Normalize emphasis, strong, or list marker style across the entire document
 - **Fix all auto-fixable violations in document** - Fix all auto-fixable issues at once
 
 ## Inline Suppression

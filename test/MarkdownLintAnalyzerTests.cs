@@ -1,4 +1,5 @@
 using MarkdownLintVS.Linting;
+using MarkdownLintVS.Linting.Rules;
 
 namespace MarkdownLintVS.Test;
 
@@ -175,7 +176,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration(@"C:\Users\site\docs");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration(@"C:\Users\site\docs");
 
         Assert.AreEqual(@"C:\Users\site\docs", config.Value);
         Assert.IsTrue(config.Enabled);
@@ -186,7 +187,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration(@"D:\Projects\My:Special:Folder");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration(@"D:\Projects\My:Special:Folder");
 
         Assert.AreEqual(@"D:\Projects\My:Special:Folder", config.Value);
     }
@@ -196,7 +197,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("asterisk:error");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("asterisk:error");
 
         Assert.AreEqual("asterisk", config.Value);
         Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
@@ -207,7 +208,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration(@"C:\Users\site:warning");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration(@"C:\Users\site:warning");
 
         Assert.AreEqual(@"C:\Users\site", config.Value);
         Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
@@ -218,7 +219,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("false");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("false");
 
         Assert.IsFalse(config.Enabled);
     }
@@ -228,7 +229,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("true");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("true");
 
         Assert.IsTrue(config.Enabled);
     }
@@ -238,7 +239,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("error");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("error");
 
         Assert.AreEqual(DiagnosticSeverity.Error, config.Severity);
     }
@@ -248,7 +249,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("suggestion");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("suggestion");
 
         Assert.AreEqual(DiagnosticSeverity.Suggestion, config.Severity);
     }
@@ -258,7 +259,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("");
 
         Assert.IsTrue(config.Enabled);
         Assert.AreEqual(DiagnosticSeverity.Warning, config.Severity);
@@ -270,7 +271,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration(null!);
+        RuleConfiguration config = analyzer.ParseRuleConfiguration(null!);
 
         Assert.IsTrue(config.Enabled);
     }
@@ -280,7 +281,7 @@ public sealed class MarkdownLintAnalyzerTests
     {
         var analyzer = new MarkdownLintAnalyzer();
 
-        var config = analyzer.ParseRuleConfiguration("consistent");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("consistent");
 
         Assert.AreEqual("consistent", config.Value);
         Assert.IsTrue(config.Enabled);
@@ -292,7 +293,7 @@ public sealed class MarkdownLintAnalyzerTests
         var analyzer = new MarkdownLintAnalyzer();
 
         // "test:value" - "value" is not a valid severity, so preserve the whole thing
-        var config = analyzer.ParseRuleConfiguration("test:value");
+        RuleConfiguration config = analyzer.ParseRuleConfiguration("test:value");
 
         Assert.AreEqual("test:value", config.Value);
     }

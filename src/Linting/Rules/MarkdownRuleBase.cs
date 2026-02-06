@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace MarkdownLintVS.Linting.Rules
 {
@@ -12,7 +13,8 @@ namespace MarkdownLintVS.Linting.Rules
         public abstract IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity);
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default);
 
         protected LintViolation CreateViolation(
             int lineNumber,

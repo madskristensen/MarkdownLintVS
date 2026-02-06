@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace MarkdownLintVS.Linting.Rules
 {
@@ -18,11 +19,13 @@ namespace MarkdownLintVS.Linting.Rules
         /// <param name="analysis">The markdown document analysis.</param>
         /// <param name="configuration">The rule configuration from .editorconfig.</param>
         /// <param name="severity">The severity level to use for violations.</param>
+        /// <param name="cancellationToken">Token to cancel analysis early.</param>
         /// <returns>A collection of violations found.</returns>
         IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity);
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

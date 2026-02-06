@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using MarkdownLintVS.Linting.Rules;
 
 namespace MarkdownLintVS.Linting
@@ -14,8 +15,9 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         /// <param name="text">The markdown text to analyze.</param>
         /// <param name="filePath">The file path (used for EditorConfig resolution).</param>
+        /// <param name="cancellationToken">Token to cancel analysis early.</param>
         /// <returns>A collection of lint violations found in the document.</returns>
-        IEnumerable<LintViolation> Analyze(string text, string filePath);
+        IEnumerable<LintViolation> Analyze(string text, string filePath, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the list of all registered rules.

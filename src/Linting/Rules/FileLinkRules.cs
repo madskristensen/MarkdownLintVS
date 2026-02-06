@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.IO;
 using Markdig.Syntax.Inlines;
 
@@ -18,7 +19,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(analysis.FilePath))
                 yield break;
@@ -156,7 +158,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(analysis.FilePath))
                 yield break;

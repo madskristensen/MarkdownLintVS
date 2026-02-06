@@ -59,6 +59,7 @@
     <Compile Include="CodeFixes\Actions\ChangeHorizontalRuleStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeInlineStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeListMarkerAction.cs" />
+    <Compile Include="CodeFixes\Actions\ConvertAllStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeStrongStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\FixOrderedListPrefixAction.cs" />
     <Compile Include="CodeFixes\Actions\FixReversedLinkAction.cs" />

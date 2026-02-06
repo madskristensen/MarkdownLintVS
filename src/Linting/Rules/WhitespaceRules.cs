@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -17,7 +18,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var brSpaces = configuration.GetIntParameter("br_spaces", 2);
             var codeBlocks = configuration.GetBoolParameter("code_blocks", false);
@@ -85,7 +87,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var codeBlocks = configuration.GetBoolParameter("code_blocks", true);
             var ignoreCodeLanguagesStr = configuration.GetStringParameter("ignore_code_languages", "");
@@ -153,7 +156,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             for (var i = 0; i < analysis.LineCount; i++)
             {
@@ -226,7 +230,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var maximum = configuration.GetIntParameter("maximum", 1);
             var consecutiveBlanks = 0;
@@ -285,7 +290,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             var lineLength = configuration.GetIntParameter("line_length", 80);
             var headingLineLength = configuration.GetIntParameter("heading_line_length", lineLength);
@@ -441,7 +447,8 @@ namespace MarkdownLintVS.Linting.Rules
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
-            DiagnosticSeverity severity)
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
         {
             foreach (FencedCodeBlock codeBlock in analysis.GetFencedCodeBlocks())
             {
