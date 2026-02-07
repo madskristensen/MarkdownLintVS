@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace MarkdownLintVS.Linting
@@ -116,6 +118,28 @@ namespace MarkdownLintVS.Linting
             return null;
         }
 
+        // Pattern for "should be N (found M)" messages (e.g., table column count)
+        private static readonly Regex _shouldBeCountPattern = new(
+            @"should be (\d+) \(found (\d+)\)",
+            RegexOptions.Compiled);
+
+        // Pattern for pipe style extraction: "(expected leading_and_trailing)" or "should be leading_and_trailing"
+        private static readonly Regex _expectedPipeStyleParenPattern = new(
+            @"\(expected (\w+)\)",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _shouldBePipeStylePattern = new(
+            @"should be (\w+)$",
+            RegexOptions.Compiled);
+
+        private static readonly HashSet<string> _validPipeStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "leading_and_trailing",
+            "leading_only",
+            "trailing_only",
+            "no_leading_or_trailing"
+        };
+
         /// <summary>
         /// Determines if the message indicates multiple newlines at end of file.
         /// </summary>
@@ -124,6 +148,48 @@ namespace MarkdownLintVS.Linting
         public static bool IsMultipleNewlines(string message)
         {
             return !string.IsNullOrEmpty(message) && message.Contains("multiple");
+        }
+
+        /// <summary>
+        /// Extracts expected and actual counts from a violation message like
+        /// "Table column count should be 3 (found 2)".
+        /// </summary>
+        public static (int Expected, int Actual)? ExtractExpectedAndActualCount(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return null;
+
+            Match match = _shouldBeCountPattern.Match(message);
+            if (match.Success &&
+                int.TryParse(match.Groups[1].Value, out var expected) &&
+                int.TryParse(match.Groups[2].Value, out var actual))
+            {
+                return (expected, actual);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Extracts the expected pipe style from an MD055 violation message.
+        /// Handles both "consistent (expected leading_and_trailing)" and "should be leading_and_trailing".
+        /// </summary>
+        public static string ExtractExpectedPipeStyle(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return null;
+
+            // Try "(expected style)" pattern first
+            Match match = _expectedPipeStyleParenPattern.Match(message);
+            if (match.Success && _validPipeStyles.Contains(match.Groups[1].Value))
+                return match.Groups[1].Value;
+
+            // Try "should be style" pattern
+            match = _shouldBePipeStylePattern.Match(message);
+            if (match.Success && _validPipeStyles.Contains(match.Groups[1].Value))
+                return match.Groups[1].Value;
+
+            return null;
         }
     }
 }

@@ -257,6 +257,8 @@ The extension provides intelligent quick fixes (`Ctrl+.`) for many common issues
 | MD048                   | Change code fence style                 |
 | MD049                   | Change emphasis style                   |
 | MD050                   | Change strong/bold style                |
+| MD055                   | Add leading and trailing pipes          |
+| MD056                   | Fix table delimiter row                 |
 
 ### Fix All Actions
 

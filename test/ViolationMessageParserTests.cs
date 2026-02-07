@@ -154,4 +154,70 @@ public sealed class ViolationMessageParserTests
     }
 
     #endregion
+
+    #region ExtractExpectedAndActualCount Tests
+
+    [TestMethod]
+    public void ExtractExpectedAndActualCount_WhenTableColumnMessage_ReturnsValues()
+    {
+        (int Expected, int Actual)? result = ViolationMessageParser.ExtractExpectedAndActualCount(
+            "Table column count should be 3 (found 2)");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(3, result.Value.Expected);
+        Assert.AreEqual(2, result.Value.Actual);
+    }
+
+    [TestMethod]
+    public void ExtractExpectedAndActualCount_WhenNoMatch_ReturnsNull()
+    {
+        (int Expected, int Actual)? result = ViolationMessageParser.ExtractExpectedAndActualCount(
+            "Some other message");
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public void ExtractExpectedAndActualCount_WhenNull_ReturnsNull()
+    {
+        Assert.IsNull(ViolationMessageParser.ExtractExpectedAndActualCount(null));
+    }
+
+    #endregion
+
+    #region ExtractExpectedPipeStyle Tests
+
+    [TestMethod]
+    public void ExtractExpectedPipeStyle_WhenConsistentMessage_ReturnsStyle()
+    {
+        var result = ViolationMessageParser.ExtractExpectedPipeStyle(
+            "Table pipe style should be consistent (expected leading_and_trailing)");
+
+        Assert.AreEqual("leading_and_trailing", result);
+    }
+
+    [TestMethod]
+    public void ExtractExpectedPipeStyle_WhenDirectStyleMessage_ReturnsStyle()
+    {
+        var result = ViolationMessageParser.ExtractExpectedPipeStyle(
+            "Table pipe style should be trailing_only");
+
+        Assert.AreEqual("trailing_only", result);
+    }
+
+    [TestMethod]
+    public void ExtractExpectedPipeStyle_WhenNoMatch_ReturnsNull()
+    {
+        var result = ViolationMessageParser.ExtractExpectedPipeStyle("Some other message");
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public void ExtractExpectedPipeStyle_WhenNull_ReturnsNull()
+    {
+        Assert.IsNull(ViolationMessageParser.ExtractExpectedPipeStyle(null));
+    }
+
+    #endregion
 }

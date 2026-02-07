@@ -59,10 +59,12 @@
     <Compile Include="CodeFixes\Actions\ChangeHorizontalRuleStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeInlineStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeListMarkerAction.cs" />
+    <Compile Include="CodeFixes\Actions\ChangeTablePipeStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ConvertAllStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\ChangeStrongStyleAction.cs" />
     <Compile Include="CodeFixes\Actions\FixOrderedListPrefixAction.cs" />
     <Compile Include="CodeFixes\Actions\FixReversedLinkAction.cs" />
+    <Compile Include="CodeFixes\Actions\FixTableDelimiterAction.cs" />
     <Compile Include="CodeFixes\Actions\MarkdownFixAction.cs" />
     <Compile Include="CodeFixes\Actions\NormalizeListMarkerSpaceAction.cs" />
     <Compile Include="CodeFixes\Actions\NormalizeWhitespaceAction.cs" />

@@ -108,6 +108,23 @@ namespace MarkdownLintVS.Linting.Rules
                         {
                             expectedColumns = columnCount;
                             headerLine = lineNum;
+
+                            // Check the delimiter row (immediately after the header)
+                            var delimiterLineNum = headerLine + 1;
+                            if (delimiterLineNum < analysis.LineCount)
+                            {
+                                var delimiterLine = analysis.GetLine(delimiterLineNum);
+                                var delimiterColumnCount = CountDelimiterColumns(delimiterLine);
+
+                                if (delimiterColumnCount > 0 && delimiterColumnCount != expectedColumns)
+                                {
+                                    yield return CreateLineViolation(
+                                        delimiterLineNum,
+                                        delimiterLine,
+                                        $"Table column count should be {expectedColumns} (found {delimiterColumnCount})",
+                                        severity);
+                                }
+                            }
                         }
                         else if (columnCount != expectedColumns)
                         {
@@ -120,6 +137,41 @@ namespace MarkdownLintVS.Linting.Rules
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Counts the number of columns in a delimiter row by counting pipe-separated segments.
+        /// Returns 0 if the line is not a valid delimiter row.
+        /// </summary>
+        private static int CountDelimiterColumns(string line)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+                return 0;
+
+            // Verify it looks like a delimiter row (only |, -, :, whitespace)
+            if (!trimmed.All(c => c == '|' || c == '-' || c == ':' || char.IsWhiteSpace(c)))
+                return 0;
+
+            // Strip leading/trailing pipes then split on |
+            if (trimmed.StartsWith("|"))
+                trimmed = trimmed.Substring(1);
+            if (trimmed.EndsWith("|"))
+                trimmed = trimmed.Substring(0, trimmed.Length - 1);
+
+            if (trimmed.Length == 0)
+                return 0;
+
+            // Count segments that contain at least one dash
+            var segments = trimmed.Split('|');
+            var count = 0;
+            foreach (var segment in segments)
+            {
+                if (segment.Contains("-"))
+                    count++;
+            }
+
+            return count;
         }
     }
 

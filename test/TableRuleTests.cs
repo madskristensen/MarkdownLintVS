@@ -10,83 +10,83 @@ public sealed class TableRuleTests
 
     #region MD055 - Table Pipe Style
 
-        [TestMethod]
-        public void MD055_WhenConsistentLeadingAndTrailingThenNoViolations()
-        {
-            var rule = new MD055_TablePipeStyle();
-            var analysis = new MarkdownDocumentAnalysis(
-                "| Header 1 | Header 2 |\n" +
-                "| -------- | -------- |\n" +
-                "| Cell 1   | Cell 2   |");
+    [TestMethod]
+    public void MD055_WhenConsistentLeadingAndTrailingThenNoViolations()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header 1 | Header 2 |\n" +
+            "| -------- | -------- |\n" +
+            "| Cell 1   | Cell 2   |");
 
-            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
-            Assert.IsEmpty(violations);
-        }
+        Assert.IsEmpty(violations);
+    }
 
-        [TestMethod]
-        public void MD055_WhenMixedStylesThenReportsViolation()
-        {
-            var rule = new MD055_TablePipeStyle();
-            var analysis = new MarkdownDocumentAnalysis(
-                "| Header 1 | Header 2 |\n" +
-                "| -------- | -------- |\n" +
-                "| Cell 1   | Cell 2");
+    [TestMethod]
+    public void MD055_WhenMixedStylesThenReportsViolation()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header 1 | Header 2 |\n" +
+            "| -------- | -------- |\n" +
+            "| Cell 1   | Cell 2");
 
-            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
-            Assert.HasCount(1, violations);
-            Assert.AreEqual("MD055", violations[0].Rule.Id);
-        }
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD055", violations[0].Rule.Id);
+    }
 
-        [TestMethod]
-        public void MD055_WhenLeadingAndTrailingStyleEnforcedThenNoViolation()
-        {
-            var rule = new MD055_TablePipeStyle();
-            var config = new RuleConfiguration();
-            config.Parameters["style"] = "leading_and_trailing";
-            var analysis = new MarkdownDocumentAnalysis(
-                "| Header |\n" +
-                "| ------ |\n" +
-                "| Cell   |");
+    [TestMethod]
+    public void MD055_WhenLeadingAndTrailingStyleEnforcedThenNoViolation()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "leading_and_trailing";
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header |\n" +
+            "| ------ |\n" +
+            "| Cell   |");
 
-            var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
-            Assert.IsEmpty(violations);
-        }
+        Assert.IsEmpty(violations);
+    }
 
-        [TestMethod]
-        public void MD055_WhenStyleDisabledThenNoViolation()
-        {
-            var rule = new MD055_TablePipeStyle();
-            var config = new RuleConfiguration();
-            config.Parameters["style"] = "false";
-            var analysis = new MarkdownDocumentAnalysis(
-                "| Header |\n" +
-                "| ------ |\n" +
-                "| Cell");
+    [TestMethod]
+    public void MD055_WhenStyleDisabledThenNoViolation()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "false";
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header |\n" +
+            "| ------ |\n" +
+            "| Cell");
 
-            var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
-            Assert.IsEmpty(violations);
-        }
+        Assert.IsEmpty(violations);
+    }
 
-        [TestMethod]
-        public void MD055_ViolationMessageDescribesIssue()
-        {
-            var rule = new MD055_TablePipeStyle();
-            var analysis = new MarkdownDocumentAnalysis(
-                "| Header |\n" +
-                "| ------ |\n" +
-                "Cell |");
+    [TestMethod]
+    public void MD055_ViolationMessageDescribesIssue()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header |\n" +
+            "| ------ |\n" +
+            "Cell |");
 
-            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
-            Assert.HasCount(1, violations);
-            Assert.Contains("pipe", violations[0].Message.ToLower());
-        }
+        Assert.HasCount(1, violations);
+        Assert.Contains("pipe", violations[0].Message.ToLower());
+    }
 
-        #endregion
+    #endregion
 
     #region MD056 - Table Column Count
 
@@ -99,7 +99,7 @@ public sealed class TableRuleTests
             "| - | - | - |\n" +
             "| 1 | 2 | 3 |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -118,9 +118,40 @@ public sealed class TableRuleTests
 
         // This test verifies the rule runs without error on valid tables
         // Since Markdig normalizes cell counts, this may not report violations
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         // Markdig normalizes tables, so empty cells are added - no violation expected
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD056_WhenDelimiterRowHasFewerColumnsThenReportsViolation()
+    {
+        var rule = new MD056_TableColumnCount();
+        // 3 columns in header, but delimiter row only has 2 separators
+        var analysis = new MarkdownDocumentAnalysis(
+            "|Name|Age|City|\n" +
+            "|---|--|\n" +
+            "|John|25|New York|\n" +
+            "|Jane|30|Los Angeles|");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
+
+        Assert.IsNotEmpty(violations, "Should report violation for incomplete delimiter row");
+        Assert.IsTrue(violations.Any(v => v.LineNumber == 1), "Violation should be on the delimiter row (line 1)");
+    }
+
+    [TestMethod]
+    public void MD056_WhenDelimiterRowMatchesHeaderThenNoViolation()
+    {
+        var rule = new MD056_TableColumnCount();
+        var analysis = new MarkdownDocumentAnalysis(
+            "|Name|Age|City|\n" +
+            "|---|---|---|\n" +
+            "|John|25|New York|");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
+
         Assert.IsEmpty(violations);
     }
 
@@ -139,7 +170,7 @@ public sealed class TableRuleTests
             "| 1 | 2 |\n\n" +
             "More text");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -155,7 +186,7 @@ public sealed class TableRuleTests
             "| 1 | 2 |\n\n" +
             "More text");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.HasCount(1, violations);
         Assert.AreEqual("MD058", violations[0].Rule.Id);
@@ -174,7 +205,7 @@ public sealed class TableRuleTests
             "| 1 | 2 |");
 
         // Table at end of document - no line after to check
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         // No violation when table is at end of document
         Assert.IsEmpty(violations);
@@ -193,7 +224,7 @@ public sealed class TableRuleTests
             "| -------- | -------- |\n" +
             "| Cell 1   | Cell 2   |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -207,7 +238,7 @@ public sealed class TableRuleTests
             "| :--- |\n" +
             "| Text |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -221,7 +252,7 @@ public sealed class TableRuleTests
             "| ---: |\n" +
             "| Text |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -235,7 +266,7 @@ public sealed class TableRuleTests
             "| :---: |\n" +
             "| Text |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -249,7 +280,7 @@ public sealed class TableRuleTests
             "| :--- | :----: | ----: |\n" +
             "| A    |   B    |     C |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -263,7 +294,7 @@ public sealed class TableRuleTests
             "| ------ |\n" +
             "|        |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -282,7 +313,7 @@ public sealed class TableRuleTests
             "|---|---|\n" +
             "| 1 |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         // If violation is detected, check message
         if (violations.Count > 0)
@@ -305,7 +336,7 @@ public sealed class TableRuleTests
             "| 1 | 2 |\n\n" +
             "More text");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.IsEmpty(violations);
     }
@@ -320,7 +351,7 @@ public sealed class TableRuleTests
             "| - |\n" +
             "| 1 |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         Assert.HasCount(1, violations);
         Assert.Contains("blank", violations[0].Message.ToLower());
@@ -340,11 +371,13 @@ public sealed class TableRuleTests
             "| :--- |\n" +
             "| Text |");
 
-        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
 
         // No violation expected for consistent left alignment
         Assert.IsEmpty(violations);
     }
+
+    public TestContext TestContext { get; set; }
 
     #endregion
 }

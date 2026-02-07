@@ -180,6 +180,67 @@ public sealed class CodeFixActionTests
 
     #endregion
 
+    #region MD056 Delimiter Row Fix Tests
+
+    [TestMethod]
+    public void MD056_WhenIncompleteDelimiterRow_ThenViolationMessageIsParseable()
+    {
+        var rule = new MD056_TableColumnCount();
+        var analysis = new MarkdownDocumentAnalysis(
+            "|Name|Age|City|\n" +
+            "|---|--|\n" +
+            "|John|25|New York|");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
+
+        Assert.IsNotEmpty(violations, "Should detect incomplete delimiter row");
+        (int Expected, int Actual)? counts = ViolationMessageParser.ExtractExpectedAndActualCount(violations[0].Message);
+        Assert.IsNotNull(counts, "Violation message should be parseable for fix action");
+        Assert.AreEqual(3, counts.Value.Expected);
+        Assert.AreEqual(2, counts.Value.Actual);
+    }
+
+    #endregion
+
+    #region MD055 Pipe Style Fix Tests
+
+    [TestMethod]
+    public void MD055_WhenMixedPipeStyle_ThenViolationMessageIsParseable()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header 1 | Header 2 |\n" +
+            "| -------- | -------- |\n" +
+            "| Cell 1   | Cell 2");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
+
+        Assert.IsNotEmpty(violations, "Should detect inconsistent pipe style");
+        var style = ViolationMessageParser.ExtractExpectedPipeStyle(violations[0].Message);
+        Assert.AreEqual("leading_and_trailing", style);
+    }
+
+    [TestMethod]
+    public void MD055_WhenExplicitStyleEnforced_ThenViolationMessageIsParseable()
+    {
+        var rule = new MD055_TablePipeStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "leading_and_trailing";
+        // Row without trailing pipe - Markdig still parses it as a table row
+        var analysis = new MarkdownDocumentAnalysis(
+            "| Header |\n" +
+            "| ------ |\n" +
+            "| Cell");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning, TestContext.CancellationToken).ToList();
+
+        Assert.IsNotEmpty(violations, "Should detect non-matching pipe style");
+        var style = ViolationMessageParser.ExtractExpectedPipeStyle(violations[0].Message);
+        Assert.AreEqual("leading_and_trailing", style);
+    }
+
+    #endregion
+
     #region Analyzer Integration Tests for Fixable Violations
 
     [TestMethod]
