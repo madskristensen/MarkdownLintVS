@@ -68,9 +68,10 @@ namespace MarkdownLintVS.Linting
         }
 
         /// <summary>
-        /// Performs immediate synchronous analysis and notifies all listeners. Use this for initial file open,
-        /// when options change, or after applying fixes on save. Runs synchronously so the tagger is updated
-        /// before the caller returns, avoiding stale squiggles from snapshot version races.
+        /// Triggers analysis without debounce delay on a background thread.
+        /// Use this for initial file open or when options change. The snapshot and text are
+        /// captured on the calling thread, then analysis runs off the UI thread and notifies
+        /// listeners via AnalysisUpdated.
         /// </summary>
         public void AnalyzeImmediate(ITextBuffer buffer, string filePath)
         {
@@ -80,7 +81,10 @@ namespace MarkdownLintVS.Linting
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var text = snapshot.GetText();
 
-            PerformAnalysis(buffer, snapshot, text, filePath);
+            // Run analysis on a background thread without debounce delay
+            var cts = new CancellationTokenSource();
+            buffer.Properties[_debounceKey] = cts;
+            PerformAnalysisNowAsync(buffer, filePath, cts.Token, snapshot, text).FireAndForget();
         }
 
         /// <summary>
@@ -120,6 +124,23 @@ namespace MarkdownLintVS.Linting
             catch (ObjectDisposedException)
             {
                 // CancellationTokenSource was disposed - this is fine, just stop
+            }
+        }
+
+        private async Task PerformAnalysisNowAsync(ITextBuffer buffer, string filePath, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
+        {
+            try
+            {
+                // Yield to background thread immediately (no debounce delay)
+                await Task.Run(() => PerformAnalysis(buffer, snapshot, text, filePath, cancellationToken), cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Analysis was cancelled
+            }
+            catch (ObjectDisposedException)
+            {
+                // CancellationTokenSource was disposed
             }
         }
 

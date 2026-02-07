@@ -1,6 +1,5 @@
 using System.ComponentModel.Composition;
 using MarkdownLintVS.Linting;
-using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
@@ -64,21 +63,9 @@ namespace MarkdownLintVS.ErrorList
             _analysisCache = analysisCache;
             _filePath = filePath;
 
-            _textView.TextBuffer.Changed += OnTextBufferChanged;
+            // Only listen for analysis results — the tagger owns triggering analysis
+            // (on buffer changes, option saves, and initial file open).
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
-            GeneralOptions.Saved += OnGeneralOptionsSaved;
-
-            // Initial analysis - request immediate analysis on file open
-            _analysisCache.AnalyzeImmediate(_textView.TextBuffer, _filePath);
-        }
-
-        private void OnTextBufferChanged(object sender, TextContentChangedEventArgs e)
-        {
-            // Debouncing is handled by MarkdownAnalysisCache.InvalidateAndAnalyze
-            if (!_disposed)
-            {
-                _analysisCache.InvalidateAndAnalyze(_textView.TextBuffer, _filePath);
-            }
         }
 
         private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
@@ -93,23 +80,12 @@ namespace MarkdownLintVS.ErrorList
             MarkdownLintVSPackage.RatingPrompt?.RegisterSuccessfulUsage();
         }
 
-        private void OnGeneralOptionsSaved(GeneralOptions options)
-        {
-            // Trigger re-analysis when linting is enabled/disabled
-            if (!_disposed)
-            {
-                _analysisCache.AnalyzeImmediate(_textView.TextBuffer, _filePath);
-            }
-        }
-
         public void Dispose()
         {
             if (!_disposed)
             {
                 _disposed = true;
-                _textView.TextBuffer.Changed -= OnTextBufferChanged;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
-                GeneralOptions.Saved -= OnGeneralOptionsSaved;
                 _tableDataSource?.ClearErrors(_filePath);
             }
         }

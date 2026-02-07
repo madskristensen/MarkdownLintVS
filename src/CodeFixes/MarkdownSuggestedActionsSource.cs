@@ -21,13 +21,16 @@ namespace MarkdownLintVS.CodeFixes
     [ContentType("vs-markdown")]
     public class MarkdownSuggestedActionsSourceProvider : ISuggestedActionsSourceProvider
     {
+        [Import]
+        internal MarkdownAnalysisCache AnalysisCache { get; set; }
+
         public ISuggestedActionsSource CreateSuggestedActionsSource(ITextView textView, ITextBuffer textBuffer)
         {
             if (textBuffer == null || textView == null)
                 return null;
 
             var filePath = GetFilePath(textBuffer);
-            return new MarkdownSuggestedActionsSource(filePath);
+            return new MarkdownSuggestedActionsSource(textBuffer, AnalysisCache, filePath);
         }
 
         private string GetFilePath(ITextBuffer buffer)
@@ -44,7 +47,7 @@ namespace MarkdownLintVS.CodeFixes
     /// Source for markdown lint suggested actions.
     /// Uses FixActionRegistry to auto-discover available fix actions.
     /// </summary>
-    internal class MarkdownSuggestedActionsSource(string filePath) : ISuggestedActionsSource2
+    internal class MarkdownSuggestedActionsSource(ITextBuffer buffer, MarkdownAnalysisCache analysisCache, string filePath) : ISuggestedActionsSource2
     {
         /// <summary>
         /// Creates a fix action for a violation. Used by both single-fix and fix-all operations.
@@ -166,8 +169,7 @@ namespace MarkdownLintVS.CodeFixes
 
         private IEnumerable<LintViolation> GetViolationsAtRange(SnapshotSpan range)
         {
-            var text = range.Snapshot.GetText();
-            IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Instance.Analyze(text, filePath);
+            IReadOnlyList<LintViolation> violations = analysisCache.GetOrAnalyze(buffer, filePath);
 
             foreach (LintViolation violation in violations)
             {

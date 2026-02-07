@@ -1,5 +1,4 @@
 using System.ComponentModel.Composition;
-using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Commanding;
@@ -22,9 +21,6 @@ namespace MarkdownLintVS.Commands
     [TextViewRole(PredefinedTextViewRoles.PrimaryDocument)]
     internal sealed class SaveCommandHandler : ICommandHandler<SaveCommandArgs>
     {
-        [Import]
-        internal MarkdownAnalysisCache AnalysisCache { get; set; }
-
         public string DisplayName => "Markdown Lint Fix on Save";
 
         public CommandState GetCommandState(SaveCommandArgs args)
@@ -51,11 +47,8 @@ namespace MarkdownLintVS.Commands
             {
                 MarkdownFixApplier.ApplyAllFixes(args.SubjectBuffer);
 
-                // Trigger immediate re-analysis after applying fixes to update the tagger.
-                // Without this, the debounced analysis from OnBufferChanged may not complete
-                // before the save finishes, leaving stale squiggles.
-                var filePath = GetFilePath(args.SubjectBuffer);
-                AnalysisCache.AnalyzeImmediate(args.SubjectBuffer, filePath);
+                // The buffer edit triggers OnBufferChanged in the tagger, which queues
+                // a debounced re-analysis. No need for a second synchronous analysis here.
             }
 
             // Return false to let the save proceed through the command chain
@@ -100,17 +93,5 @@ namespace MarkdownLintVS.Commands
             });
         }
 
-        /// <summary>
-        /// Gets the file path from the text buffer.
-        /// </summary>
-        private static string GetFilePath(ITextBuffer buffer)
-        {
-            if (buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document))
-            {
-                return document.FilePath;
             }
-
-            return null;
         }
-    }
-}
