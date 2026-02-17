@@ -187,6 +187,18 @@ public sealed class InlineRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD034_WhenUrlInHtmlAttributeThenNoViolation()
+    {
+        var rule = new MD034_NoBareUrls();
+        var analysis = new MarkdownDocumentAnalysis(
+            "<iframe src=\"https://www.youtube-nocookie.com/embed/4JL8EawZMvY?list=PLReL099Y5nRdz9jvxuy_LgHFKowkx8tS4&color=white\" title=\"YouTube video player\" allowfullscreen></iframe>");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD035 - Horizontal Rule Style

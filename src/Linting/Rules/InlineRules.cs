@@ -92,7 +92,7 @@ namespace MarkdownLintVS.Linting.Rules
         {
             for (var i = 0; i < analysis.LineCount; i++)
             {
-                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
+                if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i) || analysis.IsLineInHtmlBlock(i))
                     continue;
 
                 var line = analysis.GetLine(i);
@@ -100,9 +100,9 @@ namespace MarkdownLintVS.Linting.Rules
 
                 foreach (Match match in matches)
                 {
-                    // Check if URL is inside angle brackets or link syntax
+                    // Check if URL is inside angle brackets, link syntax, or HTML attribute values
                     var beforeChar = match.Index > 0 ? line[match.Index - 1] : ' ';
-                    if (beforeChar == '<' || beforeChar == '(' || beforeChar == '[')
+                    if (beforeChar == '<' || beforeChar == '(' || beforeChar == '[' || beforeChar == '"' || beforeChar == '\'')
                         continue;
 
                     // Skip URLs inside inline code spans
