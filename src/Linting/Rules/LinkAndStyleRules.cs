@@ -169,6 +169,11 @@ namespace MarkdownLintVS.Linting.Rules
             @"\{(?:[^}]*\s)?#([^\s}]+)(?:\s[^}]*)?\}",
             RegexOptions.Compiled);
 
+        // Inline markdown links: [text](url) or ![alt](url) — extract the text/alt portion
+        private static readonly Regex _inlineLinkPattern = new(
+            @"!?\[([^\]]*)\]\([^)]*\)",
+            RegexOptions.Compiled);
+
         public override IEnumerable<LintViolation> Analyze(
             MarkdownDocumentAnalysis analysis,
             RuleConfiguration configuration,
@@ -279,7 +284,10 @@ namespace MarkdownLintVS.Linting.Rules
         private static string GetHeadingContent(int lineNumber, MarkdownDocumentAnalysis analysis)
         {
             var line = analysis.GetLine(lineNumber);
-            return line.TrimStart('#', ' ').TrimEnd('#', ' ');
+            var content = line.TrimStart('#', ' ').TrimEnd('#', ' ');
+            // Strip inline link/image syntax so [text](url) becomes just text
+            content = _inlineLinkPattern.Replace(content, "$1");
+            return content;
         }
 
         private static string CreateHeadingId(string content)

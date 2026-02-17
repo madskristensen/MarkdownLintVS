@@ -315,6 +315,18 @@ public sealed class LinkRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD051_WhenHeadingContainsSelfLinkingFragmentThenNoViolations()
+    {
+        var rule = new MD051_LinkFragments();
+        var analysis = new MarkdownDocumentAnalysis(
+            "## [Find a document window](#find-a-document-window)");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD052 - Reference Links Images
