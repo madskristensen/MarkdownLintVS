@@ -1,6 +1,9 @@
+using System.ComponentModel.Composition;
 using System.Linq;
+using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 
@@ -12,8 +15,14 @@ namespace MarkdownLintVS.Commands
     /// </summary>
     public static class Formatting
     {
+        private static MarkdownAnalysisCache _analysisCache;
+
         public static async Task InitializeAsync()
         {
+            // Get the analysis cache from MEF
+            var componentModel = await VS.GetServiceAsync<SComponentModel, IComponentModel>();
+            _analysisCache = componentModel?.GetService<MarkdownAnalysisCache>();
+
             // Intercept the formatting commands for Markdown files
             _ = await VS.Commands.InterceptAsync(VSConstants.VSStd2KCmdID.FORMATDOCUMENT, () => ExecuteOnMarkdownDocument(FormatDocument));
             _ = await VS.Commands.InterceptAsync(VSConstants.VSStd2KCmdID.FORMATSELECTION, () => ExecuteOnMarkdownDocument(FormatSelection));
@@ -90,7 +99,7 @@ namespace MarkdownLintVS.Commands
 
         private static void FormatDocument(DocumentView doc)
         {
-            MarkdownFixApplier.ApplyAllFixes(doc.TextBuffer);
+            MarkdownFixApplier.ApplyAllFixes(doc.TextBuffer, _analysisCache);
         }
 
         private static void FormatSelection(DocumentView doc)
@@ -109,7 +118,7 @@ namespace MarkdownLintVS.Commands
             var startLine = snapshot.GetLineNumberFromPosition(selection.Start);
             var endLine = snapshot.GetLineNumberFromPosition(selection.End);
 
-            MarkdownFixApplier.ApplyAllFixes(doc.TextBuffer, (startLine, endLine));
+            MarkdownFixApplier.ApplyAllFixes(doc.TextBuffer, _analysisCache, (startLine, endLine));
         }
     }
 }

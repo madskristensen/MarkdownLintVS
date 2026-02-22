@@ -1,4 +1,5 @@
 using System.ComponentModel.Composition;
+using MarkdownLintVS.Linting;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Commanding;
@@ -21,6 +22,9 @@ namespace MarkdownLintVS.Commands
     [TextViewRole(PredefinedTextViewRoles.PrimaryDocument)]
     internal sealed class SaveCommandHandler : ICommandHandler<SaveCommandArgs>
     {
+        [Import]
+        internal MarkdownAnalysisCache AnalysisCache { get; set; }
+
         public string DisplayName => "Markdown Lint Fix on Save";
 
         public CommandState GetCommandState(SaveCommandArgs args)
@@ -45,10 +49,7 @@ namespace MarkdownLintVS.Commands
 
             if (behavior == FixOnSaveBehavior.On)
             {
-                MarkdownFixApplier.ApplyAllFixes(args.SubjectBuffer);
-
-                // The buffer edit triggers OnBufferChanged in the tagger, which queues
-                // a debounced re-analysis. No need for a second synchronous analysis here.
+                MarkdownFixApplier.ApplyAllFixes(args.SubjectBuffer, AnalysisCache);
             }
 
             // Return false to let the save proceed through the command chain

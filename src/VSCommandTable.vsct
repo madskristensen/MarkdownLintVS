@@ -11,8 +11,7 @@
       <Menu guid="MarkdownLintVS" id="FlyoutMenu" priority="0x0100" type="Menu">
         <Parent guid="MarkdownLintVS" id="EditorContextMenuGroup"/>
         <Strings>
-          <ButtonText>Markdown Lint</ButtonText>
-          <CommandName>.MarkdownLint.ContextMenu</CommandName>
+          <CommandName>Markdown Lint</CommandName>
         </Strings>
       </Menu>
     </Menus>

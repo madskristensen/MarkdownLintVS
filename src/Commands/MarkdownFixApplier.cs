@@ -17,8 +17,10 @@ namespace MarkdownLintVS.Commands
         /// Applies all auto-fixable markdown lint violations in the buffer.
         /// </summary>
         /// <param name="buffer">The text buffer to modify.</param>
+        /// <param name="analysisCache">Optional analysis cache to trigger immediate re-analysis after fixes.
+        /// When provided, this avoids stale error tags by bypassing the normal debounce delay.</param>
         /// <param name="lineRange">Optional line range to restrict fixes to. If null, fixes entire document.</param>
-        public static void ApplyAllFixes(ITextBuffer buffer, (int start, int end)? lineRange = null)
+        public static void ApplyAllFixes(ITextBuffer buffer, MarkdownAnalysisCache analysisCache = null, (int start, int end)? lineRange = null)
         {
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var text = snapshot.GetText();
@@ -104,6 +106,13 @@ namespace MarkdownLintVS.Commands
             }
 
             edit.Apply();
+
+            // Trigger immediate re-analysis to clear stale error tags.
+            // This bypasses the normal debounce delay that would leave tags visible.
+            if (analysisCache != null)
+            {
+                analysisCache.AnalyzeImmediate(buffer, filePath);
+            }
         }
     }
 }
