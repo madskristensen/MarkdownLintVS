@@ -12,7 +12,7 @@
         <Parent guid="MarkdownLintVS" id="EditorContextMenuGroup"/>
         <Strings>
           <ButtonText>Markdown Lint</ButtonText>
-          <LocCanonicalName>.MarkdownLint.ContextMenu</LocCanonicalName>
+          <CommandName>.MarkdownLint.ContextMenu</CommandName>
         </Strings>
       </Menu>
     </Menus>
@@ -145,7 +145,7 @@
       <IDSymbol name="SolutionExplorerSolutionGroup" value="0x0022"/>
       <IDSymbol name="WorkspaceContextMenuGroup" value="0x0023"/>
       <IDSymbol name="ErrorListContextMenuGroup" value="0x0024"/>
-      <IDSymbol name="EnabledCommand" value="0x0100"/>
+      <IDSymbol name="EnabledCommand" value="0x0107"/>
       <IDSymbol name="SettingsCommand" value="0x0101"/>
       <IDSymbol name="LintFolderCommand" value="0x0102"/>
       <IDSymbol name="LintProjectCommand" value="0x0103"/>

@@ -37,7 +37,7 @@ namespace MarkdownLintVS
         public const int SolutionExplorerSolutionGroup = 0x0022;
         public const int WorkspaceContextMenuGroup = 0x0023;
         public const int ErrorListContextMenuGroup = 0x0024;
-        public const int EnabledCommand = 0x0100;
+        public const int EnabledCommand = 0x0107;
         public const int SettingsCommand = 0x0101;
         public const int LintFolderCommand = 0x0102;
         public const int LintProjectCommand = 0x0103;
