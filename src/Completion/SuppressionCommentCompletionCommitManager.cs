@@ -82,13 +82,32 @@ namespace MarkdownLintVS.Completion
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
+            // Only process commands we care about - pass through everything else immediately
+            // to avoid expensive IsInAutomationFunction check on every keystroke (e.g., arrow keys)
+            if (pguidCmdGroup != VSConstants.VSStd2K)
+            {
+                return _nextCommandHandler.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
+            }
+
+            var cmdId = (VSConstants.VSStd2KCmdID)nCmdID;
+            bool isRelevantCommand = cmdId == VSConstants.VSStd2KCmdID.TYPECHAR ||
+                                     cmdId == VSConstants.VSStd2KCmdID.RETURN ||
+                                     cmdId == VSConstants.VSStd2KCmdID.TAB ||
+                                     cmdId == VSConstants.VSStd2KCmdID.CANCEL ||
+                                     cmdId == VSConstants.VSStd2KCmdID.BACKSPACE;
+
+            if (!isRelevantCommand)
+            {
+                return _nextCommandHandler.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
+            }
+
             if (VsShellUtilities.IsInAutomationFunction(ServiceProvider.GlobalProvider))
             {
                 return _nextCommandHandler.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
             }
 
             // Check for commit characters
-            if (pguidCmdGroup == VSConstants.VSStd2K && nCmdID == (uint)VSConstants.VSStd2KCmdID.RETURN)
+            if (cmdId == VSConstants.VSStd2KCmdID.RETURN)
             {
                 // Commit on Enter
                 if (_session != null && !_session.IsDismissed)
@@ -104,7 +123,7 @@ namespace MarkdownLintVS.Completion
                     }
                 }
             }
-            else if (pguidCmdGroup == VSConstants.VSStd2K && nCmdID == (uint)VSConstants.VSStd2KCmdID.TAB)
+            else if (cmdId == VSConstants.VSStd2KCmdID.TAB)
             {
                 // Commit on Tab
                 if (_session != null && !_session.IsDismissed)
@@ -120,7 +139,7 @@ namespace MarkdownLintVS.Completion
                     }
                 }
             }
-            else if (pguidCmdGroup == VSConstants.VSStd2K && nCmdID == (uint)VSConstants.VSStd2KCmdID.CANCEL)
+            else if (cmdId == VSConstants.VSStd2KCmdID.CANCEL)
             {
                 // Dismiss on Escape
                 if (_session != null && !_session.IsDismissed)
@@ -134,7 +153,7 @@ namespace MarkdownLintVS.Completion
             var retVal = _nextCommandHandler.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
 
             // Handle character typing
-            if (pguidCmdGroup == VSConstants.VSStd2K && nCmdID == (uint)VSConstants.VSStd2KCmdID.TYPECHAR)
+            if (cmdId == VSConstants.VSStd2KCmdID.TYPECHAR)
             {
                 var typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
 
@@ -152,7 +171,7 @@ namespace MarkdownLintVS.Completion
                     _session.Filter();
                 }
             }
-            else if (pguidCmdGroup == VSConstants.VSStd2K && nCmdID == (uint)VSConstants.VSStd2KCmdID.BACKSPACE)
+            else if (cmdId == VSConstants.VSStd2KCmdID.BACKSPACE)
             {
                 // Handle backspace - filter or dismiss
                 if (_session != null && !_session.IsDismissed)

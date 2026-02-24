@@ -37,7 +37,9 @@ namespace MarkdownLintVS.Linting
         public event EventHandler<AnalysisUpdatedEventArgs> AnalysisUpdated;
 
         /// <summary>
-        /// Gets cached violations for a buffer, or analyzes if cache is stale.
+        /// Gets cached violations for a buffer without blocking. Returns cached results even if stale,
+        /// and triggers background analysis if the cache is outdated. This avoids blocking the UI thread
+        /// during selection changes.
         /// </summary>
         public IReadOnlyList<LintViolation> GetOrAnalyze(ITextBuffer buffer, string filePath)
         {
@@ -51,20 +53,23 @@ namespace MarkdownLintVS.Linting
             var version = snapshot.Version.VersionNumber;
 
             // Check for cached result
-            if (buffer.Properties.TryGetProperty(_propertyKey, out CachedAnalysisResult cached) &&
-                cached.SnapshotVersion == version)
+            if (buffer.Properties.TryGetProperty(_propertyKey, out CachedAnalysisResult cached))
             {
+                if (cached.SnapshotVersion == version)
+                {
+                    // Cache is current
+                    return cached.Violations;
+                }
+
+                // Cache is stale - trigger background analysis but return stale results
+                // to avoid blocking the UI thread
+                AnalyzeImmediate(buffer, filePath);
                 return cached.Violations;
             }
 
-            // Analyze and cache
-            var text = snapshot.GetText();
-            var violations = MarkdownLintAnalyzer.Instance.Analyze(text, filePath).ToList();
-            var result = new CachedAnalysisResult(version, violations);
-
-            buffer.Properties[_propertyKey] = result;
-
-            return violations;
+            // No cache at all - trigger background analysis and return empty
+            AnalyzeImmediate(buffer, filePath);
+            return [];
         }
 
         /// <summary>
