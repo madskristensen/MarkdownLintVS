@@ -11,12 +11,18 @@ namespace MarkdownLintVS.Linting
     /// </summary>
     public class MarkdownFileScanner
     {
+        private sealed class IgnoreRule(Matcher matcher, bool isNegation)
+        {
+            public Matcher Matcher { get; } = matcher;
+            public bool IsNegation { get; } = isNegation;
+        }
+
         private static readonly string[] _markdownExtensions = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn", ".mdtxt", ".mdtext"];
         private static readonly string[] _defaultIgnoredFolders = ["node_modules", "vendor", ".git", "bin", "obj", "packages", "TestResults"];
         private const string _ignoreFileName = ".markdownlintignore";
 
         private readonly HashSet<string> _ignoredFolderNames;
-        private readonly Matcher _ignoreMatcher;
+        private readonly List<IgnoreRule> _ignoreRules;
         private readonly string _rootDirectory;
 
         /// <summary>
@@ -33,15 +39,16 @@ namespace MarkdownLintVS.Linting
             {
                 ignoredFolders = GeneralOptions.Instance?.GetIgnoredFolderNames() ?? _defaultIgnoredFolders;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Failed to load Markdown lint ignored folders from options: {ex.Message}");
                 ignoredFolders = _defaultIgnoredFolders;
             }
 
             _ignoredFolderNames = new HashSet<string>(ignoredFolders, StringComparer.OrdinalIgnoreCase);
 
             // Initialize the glob matcher with patterns from .markdownlintignore
-            _ignoreMatcher = CreateIgnoreMatcher(rootDirectory);
+            _ignoreRules = CreateIgnoreRules(rootDirectory);
         }
 
         /// <summary>
@@ -105,25 +112,33 @@ namespace MarkdownLintVS.Linting
 
         private bool IsIgnored(string relativePath)
         {
-            if (_ignoreMatcher == null)
+            if (_ignoreRules == null || _ignoreRules.Count == 0)
                 return false;
 
             // Normalize path separators for the matcher
             var normalizedPath = relativePath.Replace('\\', '/');
 
-            // Check if the path matches any ignore pattern
-            PatternMatchingResult result = _ignoreMatcher.Match(normalizedPath);
-            return result.HasMatches;
+            var isIgnored = false;
+            foreach (IgnoreRule rule in _ignoreRules)
+            {
+                PatternMatchingResult result = rule.Matcher.Match(normalizedPath);
+                if (result.HasMatches)
+                {
+                    isIgnored = !rule.IsNegation;
+                }
+            }
+
+            return isIgnored;
         }
 
-        private static Matcher CreateIgnoreMatcher(string rootDirectory)
+        private static List<IgnoreRule> CreateIgnoreRules(string rootDirectory)
         {
             var ignoreFilePath = Path.Combine(rootDirectory, _ignoreFileName);
 
             if (!File.Exists(ignoreFilePath))
-                return null;
+                return [];
 
-            var matcher = new Matcher();
+            var rules = new List<IgnoreRule>();
             var lines = File.ReadAllLines(ignoreFilePath);
 
             foreach (var line in lines)
@@ -134,21 +149,19 @@ namespace MarkdownLintVS.Linting
                 if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#"))
                     continue;
 
-                // Handle negation patterns (!)
-                if (trimmed.StartsWith("!"))
+                var isNegation = trimmed.StartsWith("!");
+                var pattern = isNegation ? trimmed.Substring(1).Trim() : trimmed;
+                if (string.IsNullOrEmpty(pattern))
                 {
-                    // Negation: exclude from ignore (i.e., include the file)
-                    // The Matcher doesn't support negation directly, so we handle it differently
-                    // For now, we'll just add it as an exclude pattern
-                    // A more sophisticated implementation would track negations separately
-                    continue; // Skip negation for simplicity; can be enhanced later
+                    continue;
                 }
 
-                // Add the pattern
-                matcher.AddInclude(NormalizeGlobPattern(trimmed));
+                var matcher = new Matcher();
+                matcher.AddInclude(NormalizeGlobPattern(pattern));
+                rules.Add(new IgnoreRule(matcher, isNegation));
             }
 
-            return matcher;
+            return rules;
         }
 
         private static string NormalizeGlobPattern(string pattern)

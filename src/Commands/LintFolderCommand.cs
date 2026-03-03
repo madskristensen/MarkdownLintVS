@@ -188,9 +188,17 @@ namespace MarkdownLintVS.Commands
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 await VS.StatusBar.ShowMessageAsync($"Linting Markdown files... ({current}/{total})");
             }
-            catch
+            catch (OperationCanceledException)
             {
-                // Ignore errors during progress updates
+                // No-op: UI update cancelled during shutdown/teardown.
+            }
+            catch (ObjectDisposedException)
+            {
+                // No-op: VS service lifetime ended while linting in background.
+            }
+            catch (Exception ex)
+            {
+                ex.Log("Markdown lint progress update failed");
             }
         }
 

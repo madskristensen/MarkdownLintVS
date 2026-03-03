@@ -218,7 +218,7 @@ namespace MarkdownLintVS.Linting
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Rule {entry.Rule.Info.Id} threw an exception: {ex.Message}");
+                        ex.Log($"Rule {entry.Rule.Info.Id} analysis failed");
                     }
                 });
 

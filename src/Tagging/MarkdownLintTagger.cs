@@ -123,13 +123,32 @@ namespace MarkdownLintVS.Tagging
             foreach (LintResult result in results)
             {
                 SnapshotSpan? span = result.GetTranslatedSpan(currentSnapshot);
-                if (span.HasValue && spans.Any(s => s.IntersectsWith(span.Value)))
+                if (span.HasValue && IntersectsAnySpan(span.Value, spans))
                 {
                     yield return new TagSpan<IErrorTag>(
                         span.Value,
                         new ErrorTag(GetErrorType(result.Severity)));
                 }
             }
+        }
+
+        private static bool IntersectsAnySpan(SnapshotSpan target, NormalizedSnapshotSpanCollection spans)
+        {
+            for (var i = 0; i < spans.Count; i++)
+            {
+                SnapshotSpan candidate = spans[i];
+
+                if (candidate.End.Position < target.Start.Position)
+                    continue;
+
+                if (candidate.Start.Position > target.End.Position)
+                    return false;
+
+                if (candidate.IntersectsWith(target))
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>
