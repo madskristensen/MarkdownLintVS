@@ -88,11 +88,14 @@ namespace MarkdownLintVS.Commands
                     return;
                 }
 
-                // Lint files in parallel with progress
-                List<(string FilePath, LintViolation Violation)> allViolations = await LintFilesInParallelAsync(files);
+                MarkdownLintTableDataSource dataSource = await MarkdownLintTableDataSource.EnsureInitializedAsync();
+                dataSource?.ClearFolderLintErrors();
+
+                // Lint files in parallel with streaming batches to avoid holding duplicate full results in memory
+                (int TotalViolations, int FilesWithViolations) summary = await LintFilesInParallelAsync(files, dataSource);
 
                 // Report results
-                await ReportResultsAsync(allViolations, files.Count);
+                await ReportResultsAsync(summary.TotalViolations, summary.FilesWithViolations, files.Count, dataSource != null);
             }
             catch (Exception ex)
             {
@@ -101,12 +104,19 @@ namespace MarkdownLintVS.Commands
             }
         }
 
-        private static async Task<List<(string FilePath, LintViolation Violation)>> LintFilesInParallelAsync(
+        private static async Task<(int TotalViolations, int FilesWithViolations)> LintFilesInParallelAsync(
             IReadOnlyList<string> files,
+            MarkdownLintTableDataSource dataSource,
             CancellationToken cancellationToken = default)
         {
-            var results = new List<(string FilePath, LintViolation Violation)>();
-            var resultsLock = new object();
+            const int folderLintBatchSize = 250;
+
+            var batchQueue = new ConcurrentQueue<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)>();
+            var filesWithViolations = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+
+            var producerSignal = new SemaphoreSlim(0);
+            var producerComplete = false;
+            var totalViolations = 0;
             var processedCount = 0;
             var totalCount = files.Count;
             var lastReportedProgress = 0;
@@ -116,6 +126,10 @@ namespace MarkdownLintVS.Commands
 
             // Cache EditorConfig settings by directory to avoid repeated parsing
             var editorConfigCache = new ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>>(StringComparer.OrdinalIgnoreCase);
+
+            var flushTask = dataSource != null
+                ? FlushFolderLintBatchesAsync(dataSource, batchQueue, producerSignal, () => producerComplete, folderLintBatchSize, cancellationToken)
+                : Task.CompletedTask;
 
             // Use parallel processing with progress reporting
             await Task.Run(() =>
@@ -143,13 +157,26 @@ namespace MarkdownLintVS.Commands
 
                             IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(analysis, ruleConfigs, editorConfigSettings, cancellationToken);
 
-                            // Collect results with lock (more efficient than ConcurrentBag for this pattern)
-                            var fileViolations = violations.Select(v => (filePath, v)).ToList();
+                            var fileViolations = violations.ToList();
                             if (fileViolations.Count > 0)
                             {
-                                lock (resultsLock)
+                                _ = filesWithViolations.TryAdd(filePath, 0);
+                                Interlocked.Add(ref totalViolations, fileViolations.Count);
+
+                                if (dataSource != null)
                                 {
-                                    results.AddRange(fileViolations);
+                                    foreach (LintViolation violation in fileViolations)
+                                    {
+                                        batchQueue.Enqueue((
+                                            filePath,
+                                            violation.LineNumber,
+                                            violation.ColumnStart,
+                                            violation.Rule.Id,
+                                            violation.Message,
+                                            violation.Severity));
+                                    }
+
+                                    producerSignal.Release();
                                 }
                             }
                         }
@@ -178,7 +205,39 @@ namespace MarkdownLintVS.Commands
                     });
             }, cancellationToken);
 
-            return results;
+            producerComplete = true;
+            producerSignal.Release();
+            await flushTask;
+
+            return (totalViolations, filesWithViolations.Count);
+        }
+
+        private static async Task FlushFolderLintBatchesAsync(
+            MarkdownLintTableDataSource dataSource,
+            ConcurrentQueue<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)> batchQueue,
+            SemaphoreSlim producerSignal,
+            Func<bool> isProducerComplete,
+            int batchSize,
+            CancellationToken cancellationToken)
+        {
+            while (!isProducerComplete() || !batchQueue.IsEmpty)
+            {
+                _ = await producerSignal.WaitAsync(100, cancellationToken);
+
+                var batch = new List<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)>(batchSize);
+                while (batch.Count < batchSize && batchQueue.TryDequeue(out var item))
+                {
+                    batch.Add(item);
+                }
+
+                if (batch.Count == 0)
+                {
+                    continue;
+                }
+
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                dataSource.AppendFolderLintErrors(batch);
+            }
         }
 
         private static async Task UpdateProgressAsync(int current, int total)
@@ -203,42 +262,31 @@ namespace MarkdownLintVS.Commands
         }
 
         private static async Task ReportResultsAsync(
-            List<(string FilePath, LintViolation Violation)> violations,
-            int totalFiles)
+            int totalViolations,
+            int filesWithViolations,
+            int totalFiles,
+            bool dataSourceAvailable)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            // Ensure the data source is initialized (may not be if no markdown file is open)
-            MarkdownLintTableDataSource dataSource = await MarkdownLintTableDataSource.EnsureInitializedAsync();
-            if (dataSource == null)
+            if (!dataSourceAvailable)
             {
                 // Data source could not be initialized - just show message
                 await VS.StatusBar.ShowMessageAsync(
-                    violations.Count > 0
-                        ? $"Markdown Lint: {violations.Count} issues found ({totalFiles} files scanned)"
+                    totalViolations > 0
+                        ? $"Markdown Lint: {totalViolations} issues found ({totalFiles} files scanned)"
                         : $"Markdown Lint: No issues found ({totalFiles} files scanned)");
                 return;
             }
 
-            // Use batch method for efficient error reporting (O(n) instead of O(n²))
-            dataSource.AddFolderLintErrors(
-                violations.Select(v => (
-                    v.FilePath,
-                    v.Violation.LineNumber,
-                    v.Violation.ColumnStart,
-                    v.Violation.Rule.Id,
-                    v.Violation.Message,
-                    v.Violation.Severity)));
-
             // Show summary in status bar
-            var fileCount = violations.Select(v => v.FilePath).Distinct().Count();
-            var issueText = violations.Count == 1 ? "issue" : "issues";
-            var fileText = fileCount == 1 ? "file" : "files";
+            var issueText = totalViolations == 1 ? "issue" : "issues";
+            var fileText = filesWithViolations == 1 ? "file" : "files";
 
-            if (violations.Count > 0)
+            if (totalViolations > 0)
             {
                 await VS.StatusBar.ShowMessageAsync(
-                    $"Markdown Lint: {violations.Count} {issueText} in {fileCount} {fileText} ({totalFiles} files scanned)");
+                    $"Markdown Lint: {totalViolations} {issueText} in {filesWithViolations} {fileText} ({totalFiles} files scanned)");
 
                 // Show Error List
                 await VS.Commands.ExecuteAsync("View.ErrorList");

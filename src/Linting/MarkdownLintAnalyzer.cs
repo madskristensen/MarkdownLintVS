@@ -296,20 +296,17 @@ namespace MarkdownLintVS.Linting
             {
                 if (editorConfigSettings.TryGetValue(rule.Id, out RuleConfiguration config))
                 {
-                    config.EditorConfigIndentSize = editorConfigIndentSize;
-                    return config;
+                    return CloneConfiguration(config, editorConfigIndentSize);
                 }
                 if (editorConfigSettings.TryGetValue(rule.Name, out config))
                 {
-                    config.EditorConfigIndentSize = editorConfigIndentSize;
-                    return config;
+                    return CloneConfiguration(config, editorConfigIndentSize);
                 }
                 foreach (var alias in rule.Aliases)
                 {
                     if (editorConfigSettings.TryGetValue(alias, out config))
                     {
-                        config.EditorConfigIndentSize = editorConfigIndentSize;
-                        return config;
+                        return CloneConfiguration(config, editorConfigIndentSize);
                     }
                 }
             }
@@ -319,13 +316,11 @@ namespace MarkdownLintVS.Linting
             {
                 if (ruleConfigs.TryGetValue(rule.Id, out RuleConfiguration config))
                 {
-                    config.EditorConfigIndentSize = editorConfigIndentSize;
-                    return config;
+                    return CloneConfiguration(config, editorConfigIndentSize);
                 }
                 if (ruleConfigs.TryGetValue(rule.Name, out config))
                 {
-                    config.EditorConfigIndentSize = editorConfigIndentSize;
-                    return config;
+                    return CloneConfiguration(config, editorConfigIndentSize);
                 }
             }
 
@@ -340,21 +335,48 @@ namespace MarkdownLintVS.Linting
 
         private Dictionary<string, RuleConfiguration> GetRuleConfigurations(string filePath)
         {
-            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+            if (string.IsNullOrEmpty(filePath))
                 return new(StringComparer.OrdinalIgnoreCase);
 
+            var cacheKey = GetEditorConfigCacheKey(filePath);
+            if (string.IsNullOrEmpty(cacheKey))
+            {
+                return new(StringComparer.OrdinalIgnoreCase);
+            }
+
             // Check TTL cache first
-            if (_editorConfigCache.TryGetValue(filePath, out CachedEditorConfig cached) &&
+            if (_editorConfigCache.TryGetValue(cacheKey, out CachedEditorConfig cached) &&
                 cached.IsValid(_cacheTtl))
             {
                 return cached.Configurations;
             }
 
-            Dictionary<string, RuleConfiguration> configurations = ParseEditorConfig(filePath);
+            Dictionary<string, RuleConfiguration> configurations = ParseEditorConfig(Path.Combine(cacheKey, ".markdownlint.tmp.md"));
 
-            _editorConfigCache[filePath] = new CachedEditorConfig(configurations);
+            _editorConfigCache[cacheKey] = new CachedEditorConfig(configurations);
 
             return configurations;
+        }
+
+        private static string GetEditorConfigCacheKey(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            if (Directory.Exists(filePath))
+            {
+                return Path.GetFullPath(filePath);
+            }
+
+            var directory = Path.GetDirectoryName(filePath);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return null;
+            }
+
+            return Path.GetFullPath(directory);
         }
 
         private Dictionary<string, RuleConfiguration> ParseEditorConfig(string filePath)
@@ -489,15 +511,13 @@ namespace MarkdownLintVS.Linting
             // Check by rule ID (MD001, MD002, etc.)
             if (configurations.TryGetValue(rule.Id, out RuleConfiguration config))
             {
-                config.EditorConfigIndentSize = editorConfigIndentSize;
-                return config;
+                return CloneConfiguration(config, editorConfigIndentSize);
             }
 
             // Check by rule name
             if (configurations.TryGetValue(rule.Name, out config))
             {
-                config.EditorConfigIndentSize = editorConfigIndentSize;
-                return config;
+                return CloneConfiguration(config, editorConfigIndentSize);
             }
 
             // Check by aliases
@@ -505,8 +525,7 @@ namespace MarkdownLintVS.Linting
             {
                 if (configurations.TryGetValue(alias, out config))
                 {
-                    config.EditorConfigIndentSize = editorConfigIndentSize;
-                    return config;
+                    return CloneConfiguration(config, editorConfigIndentSize);
                 }
             }
 
@@ -519,6 +538,22 @@ namespace MarkdownLintVS.Linting
                 Severity = rule.DefaultSeverity,
                 EditorConfigIndentSize = editorConfigIndentSize
             };
+        }
+
+        private static RuleConfiguration CloneConfiguration(RuleConfiguration source, int? editorConfigIndentSize)
+        {
+            var clone = new RuleConfiguration
+            {
+                Enabled = source.Enabled,
+                Severity = source.Severity,
+                Value = source.Value,
+                EditorConfigIndentSize = editorConfigIndentSize,
+                Parameters = source.Parameters != null
+                    ? new Dictionary<string, string>(source.Parameters, source.Parameters.Comparer)
+                    : []
+            };
+
+            return clone;
         }
 
         /// <summary>

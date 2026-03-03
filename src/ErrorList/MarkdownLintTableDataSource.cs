@@ -25,6 +25,7 @@ namespace MarkdownLintVS.ErrorList
         // Separate storage for folder lint results (keyed by "FolderLint:" prefix)
         private const string _folderLintPrefix = "FolderLint:";
         private TableEntriesSnapshot _folderLintSnapshot;
+        private readonly List<MarkdownLintError> _folderLintErrors = [];
 
         public string SourceTypeIdentifier => StandardTableDataSources.ErrorTableDataSource;
         public string Identifier => "MarkdownLint";
@@ -156,6 +157,8 @@ namespace MarkdownLintVS.ErrorList
                     NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
                     _folderLintSnapshot = null;
                 }
+
+                _folderLintErrors.Clear();
             }
         }
 
@@ -171,6 +174,8 @@ namespace MarkdownLintVS.ErrorList
                     NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
                     _folderLintSnapshot = null;
                 }
+
+                _folderLintErrors.Clear();
             }
         }
 
@@ -182,14 +187,25 @@ namespace MarkdownLintVS.ErrorList
         {
             lock (_snapshots)
             {
-                // Clear any existing folder lint snapshot
                 if (_folderLintSnapshot != null)
                 {
                     NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
                     _folderLintSnapshot = null;
                 }
 
-                // Build all errors at once
+                _folderLintErrors.Clear();
+            }
+
+            AppendFolderLintErrors(errors);
+        }
+
+        /// <summary>
+        /// Appends folder lint errors to the current folder-lint snapshot.
+        /// </summary>
+        public void AppendFolderLintErrors(IEnumerable<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)> errors)
+        {
+            lock (_snapshots)
+            {
                 var errorList = new List<MarkdownLintError>();
                 foreach ((var FilePath, var Line, var StartColumn, var RuleId, var Message, DiagnosticSeverity Severity) in errors)
                 {
@@ -207,7 +223,13 @@ namespace MarkdownLintVS.ErrorList
 
                 if (errorList.Count > 0)
                 {
-                    _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", errorList);
+                    if (_folderLintSnapshot != null)
+                    {
+                        NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    }
+
+                    _folderLintErrors.AddRange(errorList);
+                    _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", _folderLintErrors);
                     NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
                 }
             }
@@ -260,19 +282,20 @@ namespace MarkdownLintVS.ErrorList
             if (_folderLintSnapshot == null)
                 return;
 
-            var existingErrors = _folderLintSnapshot.GetErrors().ToList();
-            var filteredErrors = existingErrors
+            var filteredErrors = _folderLintErrors
                 .Where(e => !string.Equals(e.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             // Only update if we actually removed something
-            if (filteredErrors.Count < existingErrors.Count)
+            if (filteredErrors.Count < _folderLintErrors.Count)
             {
                 NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                _folderLintErrors.Clear();
+                _folderLintErrors.AddRange(filteredErrors);
 
-                if (filteredErrors.Count > 0)
+                if (_folderLintErrors.Count > 0)
                 {
-                    _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", filteredErrors);
+                    _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", _folderLintErrors);
                     NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
                 }
                 else

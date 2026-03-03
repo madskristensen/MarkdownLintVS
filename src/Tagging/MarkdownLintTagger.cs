@@ -93,7 +93,10 @@ namespace MarkdownLintVS.Tagging
                 return;
 
             ITextSnapshot snapshot = e.Snapshot;
-            var results = e.Violations.Select(v => new LintResult(v, snapshot)).ToList();
+            var results = e.Violations
+                .Select(v => new LintResult(v, snapshot))
+                .OrderBy(r => r.Start)
+                .ToList();
 
             lock (_lock)
             {
@@ -119,11 +122,28 @@ namespace MarkdownLintVS.Tagging
             }
 
             ITextSnapshot currentSnapshot = spans[0].Snapshot;
+            var queryStart = spans[0].Start.Position;
+            var queryEnd = spans[spans.Count - 1].End.Position;
 
             foreach (LintResult result in results)
             {
+                if (result.Start > queryEnd)
+                {
+                    break;
+                }
+
                 SnapshotSpan? span = result.GetTranslatedSpan(currentSnapshot);
-                if (span.HasValue && IntersectsAnySpan(span.Value, spans))
+                if (!span.HasValue)
+                {
+                    continue;
+                }
+
+                if (span.Value.End.Position < queryStart)
+                {
+                    continue;
+                }
+
+                if (IntersectsAnySpan(span.Value, spans))
                 {
                     yield return new TagSpan<IErrorTag>(
                         span.Value,
@@ -217,6 +237,7 @@ namespace MarkdownLintVS.Tagging
         public string Message { get; }
         public string DocumentationUrl { get; }
         public Linting.DiagnosticSeverity Severity { get; }
+        public int Start { get; }
 
         public LintResult(Linting.LintViolation violation, ITextSnapshot snapshot)
         {
@@ -234,6 +255,7 @@ namespace MarkdownLintVS.Tagging
                 endIndex = Math.Min(startIndex + 1, line.End.Position);
 
             var span = new Span(startIndex, Math.Max(1, endIndex - startIndex));
+            Start = span.Start;
             _trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
         }
 

@@ -17,7 +17,10 @@ namespace MarkdownLintVS.Linting
             public bool IsNegation { get; } = isNegation;
         }
 
-        private static readonly string[] _markdownExtensions = [".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn", ".mdtxt", ".mdtext"];
+        private static readonly HashSet<string> _markdownExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn", ".mdtxt", ".mdtext"
+        };
         private static readonly string[] _defaultIgnoredFolders = ["node_modules", "vendor", ".git", "bin", "obj", "packages", "TestResults"];
         private const string _ignoreFileName = ".markdownlintignore";
 
@@ -74,7 +77,7 @@ namespace MarkdownLintVS.Linting
                     return;
 
                 // Get all markdown files in this directory
-                foreach (var file in Directory.GetFiles(directory))
+                foreach (var file in Directory.EnumerateFiles(directory))
                 {
                     var extension = Path.GetExtension(file);
                     if (IsMarkdownExtension(extension))
@@ -89,7 +92,7 @@ namespace MarkdownLintVS.Linting
                 }
 
                 // Recursively scan subdirectories
-                foreach (var subDir in Directory.GetDirectories(directory))
+                foreach (var subDir in Directory.EnumerateDirectories(directory))
                 {
                     ScanDirectory(subDir, results);
                 }
@@ -106,8 +109,7 @@ namespace MarkdownLintVS.Linting
 
         private bool IsMarkdownExtension(string extension)
         {
-            return _markdownExtensions.Any(ext =>
-                string.Equals(ext, extension, StringComparison.OrdinalIgnoreCase));
+            return _markdownExtensions.Contains(extension);
         }
 
         private bool IsIgnored(string relativePath)
