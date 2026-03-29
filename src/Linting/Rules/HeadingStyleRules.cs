@@ -99,7 +99,7 @@ namespace MarkdownLintVS.Linting.Rules
             foreach ((var lineNumber, var line) in analysis.GetAnalyzableLines())
             {
                 Match match = ClosedAtxPattern.Match(line);
-                if (match.Success)
+                if (match.Success && match.Groups[1].Length == match.Groups[3].Length)
                 {
                     var content = match.Groups[2].Value;
                     var hasMissingSpace = false;
@@ -138,6 +138,11 @@ namespace MarkdownLintVS.Linting.Rules
         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD021");
         public override RuleInfo Info => _info;
 
+        // Matches closed ATX headings with groups for leading hashes, content, and trailing hashes
+        private static readonly Regex ClosedAtxPattern = new(
+            @"^(#{1,6})(.+?)(#{1,6})\s*$",
+            RegexOptions.Compiled);
+
         private static readonly Regex ClosedAtxMultipleSpacePattern = new(
             @"^#{1,6}\s{2,}.+|.+\s{2,}#{1,6}\s*$",
             RegexOptions.Compiled);
@@ -150,7 +155,8 @@ namespace MarkdownLintVS.Linting.Rules
         {
             foreach ((var lineNumber, var line) in analysis.GetAnalyzableLines())
             {
-                if (line.Contains("#") && line.TrimEnd().EndsWith("#"))
+                Match match = ClosedAtxPattern.Match(line);
+                if (match.Success && match.Groups[1].Length == match.Groups[3].Length)
                 {
                     if (ClosedAtxMultipleSpacePattern.IsMatch(line))
                     {

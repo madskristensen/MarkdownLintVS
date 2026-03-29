@@ -646,6 +646,17 @@ public sealed class HeadingRuleTests
         Assert.Contains("No space inside hashes", violations[0].Message);
     }
 
+    [TestMethod]
+    public void MD020_WhenTrailingHashCountDoesNotMatchLeadingThenNoViolation()
+    {
+        var rule = new MD020_NoMissingSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("### Step 2: Share Results to C#");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD021 - Multiple Spaces In Closed ATX
@@ -697,9 +708,20 @@ public sealed class HeadingRuleTests
         Assert.Contains("Multiple spaces", violations[0].Message);
     }
 
+    [TestMethod]
+    public void MD021_WhenTrailingHashCountDoesNotMatchLeadingThenNoViolation()
+    {
+        var rule = new MD021_NoMultipleSpaceClosedAtx();
+        var analysis = new MarkdownDocumentAnalysis("### Step 2: Share Results to C#");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
-    #region MD022 - Blanks Around Headings
+    #region MD022
 
     [TestMethod]
     public void MD022_WhenBlankLinesAroundHeadingThenNoViolation()
