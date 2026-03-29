@@ -1,4 +1,4 @@
-﻿{
+{
   "properties": [
     {
       "name": "md_heading_increment",
@@ -310,11 +310,11 @@
       "name": "md_first_line_heading",
       "description": "MD041 - First line in a file should be a top-level heading",
       "values": [ true, false ],
-      "defaultValue": [ true ],
+      "defaultValue": [ false ],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md041.md"
-    },
+    }
     {
       "name": "md_no_empty_links",
       "description": "MD042 - No empty links",
@@ -364,7 +364,7 @@
       "name": "md_single_trailing_newline",
       "description": "MD047 - Files should end with a single newline character",
       "values": [ true, false ],
-      "defaultValue": [ true ],
+      "defaultValue": [ false ],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md047.md"

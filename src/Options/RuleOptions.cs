@@ -150,8 +150,8 @@ namespace MarkdownLintVS.Options
         [Category("3. Whitespace")]
         [DisplayName("MD047 - single-trailing-newline")]
         [Description("Files should end with a single newline character")]
-        [DefaultValue(true)]
-        public bool MD047 { get; set; } = true;
+        [DefaultValue(false)]
+        public bool MD047 { get; set; }
 
         // ===== Code Block Rules =====
 
