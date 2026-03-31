@@ -254,7 +254,12 @@ namespace MarkdownLintVS.Tagging
             if (endIndex <= startIndex)
                 endIndex = Math.Min(startIndex + 1, line.End.Position);
 
-            var span = new Span(startIndex, Math.Max(1, endIndex - startIndex));
+            // Clamp to snapshot length to avoid ArgumentOutOfRangeException
+            startIndex = Math.Min(startIndex, snapshot.Length);
+            endIndex = Math.Min(endIndex, snapshot.Length);
+
+            var length = Math.Max(0, endIndex - startIndex);
+            var span = new Span(startIndex, length);
             Start = span.Start;
             _trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
         }
