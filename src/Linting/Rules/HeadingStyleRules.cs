@@ -303,8 +303,7 @@ namespace MarkdownLintVS.Linting.Rules
             DiagnosticSeverity severity,
             CancellationToken cancellationToken = default)
         {
-            var siblingsOnly = configuration.GetBoolParameter("siblings_only", false);
-            var allowDifferentNesting = configuration.GetBoolParameter("allow_different_nesting", false);
+            var mode = configuration.GetStringParameter("style", "siblings_only");
 
             var headings = analysis.GetHeadings().ToList();
             var seenHeadings = new Dictionary<string, (int Line, int Level)>();
@@ -313,18 +312,18 @@ namespace MarkdownLintVS.Linting.Rules
             foreach (HeadingBlock heading in headings)
             {
                 var content = GetHeadingContent(heading, analysis);
-                var key = siblingsOnly ? $"{heading.Level}:{content}" : content;
 
-                if (allowDifferentNesting)
+                // Track nesting: pop back to find the parent context for this heading
+                while (levelStack.Count > 0 && levelStack.Peek() >= heading.Level)
                 {
-                    // Track nesting level
-                    while (levelStack.Count > 0 && levelStack.Peek() >= heading.Level)
-                    {
-                        levelStack.Pop();
-                    }
-                    key = $"{string.Join("-", levelStack)}:{content}";
-                    levelStack.Push(heading.Level);
+                    levelStack.Pop();
                 }
+
+                var key = mode == "all"
+                    ? content
+                    : $"{string.Join("-", levelStack)}:{content}";
+
+                levelStack.Push(heading.Level);
 
                 if (seenHeadings.TryGetValue(key, out (int Line, int Level) existing))
                 {

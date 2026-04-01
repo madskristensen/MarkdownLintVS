@@ -351,7 +351,7 @@ namespace MarkdownLintVS.Linting
                 return cached.Configurations;
             }
 
-            Dictionary<string, RuleConfiguration> configurations = ParseEditorConfig(Path.Combine(cacheKey, ".markdownlint.tmp.md"));
+            Dictionary<string, RuleConfiguration> configurations = ParseEditorConfig(cacheKey);
 
             _editorConfigCache[cacheKey] = new CachedEditorConfig(configurations);
 
@@ -365,18 +365,7 @@ namespace MarkdownLintVS.Linting
                 return null;
             }
 
-            if (Directory.Exists(filePath))
-            {
-                return Path.GetFullPath(filePath);
-            }
-
-            var directory = Path.GetDirectoryName(filePath);
-            if (string.IsNullOrWhiteSpace(directory))
-            {
-                return null;
-            }
-
-            return Path.GetFullPath(directory);
+            return Path.GetFullPath(filePath);
         }
 
         private Dictionary<string, RuleConfiguration> ParseEditorConfig(string filePath)

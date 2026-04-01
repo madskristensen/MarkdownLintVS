@@ -879,10 +879,10 @@ public sealed class HeadingRuleTests
     }
 
     [TestMethod]
-    public void MD024_WhenDuplicateHeadingsThenReportsViolation()
+    public void MD024_WhenDuplicateSiblingHeadingsThenReportsViolation()
     {
         var rule = new MD024_NoDuplicateHeading();
-        var analysis = new MarkdownDocumentAnalysis("# Some text\n\n## Some text");
+        var analysis = new MarkdownDocumentAnalysis("## Features\n\nText\n\n## Features");
 
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
@@ -891,37 +891,48 @@ public sealed class HeadingRuleTests
     }
 
     [TestMethod]
-    public void MD024_WhenSiblingsOnlyThenAllowsDifferentLevelDuplicates()
+    public void MD024_WhenDefaultThenAllowsDifferentParentDuplicates()
     {
-        // Per docs: with siblings_only, duplicates at different levels are allowed
+        // Default is siblings_only: duplicates under different parents are allowed (changelog pattern)
         var rule = new MD024_NoDuplicateHeading();
-        var config = new RuleConfiguration();
-        config.Parameters["siblings_only"] = "true";
-        var analysis = new MarkdownDocumentAnalysis("# Features\n\n## Features");
+        var analysis = new MarkdownDocumentAnalysis(
+            "# Change log\n\n## 1.0.0\n\n### Features\n\n## 2.0.0\n\n### Features");
 
-        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
         Assert.IsEmpty(violations);
     }
 
     [TestMethod]
-    public void MD024_WhenSiblingsOnlyAndSameLevelDuplicatesThenReportsViolation()
+    public void MD024_WhenDefaultThenAllowsDifferentLevelDuplicates()
+    {
+        // Default siblings_only: same text at different levels under same parent is allowed
+        var rule = new MD024_NoDuplicateHeading();
+        var analysis = new MarkdownDocumentAnalysis("# Features\n\n## Features");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD024_WhenAllModeThenReportsAllDuplicates()
     {
         var rule = new MD024_NoDuplicateHeading();
-        var config = new RuleConfiguration();
-        config.Parameters["siblings_only"] = "true";
-        var analysis = new MarkdownDocumentAnalysis("## Features\n\nText\n\n## Features");
+        var config = new RuleConfiguration { Value = "all" };
+        var analysis = new MarkdownDocumentAnalysis("# Some text\n\n## Some text");
 
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(1, violations);
+        Assert.AreEqual("MD024", violations[0].Rule.Id);
     }
 
     [TestMethod]
     public void MD024_ViolationMessageContainsHeadingText()
     {
         var rule = new MD024_NoDuplicateHeading();
-        var analysis = new MarkdownDocumentAnalysis("# Duplicate\n\n## Duplicate");
+        var analysis = new MarkdownDocumentAnalysis("## Duplicate\n\nText\n\n## Duplicate");
 
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 

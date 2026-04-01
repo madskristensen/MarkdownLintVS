@@ -155,13 +155,13 @@
     },
     {
       "name": "md_no_duplicate_heading",
-      "description": "MD024 - Multiple headings with the same content",
-      "values": [ true, false ],
-      "defaultValue": [ true ],
+      "description": "MD024 - Multiple headings with the same content (siblings_only, all)",
+      "values": [ "siblings_only", "all", false ],
+      "defaultValue": [ "siblings_only" ],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md024.md"
-    },
+    }
     {
       "name": "md_single_title",
       "description": "MD025 - Multiple top-level headings in the same document",
