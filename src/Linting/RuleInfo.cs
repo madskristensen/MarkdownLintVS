@@ -34,8 +34,21 @@ namespace MarkdownLintVS.Linting
         public string[] Aliases { get; } = aliases ?? [];
         public string Description { get; } = description ?? throw new ArgumentNullException(nameof(description));
         public DiagnosticSeverity DefaultSeverity { get; } = defaultSeverity;
-        public string DocumentationUrl { get; } = $"https://github.com/DavidAnson/markdownlint/blob/main/doc/{id.ToLowerInvariant()}.md";
+        public string DocumentationUrl { get; } = GetDocumentationUrl(id);
         public bool EnabledByDefault { get; } = enabledByDefault;
+
+        private static string GetDocumentationUrl(string id)
+        {
+            string lowerId = id.ToLowerInvariant();
+
+            // MD061+ are custom rules documented in this repo
+            if (int.TryParse(lowerId.Substring(2), out int ruleNumber) && ruleNumber >= 61)
+            {
+                return $"https://github.com/madskristensen/MarkdownLintVS/blob/master/doc/{lowerId}.md";
+            }
+
+            return $"https://github.com/DavidAnson/markdownlint/blob/main/doc/{lowerId}.md";
+        }
     }
 
     /// <summary>
