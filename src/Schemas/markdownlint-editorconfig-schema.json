@@ -314,7 +314,7 @@
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md041.md"
-    }
+    },
     {
       "name": "md_no_empty_links",
       "description": "MD042 - No empty links",
