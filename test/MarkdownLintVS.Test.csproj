@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\src\Schemas\markdownlint-editorconfig-schema.json" Link="Schemas\markdownlint-editorconfig-schema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Text\" />
   </ItemGroup>
 

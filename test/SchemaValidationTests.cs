@@ -8,22 +8,8 @@ public sealed class SchemaValidationTests
 {
     private static string GetSchemaPath()
     {
-        // Navigate from test bin directory up to the repo root, then into src/Schemas
         string directory = Path.GetDirectoryName(typeof(SchemaValidationTests).Assembly.Location);
-
-        while (directory != null)
-        {
-            string candidate = Path.Combine(directory, "src", "Schemas", "markdownlint-editorconfig-schema.json");
-
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            directory = Path.GetDirectoryName(directory);
-        }
-
-        throw new FileNotFoundException("Could not find markdownlint-editorconfig-schema.json in any parent directory.");
+        return Path.Combine(directory, "Schemas", "markdownlint-editorconfig-schema.json");
     }
 
     [TestMethod]
