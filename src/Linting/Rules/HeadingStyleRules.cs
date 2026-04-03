@@ -307,23 +307,23 @@ namespace MarkdownLintVS.Linting.Rules
 
             var headings = analysis.GetHeadings().ToList();
             var seenHeadings = new Dictionary<string, (int Line, int Level)>();
-            var levelStack = new Stack<int>();
+            var levelStack = new Stack<(int Level, int Line)>();
 
             foreach (HeadingBlock heading in headings)
             {
                 var content = GetHeadingContent(heading, analysis);
 
                 // Track nesting: pop back to find the parent context for this heading
-                while (levelStack.Count > 0 && levelStack.Peek() >= heading.Level)
+                while (levelStack.Count > 0 && levelStack.Peek().Level >= heading.Level)
                 {
                     levelStack.Pop();
                 }
 
                 var key = mode == "all"
                     ? content
-                    : $"{string.Join("-", levelStack)}:{content}";
+                    : $"{string.Join("-", levelStack.Select(s => $"{s.Level}L{s.Line}"))}:{content}";
 
-                levelStack.Push(heading.Level);
+                levelStack.Push((heading.Level, heading.Line));
 
                 if (seenHeadings.TryGetValue(key, out (int Line, int Level) existing))
                 {
