@@ -32,11 +32,10 @@ namespace MarkdownLintVS
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-            await Formatting.InitializeAsync();
+
             await this.RegisterCommandsAsync();
 
             GeneralOptions options = await GeneralOptions.GetLiveInstanceAsync();
-
             RatingPrompt = new RatingPrompt("MadsKristensen.MarkdownLintVS", Vsix.Name, options, 10);
 
             // Subscribe to solution/folder close events to clear error list
@@ -44,6 +43,23 @@ namespace MarkdownLintVS
 
             // Invalidate EditorConfig cache when .editorconfig files are saved
             VS.Events.DocumentEvents.Saved += OnDocumentSaved;
+
+            // Register format command interception outside the package-load critical path.
+            JoinableTaskFactory.RunAsync(async () =>
+            {
+                try
+                {
+                    await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                    await Formatting.InitializeAsync();
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    ex.Log("Markdown Lint format interception initialization failed");
+                }
+            }).FireAndForget();
         }
 
         private void OnSolutionClosed()
