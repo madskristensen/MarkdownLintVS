@@ -7,6 +7,7 @@ using MarkdownLintVS.CodeFixes.Actions;
 using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Differencing;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
@@ -26,7 +27,7 @@ namespace MarkdownLintVS.CodeFixes
 
         public ISuggestedActionsSource CreateSuggestedActionsSource(ITextView textView, ITextBuffer textBuffer)
         {
-            if (textBuffer == null || textView == null)
+            if (textBuffer == null || textView == null || textView.Roles.Contains(DifferenceViewerRoles.DiffTextViewRole))
                 return null;
 
             var filePath = GetFilePath(textBuffer);

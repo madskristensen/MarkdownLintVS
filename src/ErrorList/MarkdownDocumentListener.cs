@@ -1,6 +1,7 @@
 using System.ComponentModel.Composition;
 using MarkdownLintVS.Linting;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Differencing;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
@@ -24,6 +25,9 @@ namespace MarkdownLintVS.ErrorList
 
         public void TextViewCreated(ITextView textView)
         {
+            if (textView.Roles.Contains(DifferenceViewerRoles.DiffTextViewRole))
+                return;
+
             var filePath = GetFilePath(textView);
             var handler = new DocumentHandler(textView, TableDataSource, AnalysisCache, filePath);
             textView.Closed += (s, e) => handler.Dispose();
