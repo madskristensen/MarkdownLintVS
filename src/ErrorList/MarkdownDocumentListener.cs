@@ -13,7 +13,7 @@ namespace MarkdownLintVS.ErrorList
     [Export(typeof(ITextViewCreationListener))]
     [ContentType("markdown")]
     [ContentType("vs-markdown")]
-    [TextViewRole(PredefinedTextViewRoles.Document)]
+    [TextViewRole(PredefinedTextViewRoles.PrimaryDocument)]
     public class MarkdownDocumentListener : ITextViewCreationListener
     {
         [Import]
