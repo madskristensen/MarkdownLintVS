@@ -3,6 +3,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MarkdownLintVS;
 
+// Binding redirect for Markdig
+[assembly: ProvideBindingRedirection(AssemblyName = "Markdig", OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "1.1.0.0", NewVersion = "1.1.0.0")]
+
 // Binding redirects for Markdig transitive dependencies (System.Memory and friends)
 [assembly: ProvideBindingRedirection(AssemblyName = "System.Memory", OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "4.0.5.0", NewVersion = "4.0.5.0")]
 [assembly: ProvideBindingRedirection(AssemblyName = "System.Buffers", OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "4.0.5.0", NewVersion = "4.0.5.0")]
