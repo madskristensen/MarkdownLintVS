@@ -75,6 +75,11 @@ namespace MarkdownLintVS.Tagging
 
         private void OnGeneralOptionsSaved(GeneralOptions options)
         {
+            if (!options.LintingEnabled)
+            {
+                ClearCurrentResults(_buffer.CurrentSnapshot);
+            }
+
             // Revalidate immediately when linting is enabled/disabled
             _analysisCache.AnalyzeImmediate(_buffer, _filePath);
         }
@@ -83,9 +88,8 @@ namespace MarkdownLintVS.Tagging
         {
             _currentSnapshot = e.After;
 
-            ClearCurrentResults(e.After);
-
-            // Debounced analysis during typing to reduce CPU usage
+            // Keep existing results while debounced analysis runs. Tracking spans translate stale
+            // squiggles to the edited snapshot, and the next analysis replaces or clears them.
             _analysisCache.InvalidateAndAnalyze(_buffer, _filePath);
         }
 
@@ -190,6 +194,11 @@ namespace MarkdownLintVS.Tagging
                     continue;
                 }
 
+                if (span.Value.Length == 0)
+                {
+                    continue;
+                }
+
                 if (span.Value.End.Position < queryStart)
                 {
                     continue;
@@ -238,7 +247,7 @@ namespace MarkdownLintVS.Tagging
             foreach (LintResult result in results)
             {
                 SnapshotSpan? span = result.GetTranslatedSpan(point.Snapshot);
-                if (span.HasValue && span.Value.Contains(point))
+                if (span.HasValue && span.Value.Length > 0 && span.Value.Contains(point))
                 {
                     yield return result;
                 }

@@ -4,7 +4,6 @@ using MarkdownLintVS.Options;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Differencing;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
@@ -94,5 +93,5 @@ namespace MarkdownLintVS.Commands
             });
         }
 
-            }
-        }
+    }
+}
