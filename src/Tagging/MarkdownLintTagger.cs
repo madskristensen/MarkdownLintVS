@@ -13,19 +13,19 @@ namespace MarkdownLintVS.Tagging
     /// <summary>
     /// Provides the tagger for markdown files.
     /// </summary>
-    [Export(typeof(ITaggerProvider))]
+    [Export(typeof(IViewTaggerProvider))]
     [ContentType("markdown")]
     [ContentType("vs-markdown")]
     [TagType(typeof(IErrorTag))]
     [TextViewRole(PredefinedTextViewRoles.PrimaryDocument)]
-    public class MarkdownLintTaggerProvider : ITaggerProvider
+    public class MarkdownLintTaggerProvider : IViewTaggerProvider
     {
         [Import]
         internal MarkdownAnalysisCache AnalysisCache { get; set; }
 
-        public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag
+        public ITagger<T> CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
         {
-            if (buffer == null)
+            if (textView == null || buffer == null)
                 return null;
 
             return buffer.Properties.GetOrCreateSingletonProperty(
@@ -83,6 +83,8 @@ namespace MarkdownLintVS.Tagging
         {
             _currentSnapshot = e.After;
 
+            ClearCurrentResults(e.After);
+
             // Debounced analysis during typing to reduce CPU usage
             _analysisCache.InvalidateAndAnalyze(_buffer, _filePath);
         }
@@ -97,17 +99,67 @@ namespace MarkdownLintVS.Tagging
                 .Select(v => new LintResult(v, snapshot))
                 .OrderBy(r => r.Start)
                 .ToList();
+            var shouldRaiseTagsChanged = false;
 
             lock (_lock)
             {
                 if (snapshot.Version.VersionNumber >= _currentSnapshot.Version.VersionNumber)
                 {
                     _currentResults = results;
-
-                    TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
-                        new SnapshotSpan(snapshot, 0, snapshot.Length)));
+                    shouldRaiseTagsChanged = true;
                 }
             }
+
+            if (shouldRaiseTagsChanged)
+            {
+                RaiseTagsChanged(snapshot);
+            }
+        }
+
+        private void ClearCurrentResults(ITextSnapshot snapshot)
+        {
+            var shouldRaiseTagsChanged = false;
+
+            lock (_lock)
+            {
+                if (_currentResults.Count > 0)
+                {
+                    _currentResults = [];
+                    shouldRaiseTagsChanged = true;
+                }
+            }
+
+            if (shouldRaiseTagsChanged)
+            {
+                RaiseTagsChanged(snapshot);
+            }
+        }
+
+        private void RaiseTagsChanged(ITextSnapshot snapshot)
+        {
+            if (ThreadHelper.CheckAccess())
+            {
+                RaiseTagsChangedOnMainThread(snapshot);
+                return;
+            }
+
+            ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                RaiseTagsChangedOnMainThread(snapshot);
+            }).FireAndForget();
+        }
+
+        private void RaiseTagsChangedOnMainThread(ITextSnapshot snapshot)
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            EventHandler<SnapshotSpanEventArgs> tagsChanged = TagsChanged;
+            tagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
         }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)

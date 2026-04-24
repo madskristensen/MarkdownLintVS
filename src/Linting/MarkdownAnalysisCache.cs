@@ -16,10 +16,11 @@ namespace MarkdownLintVS.Linting
         public IReadOnlyList<LintViolation> Violations { get; } = violations;
     }
 
-    internal sealed class PendingAnalysis(CancellationTokenSource cancellationTokenSource, int snapshotVersion)
+    internal sealed class PendingAnalysis(CancellationTokenSource cancellationTokenSource, int snapshotVersion, bool isDebounced)
     {
         public CancellationTokenSource CancellationTokenSource { get; } = cancellationTokenSource;
         public int SnapshotVersion { get; } = snapshotVersion;
+        public bool IsDebounced { get; } = isDebounced;
     }
 
     /// <summary>
@@ -87,7 +88,7 @@ namespace MarkdownLintVS.Linting
         public void AnalyzeImmediate(ITextBuffer buffer, string filePath)
         {
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
-            if (HasPendingAnalysisForSnapshot(buffer, snapshot.Version.VersionNumber))
+            if (HasPendingImmediateAnalysisForSnapshot(buffer, snapshot.Version.VersionNumber))
             {
                 return;
             }
@@ -98,9 +99,9 @@ namespace MarkdownLintVS.Linting
             var text = snapshot.GetText();
 
             // Run analysis on a background thread without debounce delay
-            var pendingAnalysis = new PendingAnalysis(new CancellationTokenSource(), snapshot.Version.VersionNumber);
+            var pendingAnalysis = new PendingAnalysis(new CancellationTokenSource(), snapshot.Version.VersionNumber, isDebounced: false);
             buffer.Properties[_pendingAnalysisKey] = pendingAnalysis;
-            PerformAnalysisNowAsync(buffer, filePath, pendingAnalysis.CancellationTokenSource.Token, snapshot, text).FireAndForget();
+            PerformAnalysisNowAsync(buffer, filePath, pendingAnalysis, pendingAnalysis.CancellationTokenSource.Token, snapshot, text).FireAndForget();
         }
 
         /// <summary>
@@ -114,14 +115,15 @@ namespace MarkdownLintVS.Linting
 
             var cts = new CancellationTokenSource();
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
-            buffer.Properties[_pendingAnalysisKey] = new PendingAnalysis(cts, snapshot.Version.VersionNumber);
+            var pendingAnalysis = new PendingAnalysis(cts, snapshot.Version.VersionNumber, isDebounced: true);
+            buffer.Properties[_pendingAnalysisKey] = pendingAnalysis;
             var text = snapshot.GetText();
 
             // Pass the token, not the CTS, to avoid accessing disposed CTS
-            PerformAnalysisAsync(buffer, filePath, cts.Token, snapshot, text).FireAndForget();
+            PerformAnalysisAsync(buffer, filePath, pendingAnalysis, cts.Token, snapshot, text).FireAndForget();
         }
 
-        private async Task PerformAnalysisAsync(ITextBuffer buffer, string filePath, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
+        private async Task PerformAnalysisAsync(ITextBuffer buffer, string filePath, PendingAnalysis pendingAnalysis, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
         {
             try
             {
@@ -140,9 +142,13 @@ namespace MarkdownLintVS.Linting
             {
                 // CancellationTokenSource was disposed - this is fine, just stop
             }
+            finally
+            {
+                ClearPendingAnalysisIfMatches(buffer, pendingAnalysis);
+            }
         }
 
-        private async Task PerformAnalysisNowAsync(ITextBuffer buffer, string filePath, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
+        private async Task PerformAnalysisNowAsync(ITextBuffer buffer, string filePath, PendingAnalysis pendingAnalysis, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
         {
             try
             {
@@ -159,7 +165,7 @@ namespace MarkdownLintVS.Linting
             }
             finally
             {
-                ClearPendingAnalysisIfSnapshotMatches(buffer, snapshot.Version.VersionNumber);
+                ClearPendingAnalysisIfMatches(buffer, pendingAnalysis);
             }
         }
 
@@ -221,16 +227,18 @@ namespace MarkdownLintVS.Linting
             }
         }
 
-        private static bool HasPendingAnalysisForSnapshot(ITextBuffer buffer, int snapshotVersion)
+        private static bool HasPendingImmediateAnalysisForSnapshot(ITextBuffer buffer, int snapshotVersion)
         {
             return buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis pendingAnalysis)
-                && pendingAnalysis.SnapshotVersion == snapshotVersion;
+                && pendingAnalysis.SnapshotVersion == snapshotVersion
+                && !pendingAnalysis.IsDebounced;
         }
 
-        private static void ClearPendingAnalysisIfSnapshotMatches(ITextBuffer buffer, int snapshotVersion)
+        private static void ClearPendingAnalysisIfMatches(ITextBuffer buffer, PendingAnalysis completedAnalysis)
         {
             if (buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis pendingAnalysis)
-                && pendingAnalysis.SnapshotVersion == snapshotVersion)
+                // A newer pending analysis can target the same snapshot, so match the exact operation.
+                && ReferenceEquals(pendingAnalysis, completedAnalysis))
             {
                 _ = buffer.Properties.RemoveProperty(_pendingAnalysisKey);
                 pendingAnalysis.CancellationTokenSource.Dispose();
