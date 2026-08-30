@@ -135,7 +135,11 @@ namespace MarkdownLintVS.Linting.Rules
                 }
 
                 // Check if it's a file or directory
-                return File.Exists(fullPath) || Directory.Exists(fullPath);
+                if (File.Exists(fullPath) || Directory.Exists(fullPath))
+                    return true;
+
+                return string.Equals(Path.GetExtension(fullPath), ".html", StringComparison.OrdinalIgnoreCase) &&
+                       File.Exists(Path.ChangeExtension(fullPath, ".md"));
             }
             catch
             {

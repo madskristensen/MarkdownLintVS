@@ -76,6 +76,28 @@ public sealed class FileLinkRuleTests
     }
 
     [TestMethod]
+    public void MD061_WhenHtmlLinkHasMatchingMarkdownFileThenNoViolations()
+    {
+        var testDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(testDirectory);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(testDirectory, "file.md"), "# File");
+            var rule = new MD061_FileLinkExists();
+            var analysis = new MarkdownDocumentAnalysis("[link](file.html)", Path.Combine(testDirectory, "source.md"));
+
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+            Assert.IsEmpty(violations);
+        }
+        finally
+        {
+            Directory.Delete(testDirectory, true);
+        }
+    }
+
+    [TestMethod]
     public void MD061_WhenImageLinkThenNoViolations()
     {
         // MD061 should skip image links (those are handled by MD062)
