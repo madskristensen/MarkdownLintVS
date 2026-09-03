@@ -72,7 +72,7 @@ public sealed class SchemaValidationTests
         var root = (Dictionary<string, object>)serializer.DeserializeObject(content);
         var properties = (object[])root["properties"];
 
-        Assert.IsTrue(properties.Length > 0, "'properties' array should not be empty.");
+        Assert.IsNotEmpty(properties, "'properties' array should not be empty.");
     }
 
     [TestMethod]
@@ -132,7 +132,7 @@ public sealed class SchemaValidationTests
         for (int i = 0; i < properties.Length; i++)
         {
             var entry = (Dictionary<string, object>)properties[i];
-            string name = entry["name"]?.ToString();
+            string? name = entry["name"]?.ToString();
 
             Assert.IsFalse(string.IsNullOrWhiteSpace(name), $"Property at index {i} has an empty or null 'name'.");
         }

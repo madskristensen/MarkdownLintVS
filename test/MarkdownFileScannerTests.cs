@@ -19,7 +19,7 @@ public sealed class MarkdownFileScannerTests
 
         var results = scanner.ScanForMarkdownFiles();
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         Assert.IsTrue(results.Any(path => path.EndsWith("keep.md", System.StringComparison.OrdinalIgnoreCase)));
     }
 
@@ -34,7 +34,7 @@ public sealed class MarkdownFileScannerTests
 
         var results = scanner.ScanForMarkdownFiles();
 
-        Assert.AreEqual(0, results.Count);
+        Assert.IsEmpty(results);
     }
 
     private static string CreateTempRoot()
