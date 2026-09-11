@@ -150,7 +150,8 @@ namespace MarkdownLintVS.Linting
             MarkdownDocumentAnalysis analysis,
             Dictionary<string, RuleConfiguration> ruleConfigs,
             Dictionary<string, RuleConfiguration> editorConfigSettings,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool parallelRules = true)
         {
             IReadOnlyList<IMarkdownRule> rules = Instance.Rules;
 
@@ -162,7 +163,8 @@ namespace MarkdownLintVS.Linting
                 analysis,
                 editorConfigSettings,
                 cancellationToken,
-                (rule, configs) => GetConfigurationForRuleStatic(rule, ruleConfigs, configs));
+                (rule, configs) => GetConfigurationForRuleStatic(rule, ruleConfigs, configs),
+                parallelRules);
         }
 
         /// <summary>
@@ -176,7 +178,8 @@ namespace MarkdownLintVS.Linting
             MarkdownDocumentAnalysis analysis,
             Dictionary<string, RuleConfiguration> configurations,
             CancellationToken cancellationToken,
-            Func<RuleInfo, Dictionary<string, RuleConfiguration>, RuleConfiguration> getConfig)
+            Func<RuleInfo, Dictionary<string, RuleConfiguration>, RuleConfiguration> getConfig,
+            bool parallelRules = true)
         {
             // Pre-filter to only enabled rules
             var enabledRules = new List<(IMarkdownRule Rule, RuleConfiguration Config)>();
@@ -194,36 +197,49 @@ namespace MarkdownLintVS.Linting
 
             var results = new ConcurrentBag<LintViolation>();
 
-            Parallel.ForEach(enabledRules,
-                new ParallelOptions
+            void AnalyzeRule((IMarkdownRule Rule, RuleConfiguration Config) entry)
+            {
+                try
                 {
-                    MaxDegreeOfParallelism = Environment.ProcessorCount,
-                    CancellationToken = cancellationToken
-                },
-                entry =>
-                {
-                    try
+                    foreach (LintViolation violation in entry.Rule.Analyze(
+                        analysis, entry.Config, entry.Config.Severity, cancellationToken))
                     {
-                        foreach (LintViolation violation in entry.Rule.Analyze(
-                            analysis, entry.Config, entry.Config.Severity, cancellationToken))
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                            if (!analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
-                            {
-                                results.Add(violation);
-                            }
+                        if (!analysis.Suppressions.IsRuleSuppressed(violation.LineNumber, violation.Rule))
+                        {
+                            results.Add(violation);
                         }
                     }
-                    catch (OperationCanceledException)
+                }
+                catch (OperationCanceledException)
+                {
+                    throw; // Propagate cancellation
+                }
+                catch (Exception ex)
+                {
+                    ex.Log($"Rule {entry.Rule.Info.Id} analysis failed");
+                }
+            }
+
+            if (parallelRules)
+            {
+                Parallel.ForEach(enabledRules,
+                    new ParallelOptions
                     {
-                        throw; // Propagate cancellation
-                    }
-                    catch (Exception ex)
-                    {
-                        ex.Log($"Rule {entry.Rule.Info.Id} analysis failed");
-                    }
-                });
+                        MaxDegreeOfParallelism = Environment.ProcessorCount,
+                        CancellationToken = cancellationToken
+                    },
+                    AnalyzeRule);
+            }
+            else
+            {
+                foreach ((IMarkdownRule Rule, RuleConfiguration Config) entry in enabledRules)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AnalyzeRule(entry);
+                }
+            }
 
             cancellationToken.ThrowIfCancellationRequested();
 

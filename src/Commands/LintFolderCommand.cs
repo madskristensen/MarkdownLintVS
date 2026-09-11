@@ -155,7 +155,12 @@ namespace MarkdownLintVS.Commands
                                 fileDir,
                                 dir => MarkdownLintAnalyzer.GetEditorConfigSettings(dir));
 
-                            IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(analysis, ruleConfigs, editorConfigSettings, cancellationToken);
+                            IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(
+                                analysis,
+                                ruleConfigs,
+                                editorConfigSettings,
+                                cancellationToken,
+                                parallelRules: false);
 
                             var fileViolations = violations.ToList();
                             if (fileViolations.Count > 0)
