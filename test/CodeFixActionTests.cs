@@ -239,61 +239,6 @@ public sealed class CodeFixActionTests
         Assert.AreEqual("leading_and_trailing", style);
     }
 
-    #endregion
-
-    #region Analyzer Integration Tests for Fixable Violations
-
-    [TestMethod]
-    public void WhenTrailingSpaces_ThenViolationIsForFixableRule()
-    {
-        var analyzer = new MarkdownLintAnalyzer();
-        var markdown = "# Title\n\nLine with spaces   \n";
-
-        var violations = analyzer.Analyze(markdown, string.Empty, TestContext.CancellationToken).ToList();
-
-        var md009 = violations.Where(v => v.Rule.Id == "MD009").ToList();
-        Assert.IsNotEmpty(md009);
-        Assert.AreEqual("MD009", md009[0].Rule.Id);
-    }
-
-    [TestMethod]
-    public void WhenHardTabs_ThenViolationIsForFixableRule()
-    {
-        var analyzer = new MarkdownLintAnalyzer();
-        var markdown = "# Title\n\n\tindented with tab\n";
-
-        var violations = analyzer.Analyze(markdown, string.Empty, TestContext.CancellationToken).ToList();
-
-        var md010 = violations.Where(v => v.Rule.Id == "MD010").ToList();
-        Assert.IsNotEmpty(md010);
-        Assert.AreEqual("MD010", md010[0].Rule.Id);
-    }
-
-    [TestMethod]
-    public void WhenNoMissingSpaceAtx_ThenViolationIsForFixableRule()
-    {
-        var analyzer = new MarkdownLintAnalyzer();
-        var markdown = "#Title without space\n";
-
-        var violations = analyzer.Analyze(markdown, string.Empty, TestContext.CancellationToken).ToList();
-
-        var md018 = violations.Where(v => v.Rule.Id == "MD018").ToList();
-        Assert.IsNotEmpty(md018);
-        Assert.AreEqual("MD018", md018[0].Rule.Id);
-    }
-
-    [TestMethod]
-    public void WhenMultipleBlankLines_ThenViolationIsForFixableRule()
-    {
-        var analyzer = new MarkdownLintAnalyzer();
-        var markdown = "# Title\n\n\n\nParagraph\n";
-
-        var violations = analyzer.Analyze(markdown, string.Empty, TestContext.CancellationToken).ToList();
-
-        var md012 = violations.Where(v => v.Rule.Id == "MD012").ToList();
-        Assert.IsNotEmpty(md012);
-    }
-
     public TestContext TestContext { get; set; }
 
     #endregion

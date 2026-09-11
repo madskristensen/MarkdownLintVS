@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -11,12 +12,12 @@ public sealed class MarkdownFileScannerTests
     [TestMethod]
     public void WhenIgnorePatternThenNegationPatternThenMatchingFileIsIncluded()
     {
-        var root = CreateTempRoot();
-        File.WriteAllText(Path.Combine(root, ".markdownlintignore"), "*.md\n!keep.md");
-        File.WriteAllText(Path.Combine(root, "keep.md"), "# keep");
-        File.WriteAllText(Path.Combine(root, "drop.md"), "# drop");
+        using var temp = new TempDirectory();
+        File.WriteAllText(temp.File(".markdownlintignore"), "*.md\n!keep.md");
+        File.WriteAllText(temp.File("keep.md"), "# keep");
+        File.WriteAllText(temp.File("drop.md"), "# drop");
 
-        var scanner = new MarkdownFileScanner(root);
+        var scanner = new MarkdownFileScanner(temp.Path);
 
         var results = scanner.ScanForMarkdownFiles();
 
@@ -27,11 +28,11 @@ public sealed class MarkdownFileScannerTests
     [TestMethod]
     public void WhenNegationPatternThenIgnorePatternThenLastRuleWinsAndFileIsIgnored()
     {
-        var root = CreateTempRoot();
-        File.WriteAllText(Path.Combine(root, ".markdownlintignore"), "!keep.md\n*.md");
-        File.WriteAllText(Path.Combine(root, "keep.md"), "# keep");
+        using var temp = new TempDirectory();
+        File.WriteAllText(temp.File(".markdownlintignore"), "!keep.md\n*.md");
+        File.WriteAllText(temp.File("keep.md"), "# keep");
 
-        var scanner = new MarkdownFileScanner(root);
+        var scanner = new MarkdownFileScanner(temp.Path);
 
         var results = scanner.ScanForMarkdownFiles();
 
@@ -41,16 +42,16 @@ public sealed class MarkdownFileScannerTests
     [TestMethod]
     public void WhenNestedIgnoreFileThenPatternsAreRelativeAndOverrideParentRules()
     {
-        var root = CreateTempRoot();
-        var nested = Directory.CreateDirectory(Path.Combine(root, "docs")).FullName;
-        var sibling = Directory.CreateDirectory(Path.Combine(root, "other")).FullName;
-        File.WriteAllText(Path.Combine(root, ".markdownlintignore"), "*.md");
+        using var temp = new TempDirectory();
+        var nested = Directory.CreateDirectory(temp.File("docs")).FullName;
+        var sibling = Directory.CreateDirectory(temp.File("other")).FullName;
+        File.WriteAllText(temp.File(".markdownlintignore"), "*.md");
         File.WriteAllText(Path.Combine(nested, ".markdownlintignore"), "!keep.md");
         File.WriteAllText(Path.Combine(nested, "keep.md"), "# keep");
         File.WriteAllText(Path.Combine(nested, "drop.md"), "# drop");
         File.WriteAllText(Path.Combine(sibling, "keep.md"), "# sibling");
 
-        var results = new MarkdownFileScanner(root).ScanForMarkdownFiles();
+        var results = new MarkdownFileScanner(temp.Path).ScanForMarkdownFiles();
 
         Assert.HasCount(1, results);
         Assert.AreEqual(Path.Combine(nested, "keep.md"), results[0]);
@@ -59,7 +60,8 @@ public sealed class MarkdownFileScannerTests
     [TestMethod]
     public async Task AsyncScan_WhenAlreadyCancelledThenThrows()
     {
-        var scanner = new MarkdownFileScanner(CreateTempRoot());
+        using var temp = new TempDirectory();
+        var scanner = new MarkdownFileScanner(temp.Path);
         using var source = new CancellationTokenSource();
         source.Cancel();
 
@@ -74,10 +76,133 @@ public sealed class MarkdownFileScannerTests
         Assert.IsTrue(MarkdownFileScanner.ShouldTraverseDirectory(FileAttributes.Directory));
     }
 
-    private static string CreateTempRoot()
+    [TestMethod]
+    public void DirectoryJunctionsAreNotTraversed()
     {
-        var root = Path.Combine(Path.GetTempPath(), "MarkdownLintVS.Tests", System.Guid.NewGuid().ToString("N"));
-        _ = Directory.CreateDirectory(root);
-        return root;
+        using var temp = new TempDirectory();
+        using var target = new TempDirectory();
+        string junction = temp.File("linked");
+        File.WriteAllText(temp.File("root.md"), "# root");
+        File.WriteAllText(target.File("linked.md"), "# linked");
+        CreateJunction(junction, target.Path);
+
+        try
+        {
+            IReadOnlyList<string> results = new MarkdownFileScanner(temp.Path).ScanForMarkdownFiles();
+
+            CollectionAssert.AreEqual(new[] { temp.File("root.md") }, results.ToArray());
+        }
+        finally
+        {
+            if (Directory.Exists(junction))
+                Directory.Delete(junction);
+        }
+    }
+
+    [TestMethod]
+    public void RootAnchoredPatternDoesNotIgnoreNestedFile()
+    {
+        using var temp = new TempDirectory();
+        string nested = Directory.CreateDirectory(temp.File("docs")).FullName;
+        File.WriteAllText(temp.File(".markdownlintignore"), "/ignored.md");
+        File.WriteAllText(temp.File("ignored.md"), "# root");
+        File.WriteAllText(Path.Combine(nested, "ignored.md"), "# nested");
+
+        IReadOnlyList<string> results = new MarkdownFileScanner(temp.Path).ScanForMarkdownFiles();
+
+        CollectionAssert.AreEqual(new[] { Path.Combine(nested, "ignored.md") }, results.ToArray());
+    }
+
+    [TestMethod]
+    public void NestedAnchoredPatternIsRelativeToItsIgnoreFile()
+    {
+        using var temp = new TempDirectory();
+        string docs = Directory.CreateDirectory(temp.File("docs")).FullName;
+        string deeper = Directory.CreateDirectory(Path.Combine(docs, "nested")).FullName;
+        File.WriteAllText(Path.Combine(docs, ".markdownlintignore"), "/ignored.md");
+        File.WriteAllText(Path.Combine(docs, "ignored.md"), "# ignored");
+        File.WriteAllText(Path.Combine(deeper, "ignored.md"), "# included");
+
+        IReadOnlyList<string> results = new MarkdownFileScanner(temp.Path).ScanForMarkdownFiles();
+
+        CollectionAssert.AreEqual(new[] { Path.Combine(deeper, "ignored.md") }, results.ToArray());
+    }
+
+    [TestMethod]
+    public void CancellationDuringTraversalStopsBeforeReadingNextDirectory()
+    {
+        using var temp = new TempDirectory();
+        string nested = Directory.CreateDirectory(temp.File("docs")).FullName;
+        File.WriteAllText(Path.Combine(nested, "file.md"), "# file");
+        using var source = new CancellationTokenSource();
+        var scanner = new MarkdownFileScanner(temp.Path, directory =>
+        {
+            if (directory == nested)
+                source.Cancel();
+        });
+
+        Assert.ThrowsExactly<OperationCanceledException>(
+            () => scanner.ScanForMarkdownFiles(source.Token));
+    }
+
+    [TestMethod]
+    public void DirectoryThatDisappearsDuringTraversalIsSkipped()
+    {
+        using var temp = new TempDirectory();
+        string nested = Directory.CreateDirectory(temp.File("docs")).FullName;
+        File.WriteAllText(temp.File("root.md"), "# root");
+        var scanner = new MarkdownFileScanner(temp.Path, directory =>
+        {
+            if (directory == nested)
+                Directory.Delete(nested, recursive: true);
+        });
+
+        IReadOnlyList<string> results = scanner.ScanForMarkdownFiles();
+
+        CollectionAssert.AreEqual(new[] { temp.File("root.md") }, results.ToArray());
+    }
+
+    private static void CreateJunction(string junction, string target)
+    {
+        string commandInterpreter = Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe";
+        var startInfo = new ProcessStartInfo(
+            commandInterpreter,
+            $"/c mklink /J \"{junction}\" \"{target}\"")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Unable to start the command interpreter.");
+        process.WaitForExit();
+        Assert.AreEqual(
+            0,
+            process.ExitCode,
+            $"Unable to create test junction: {process.StandardError.ReadToEnd()}");
+    }
+
+    private sealed class TempDirectory : IDisposable
+    {
+        public TempDirectory()
+        {
+            Path = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                "MarkdownLintVS.Tests",
+                Guid.NewGuid().ToString("N"));
+            _ = Directory.CreateDirectory(Path);
+        }
+
+        public string Path { get; }
+
+        public string File(string relativePath) => System.IO.Path.Combine(Path, relativePath);
+
+        public void Dispose()
+        {
+            if (Directory.Exists(Path))
+                Directory.Delete(Path, recursive: true);
+        }
     }
 }

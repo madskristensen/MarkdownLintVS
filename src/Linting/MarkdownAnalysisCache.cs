@@ -263,10 +263,13 @@ namespace MarkdownLintVS.Linting
                     violations = [];
                 }
 
-                if (cancellationToken.IsCancellationRequested ||
-                    buffer.CurrentSnapshot.Version.VersionNumber != snapshot.Version.VersionNumber ||
-                    !buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis currentPending) ||
-                    !ReferenceEquals(currentPending, pendingAnalysis))
+                buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis currentPending);
+                if (!CanPublishAnalysis(
+                    cancellationToken.IsCancellationRequested,
+                    snapshot.Version.VersionNumber,
+                    buffer.CurrentSnapshot.Version.VersionNumber,
+                    pendingAnalysis,
+                    currentPending))
                 {
                     return;
                 }
@@ -313,14 +316,36 @@ namespace MarkdownLintVS.Linting
         private static bool HasPendingAnalysisForSnapshot(ITextBuffer buffer, int snapshotVersion)
         {
             return buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis pendingAnalysis)
-                && pendingAnalysis.SnapshotVersion == snapshotVersion;
+                && IsPendingAnalysisForSnapshot(pendingAnalysis, snapshotVersion);
         }
 
         private static bool HasPendingImmediateAnalysisForSnapshot(ITextBuffer buffer, int snapshotVersion)
         {
             return buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis pendingAnalysis)
-                && pendingAnalysis.SnapshotVersion == snapshotVersion
+                && IsPendingImmediateAnalysisForSnapshot(pendingAnalysis, snapshotVersion);
+        }
+
+        internal static bool IsPendingAnalysisForSnapshot(PendingAnalysis pendingAnalysis, int snapshotVersion)
+        {
+            return pendingAnalysis?.SnapshotVersion == snapshotVersion;
+        }
+
+        internal static bool IsPendingImmediateAnalysisForSnapshot(PendingAnalysis pendingAnalysis, int snapshotVersion)
+        {
+            return IsPendingAnalysisForSnapshot(pendingAnalysis, snapshotVersion)
                 && !pendingAnalysis.IsDebounced;
+        }
+
+        internal static bool CanPublishAnalysis(
+            bool isCancellationRequested,
+            int analyzedSnapshotVersion,
+            int currentSnapshotVersion,
+            PendingAnalysis completedAnalysis,
+            PendingAnalysis currentPendingAnalysis)
+        {
+            return !isCancellationRequested
+                && analyzedSnapshotVersion == currentSnapshotVersion
+                && ReferenceEquals(completedAnalysis, currentPendingAnalysis);
         }
 
         private static void ClearPendingAnalysisIfMatches(ITextBuffer buffer, PendingAnalysis completedAnalysis)

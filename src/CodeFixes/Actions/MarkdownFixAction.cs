@@ -15,6 +15,20 @@ namespace MarkdownLintVS.CodeFixes.Actions
     {
         protected readonly ITextSnapshot Snapshot = snapshot;
         protected readonly Span Span = span;
+        protected string NewLine
+        {
+            get
+            {
+                for (var lineNumber = 0; lineNumber < Snapshot.LineCount; lineNumber++)
+                {
+                    string lineBreak = Snapshot.GetLineFromLineNumber(lineNumber).GetLineBreakText();
+                    if (lineBreak.Length > 0)
+                        return lineBreak;
+                }
+
+                return Environment.NewLine;
+            }
+        }
 
         public abstract string DisplayText { get; }
         public virtual string IconAutomationText => null;

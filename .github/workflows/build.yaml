@@ -71,6 +71,29 @@ jobs:
         --verbosity normal
         --results-directory "${{ env.TestResultsDirectory }}"
         --logger "trx;LogFileName=test-results.trx"
+        --collect "Code Coverage;Format=Cobertura"
+
+    - name: Add coverage summary
+      if: ${{ !cancelled() }}
+      shell: pwsh
+      run: |
+        $coverageFile = Get-ChildItem "${{ env.TestResultsDirectory }}" -Filter "*.cobertura.xml" -Recurse |
+          Select-Object -First 1
+        if (-not $coverageFile) {
+          throw "Cobertura coverage report was not produced."
+        }
+
+        [xml]$coverage = Get-Content $coverageFile.FullName
+        $lineCoverage = [double]$coverage.coverage.'line-rate'
+        $branchCoverage = [double]$coverage.coverage.'branch-rate'
+        @"
+        ## Code coverage
+
+        | Metric | Coverage |
+        | --- | ---: |
+        | Lines | $($lineCoverage.ToString('P2')) |
+        | Branches | $($branchCoverage.ToString('P2')) |
+        "@ >> $env:GITHUB_STEP_SUMMARY
 
     - name: Report test results
       uses: dorny/test-reporter@v3
@@ -80,6 +103,14 @@ jobs:
         path: TestResults/**/*.trx
         reporter: dotnet-trx
         fail-on-error: true
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v7
+      if: ${{ !cancelled() }}
+      with:
+        name: code-coverage
+        path: TestResults/**/*.cobertura.xml
+        if-no-files-found: error
 
     - name: Upload artifact
       uses: actions/upload-artifact@v7

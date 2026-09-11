@@ -6,10 +6,21 @@ namespace MarkdownLintVS.CodeFixes.Actions
     /// Fix action to remove extra trailing newlines at end of file (MD047).
     /// Removes all trailing blank lines except one, leaving a single newline at EOF.
     /// </summary>
-    [FixForRule("MD047")]
+    [FixForRule("MD047", RequiresFactory = true)]
     public class RemoveExtraTrailingNewlinesAction(ITextSnapshot snapshot, Span span) : MarkdownFixAction(snapshot, span)
     {
         public override string DisplayText => "Remove extra newlines at end of file";
+
+        public static MarkdownFixAction Create(
+            ITextSnapshot snapshot,
+            Span span,
+            Linting.LintViolation _)
+        {
+            if (snapshot.Length > 0 && snapshot[snapshot.Length - 1] != '\r' && snapshot[snapshot.Length - 1] != '\n')
+                return new AddFinalNewlineAction(snapshot, span);
+
+            return new RemoveExtraTrailingNewlinesAction(snapshot, span);
+        }
 
         public override void ApplyFix(ITextEdit edit)
         {
@@ -64,9 +75,9 @@ namespace MarkdownLintVS.CodeFixes.Actions
             {
                 // Get the last line of content
                 ITextSnapshotLine lastContentLine = Snapshot.GetLineFromPosition(lastContentEnd - 1);
-                return lastContentLine.GetText() + "\r\n";
+                return lastContentLine.GetText() + NewLine;
             }
-            return "\r\n";
+            return NewLine;
         }
     }
 }

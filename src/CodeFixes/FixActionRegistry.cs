@@ -57,7 +57,7 @@ namespace MarkdownLintVS.CodeFixes
         {
             var result = new Dictionary<string, FixActionInfo>(StringComparer.OrdinalIgnoreCase);
 
-            IEnumerable<Type> fixActionTypes = typeof(MarkdownFixAction).Assembly.GetTypes()
+            IEnumerable<Type> fixActionTypes = GetLoadableTypes(typeof(MarkdownFixAction).Assembly)
                 .Where(t => !t.IsAbstract && typeof(MarkdownFixAction).IsAssignableFrom(t));
 
             foreach (Type type in fixActionTypes)
@@ -78,6 +78,18 @@ namespace MarkdownLintVS.CodeFixes
             }
 
             return result;
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(type => type != null);
+            }
         }
 
         /// <summary>

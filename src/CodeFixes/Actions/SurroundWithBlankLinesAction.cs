@@ -1,4 +1,3 @@
-using System;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.Text;
 
@@ -83,7 +82,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
                 if (!string.IsNullOrWhiteSpace(lineAfter.GetText()))
                 {
                     ITextSnapshotLine endLine = Snapshot.GetLineFromLineNumber(endLineNumber);
-                    edit.Insert(endLine.EndIncludingLineBreak, Environment.NewLine);
+                    edit.Insert(endLine.EndIncludingLineBreak, NewLine);
                 }
             }
 
@@ -93,7 +92,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
                 ITextSnapshotLine lineBefore = Snapshot.GetLineFromLineNumber(startLineNumber - 1);
                 if (!string.IsNullOrWhiteSpace(lineBefore.GetText()))
                 {
-                    edit.Insert(startLine.Start, Environment.NewLine);
+                    edit.Insert(startLine.Start, NewLine);
                 }
             }
         }
@@ -156,7 +155,7 @@ namespace MarkdownLintVS.CodeFixes.Actions
         protected override string GetFixedText()
         {
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            return Environment.NewLine + line.GetText() + Environment.NewLine;
+            return NewLine + line.GetText() + NewLine;
         }
     }
 }

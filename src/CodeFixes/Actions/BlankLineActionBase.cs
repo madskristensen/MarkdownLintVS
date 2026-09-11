@@ -1,4 +1,3 @@
-using System;
 using Microsoft.VisualStudio.Text;
 
 namespace MarkdownLintVS.CodeFixes.Actions
@@ -47,9 +46,9 @@ namespace MarkdownLintVS.CodeFixes.Actions
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             
             if (Position == BlankLinePosition.Before)
-                edit.Insert(line.Start, Environment.NewLine);
+                edit.Insert(line.Start, NewLine);
             else
-                edit.Insert(line.EndIncludingLineBreak, Environment.NewLine);
+                edit.Insert(line.EndIncludingLineBreak, NewLine);
         }
 
         protected override string GetFixedText()
@@ -57,8 +56,8 @@ namespace MarkdownLintVS.CodeFixes.Actions
             ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
             
             return Position == BlankLinePosition.Before
-                ? Environment.NewLine + line.GetText()
-                : line.GetText() + Environment.NewLine;
+                ? NewLine + line.GetText()
+                : line.GetText() + NewLine;
         }
     }
 }

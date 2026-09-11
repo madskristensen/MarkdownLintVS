@@ -28,14 +28,21 @@ namespace MarkdownLintVS.Linting
 
         private readonly HashSet<string> _ignoredFolderNames;
         private readonly string _rootDirectory;
+        private readonly Action<string> _directoryVisited;
 
         /// <summary>
         /// Creates a new scanner for the specified root directory.
         /// </summary>
         /// <param name="rootDirectory">The root directory to scan.</param>
         public MarkdownFileScanner(string rootDirectory)
+            : this(rootDirectory, null)
+        {
+        }
+
+        internal MarkdownFileScanner(string rootDirectory, Action<string> directoryVisited)
         {
             _rootDirectory = rootDirectory ?? throw new ArgumentNullException(nameof(rootDirectory));
+            _directoryVisited = directoryVisited;
 
             // Get ignored folder names from settings (with fallback to defaults)
             string[] ignoredFolders;
@@ -82,6 +89,8 @@ namespace MarkdownLintVS.Linting
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                _directoryVisited?.Invoke(directory);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Check if this directory should be ignored by folder name
@@ -210,8 +219,9 @@ namespace MarkdownLintVS.Linting
             // Normalize path separators
             pattern = pattern.Replace('\\', '/');
 
-            // If pattern starts with /, it's relative to root
-            if (pattern.StartsWith("/"))
+            // A leading slash anchors the pattern to the directory containing the ignore file.
+            bool isAnchored = pattern.StartsWith("/");
+            if (isAnchored)
             {
                 pattern = pattern.Substring(1);
             }
@@ -223,7 +233,7 @@ namespace MarkdownLintVS.Linting
             }
 
             // If pattern doesn't contain /, it matches in any directory
-            if (!pattern.Contains("/"))
+            if (!isAnchored && !pattern.Contains("/"))
             {
                 pattern = "**/" + pattern;
             }
