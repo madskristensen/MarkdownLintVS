@@ -43,7 +43,8 @@ namespace MarkdownLintVS.Tagging
         private readonly ITextBuffer _buffer;
         private readonly MarkdownAnalysisCache _analysisCache;
         private readonly IEditorOptions _editorOptions;
-        private readonly string _filePath;
+        private readonly ITextDocument _document;
+        private readonly DocumentPathTracker _pathTracker;
         private ITextSnapshot _currentSnapshot;
         private List<LintResult> _currentResults;
         private bool _isDisposed;
@@ -57,17 +58,20 @@ namespace MarkdownLintVS.Tagging
             _analysisCache = analysisCache ?? throw new ArgumentNullException(nameof(analysisCache));
             _currentSnapshot = buffer.CurrentSnapshot;
             _currentResults = [];
-            _filePath = GetFilePath();
+            _buffer.Properties.TryGetProperty(typeof(ITextDocument), out _document);
+            _pathTracker = new DocumentPathTracker(_document?.FilePath);
             _editorOptions = _analysisCache.GetEditorOptions(_buffer);
 
             _buffer.Changed += OnBufferChanged;
+            if (_document != null)
+                _document.FileActionOccurred += OnFileActionOccurred;
             _editorOptions.OptionChanged += OnEditorOptionChanged;
             RuleOptions.Saved += OnRuleOptionsSaved;
             GeneralOptions.Saved += OnGeneralOptionsSaved;
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
 
             // Initial analysis - immediate, no debounce for fast feedback on file open
-            _analysisCache.AnalyzeImmediate(_buffer, _filePath);
+            _analysisCache.AnalyzeImmediate(_buffer, _pathTracker.CurrentPath);
         }
 
         private void OnEditorOptionChanged(object sender, EditorOptionChangedEventArgs e)
@@ -78,13 +82,13 @@ namespace MarkdownLintVS.Tagging
 
         internal void Reanalyze()
         {
-            _analysisCache.Reanalyze(_buffer, _filePath);
+            _analysisCache.Reanalyze(_buffer, _pathTracker.CurrentPath);
         }
 
         private void OnRuleOptionsSaved(RuleOptions options)
         {
             // Revalidate immediately when options change - no debounce needed
-            _analysisCache.AnalyzeImmediate(_buffer, _filePath);
+            _analysisCache.AnalyzeImmediate(_buffer, _pathTracker.CurrentPath);
         }
 
         private void OnGeneralOptionsSaved(GeneralOptions options)
@@ -95,7 +99,7 @@ namespace MarkdownLintVS.Tagging
             }
 
             // Revalidate immediately when linting is enabled/disabled
-            _analysisCache.AnalyzeImmediate(_buffer, _filePath);
+            _analysisCache.AnalyzeImmediate(_buffer, _pathTracker.CurrentPath);
         }
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
@@ -107,7 +111,16 @@ namespace MarkdownLintVS.Tagging
 
             // Keep existing results while debounced analysis runs. Tracking spans translate stale
             // squiggles to the edited snapshot, and the next analysis replaces or clears them.
-            _analysisCache.InvalidateAndAnalyze(_buffer, _filePath);
+            _analysisCache.InvalidateAndAnalyze(_buffer, _pathTracker.CurrentPath);
+        }
+
+        private void OnFileActionOccurred(object sender, TextDocumentFileActionEventArgs e)
+        {
+            if (e.FileActionType == FileActionTypes.DocumentRenamed &&
+                _pathTracker.Update(e.FilePath) != null)
+            {
+                Reanalyze();
+            }
         }
 
         private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
@@ -336,26 +349,36 @@ namespace MarkdownLintVS.Tagging
             };
         }
 
-        private string GetFilePath()
-        {
-            if (_buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document))
-            {
-                return document.FilePath;
-            }
-            return null;
-        }
-
         public void Dispose()
         {
             if (!_isDisposed)
             {
                 _buffer.Changed -= OnBufferChanged;
+                if (_document != null)
+                    _document.FileActionOccurred -= OnFileActionOccurred;
                 _editorOptions.OptionChanged -= OnEditorOptionChanged;
                 RuleOptions.Saved -= OnRuleOptionsSaved;
                 GeneralOptions.Saved -= OnGeneralOptionsSaved;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
                 _isDisposed = true;
             }
+        }
+    }
+
+    internal sealed class DocumentPathTracker(string initialPath)
+    {
+        public string CurrentPath { get; private set; } = initialPath;
+
+        public string Update(string newPath)
+        {
+            if (string.Equals(CurrentPath, newPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            string oldPath = CurrentPath;
+            CurrentPath = newPath;
+            return oldPath;
         }
     }
 

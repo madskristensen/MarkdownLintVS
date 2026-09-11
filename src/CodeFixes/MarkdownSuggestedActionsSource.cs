@@ -30,17 +30,7 @@ namespace MarkdownLintVS.CodeFixes
             if (textBuffer == null || textView == null || textView.Roles.Contains(DifferenceViewerRoles.DiffTextViewRole))
                 return null;
 
-            var filePath = GetFilePath(textBuffer);
-            return new MarkdownSuggestedActionsSource(textBuffer, AnalysisCache, filePath);
-        }
-
-        private string GetFilePath(ITextBuffer buffer)
-        {
-            if (buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document))
-            {
-                return document.FilePath;
-            }
-            return null;
+            return new MarkdownSuggestedActionsSource(textBuffer, AnalysisCache);
         }
     }
 
@@ -48,7 +38,7 @@ namespace MarkdownLintVS.CodeFixes
     /// Source for markdown lint suggested actions.
     /// Uses FixActionRegistry to auto-discover available fix actions.
     /// </summary>
-    internal class MarkdownSuggestedActionsSource(ITextBuffer buffer, MarkdownAnalysisCache analysisCache, string filePath) : ISuggestedActionsSource2
+    internal class MarkdownSuggestedActionsSource(ITextBuffer buffer, MarkdownAnalysisCache analysisCache) : ISuggestedActionsSource2
     {
         /// <summary>
         /// Creates a fix action for a violation. Used by both single-fix and fix-all operations.
@@ -134,6 +124,7 @@ namespace MarkdownLintVS.CodeFixes
                     if (!seenRules.Contains(violation.Rule.Id) && IsRuleAutoFixable(violation.Rule.Id))
                     {
                         seenRules.Add(violation.Rule.Id);
+                        string filePath = GetCurrentFilePath();
                         fixAllActions.Add(new FixAllInDocumentAction(range.Snapshot, violation.Rule.Id, filePath));
 
                         // For style-consistency rules, add a more descriptive "Convert all" action
@@ -158,7 +149,7 @@ namespace MarkdownLintVS.CodeFixes
             if (fixAllActions.Count > 0)
             {
                 // Add "Fix all auto-fixable" action
-                fixAllActions.Add(new FixAllAutoFixableAction(range.Snapshot, filePath));
+                fixAllActions.Add(new FixAllAutoFixableAction(range.Snapshot, GetCurrentFilePath()));
 
                 yield return new SuggestedActionSet(
                     categoryName: PredefinedSuggestedActionCategoryNames.CodeFix,
@@ -170,7 +161,7 @@ namespace MarkdownLintVS.CodeFixes
 
         private IEnumerable<LintViolation> GetViolationsAtRange(SnapshotSpan range)
         {
-            IReadOnlyList<LintViolation> violations = analysisCache.GetCurrentOrAnalyze(buffer, filePath);
+            IReadOnlyList<LintViolation> violations = analysisCache.GetCurrentOrAnalyze(buffer, GetCurrentFilePath());
 
             foreach (LintViolation violation in violations)
             {
@@ -205,6 +196,13 @@ namespace MarkdownLintVS.CodeFixes
                     yield return violation;
                 }
             }
+        }
+
+        private string GetCurrentFilePath()
+        {
+            return buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document)
+                ? document.FilePath
+                : null;
         }
 
         public void Dispose()

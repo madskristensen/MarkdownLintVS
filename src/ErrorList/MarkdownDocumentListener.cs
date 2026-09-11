@@ -1,5 +1,6 @@
 using System.ComponentModel.Composition;
 using MarkdownLintVS.Linting;
+using MarkdownLintVS.Tagging;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Differencing;
 using Microsoft.VisualStudio.Text.Editor;
@@ -62,7 +63,8 @@ namespace MarkdownLintVS.ErrorList
         private readonly ITextBuffer _buffer;
         private readonly MarkdownLintTableDataSource _tableDataSource;
         private readonly MarkdownAnalysisCache _analysisCache;
-        private readonly string _filePath;
+        private readonly ITextDocument _document;
+        private readonly DocumentPathTracker _pathTracker;
         private readonly ViewReferenceCounter _viewReferences = new();
         private bool _disposed;
 
@@ -75,11 +77,14 @@ namespace MarkdownLintVS.ErrorList
             _buffer = buffer;
             _tableDataSource = tableDataSource;
             _analysisCache = analysisCache;
-            _filePath = filePath;
+            _pathTracker = new DocumentPathTracker(filePath);
+            _buffer.Properties.TryGetProperty(typeof(ITextDocument), out _document);
 
             // Only listen for analysis results — the tagger owns triggering analysis
             // (on buffer changes, option saves, and initial file open).
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
+            if (_document != null)
+                _document.FileActionOccurred += OnFileActionOccurred;
         }
 
         public void AddView() => _viewReferences.Add();
@@ -98,10 +103,22 @@ namespace MarkdownLintVS.ErrorList
                 return;
 
             // Update error list with new results
-            _tableDataSource?.UpdateErrors(_filePath, e.Violations);
+            _tableDataSource?.UpdateErrors(_pathTracker.CurrentPath, e.Violations);
 
             // Register successful usage for rating prompt
             MarkdownLintVSPackage.RatingPrompt?.RegisterSuccessfulUsage();
+        }
+
+        private void OnFileActionOccurred(object sender, TextDocumentFileActionEventArgs e)
+        {
+            if (e.FileActionType != FileActionTypes.DocumentRenamed)
+                return;
+
+            string oldPath = _pathTracker.Update(e.FilePath);
+            if (oldPath != null)
+            {
+                _tableDataSource?.ClearErrors(oldPath);
+            }
         }
 
         public void Dispose()
@@ -110,7 +127,9 @@ namespace MarkdownLintVS.ErrorList
             {
                 _disposed = true;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
-                _tableDataSource?.ClearErrors(_filePath);
+                if (_document != null)
+                    _document.FileActionOccurred -= OnFileActionOccurred;
+                _tableDataSource?.ClearErrors(_pathTracker.CurrentPath);
                 _ = _buffer.Properties.RemoveProperty(typeof(DocumentHandler));
             }
         }
