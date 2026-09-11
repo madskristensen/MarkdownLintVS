@@ -6,6 +6,7 @@ using Microsoft.VSDiagnostics;
 namespace MarkdownLintVS.Benchmarks
 {
     [CPUUsageDiagnoser]
+    [MemoryDiagnoser]
     public class MarkdownLintBenchmarks
     {
         private string _smallDocument;
@@ -135,6 +136,19 @@ MIT License
         public int AnalyzeLargeDocument()
         {
             return _analyzer.Analyze(_largeDocument, null).Count();
+        }
+
+        [Benchmark(OperationsPerInvoke = 10)]
+        public int AnalyzeEditorLikeSequence()
+        {
+            var violationCount = 0;
+            for (var i = 0; i < 10; i++)
+            {
+                string editedDocument = _smallDocument + new string(' ', i);
+                violationCount += _analyzer.Analyze(editedDocument, null).Count();
+            }
+
+            return violationCount;
         }
 
         [Benchmark]

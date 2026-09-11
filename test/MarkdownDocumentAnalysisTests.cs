@@ -114,6 +114,22 @@ public sealed class MarkdownDocumentAnalysisTests
         Assert.IsTrue(analysis.IsLineInCodeBlock(3));  // code line
         Assert.IsTrue(analysis.IsLineInCodeBlock(4));  // ```
         Assert.IsFalse(analysis.IsLineInCodeBlock(6)); // More text
+        Assert.IsFalse(analysis.IsLineInCodeBlock(-1));
+        Assert.IsFalse(analysis.IsLineInCodeBlock(analysis.LineCount));
+    }
+
+    [TestMethod]
+    public void HtmlBlockAndLanguageIndexesPreserveLineBoundaries()
+    {
+        var analysis = new MarkdownDocumentAnalysis(
+            "<div>\ncontent\n</div>\n\n```csharp\nvar value = 1;\n```\n");
+
+        Assert.IsTrue(analysis.IsLineInHtmlBlock(0));
+        Assert.IsTrue(analysis.IsLineInHtmlBlock(2));
+        Assert.IsFalse(analysis.IsLineInHtmlBlock(3));
+        Assert.AreEqual("csharp", analysis.GetCodeBlockLanguage(4));
+        Assert.AreEqual("csharp", analysis.GetCodeBlockLanguage(6));
+        Assert.IsNull(analysis.GetCodeBlockLanguage(7));
     }
 
     [TestMethod]

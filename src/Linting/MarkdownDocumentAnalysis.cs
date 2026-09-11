@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -47,15 +48,17 @@ namespace MarkdownLintVS.Linting
 
         // Precomputed caches for O(1) lookups
         private readonly int[] _lineStartOffsets;
-        private readonly HashSet<int> _codeBlockLines;
-        private readonly string[] _codeBlockLanguages;
-        private readonly HashSet<int> _htmlBlockLines;
+        private readonly BitArray _codeBlockLines;
+        private readonly Lazy<string[]> _codeBlockLanguages;
+        private readonly Lazy<BitArray> _htmlBlockLines;
         private readonly int _frontMatterEndLine;
-        private readonly HashSet<int> _tocCommentLines;
+        private readonly Lazy<BitArray> _tocCommentLines;
         private readonly SuppressionMap _suppressionMap;
         private readonly string _frontMatterRootPath;
-        private readonly ConcurrentDictionary<string, bool> _fileExistenceCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly ConcurrentDictionary<string, bool> _directoryExistenceCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Lazy<ConcurrentDictionary<string, bool>> _fileExistenceCache =
+            new(() => new(StringComparer.OrdinalIgnoreCase));
+        private readonly Lazy<ConcurrentDictionary<string, bool>> _directoryExistenceCache =
+            new(() => new(StringComparer.OrdinalIgnoreCase));
 
         public string Text => _text;
         public string[] Lines => _lines;
@@ -123,10 +126,10 @@ namespace MarkdownLintVS.Linting
 
             // Precompute expensive lookups once
             _codeBlockLines = BuildCodeBlockLinesCache();
-            _codeBlockLanguages = BuildCodeBlockLanguagesCache();
-            _htmlBlockLines = BuildHtmlBlockLinesCache();
+            _codeBlockLanguages = new(BuildCodeBlockLanguagesCache);
+            _htmlBlockLines = new(BuildHtmlBlockLinesCache);
             _frontMatterEndLine = ComputeFrontMatterEndLine();
-            _tocCommentLines = BuildTocCommentLinesCache();
+            _tocCommentLines = new(BuildTocCommentLinesCache);
             _suppressionMap = BuildSuppressionMap();
             _frontMatterRootPath = ExtractRootPathFromFrontMatter();
         }
@@ -225,16 +228,16 @@ namespace MarkdownLintVS.Linting
             return ([.. lines], [.. offsets]);
         }
 
-        private HashSet<int> BuildCodeBlockLinesCache()
+        private BitArray BuildCodeBlockLinesCache()
         {
-            var codeLines = new HashSet<int>();
+            var codeLines = new BitArray(LineCount);
             foreach (CodeBlock codeBlock in _document.Descendants<CodeBlock>())
             {
                 var startLine = codeBlock.Line;
                 var endLine = GetBlockEndLine(codeBlock);
-                for (var line = startLine; line <= endLine; line++)
+                for (var line = startLine; line <= endLine && line < codeLines.Length; line++)
                 {
-                    codeLines.Add(line);
+                    codeLines[line] = true;
                 }
             }
             return codeLines;
@@ -257,16 +260,16 @@ namespace MarkdownLintVS.Linting
             return languages;
         }
 
-        private HashSet<int> BuildHtmlBlockLinesCache()
+        private BitArray BuildHtmlBlockLinesCache()
         {
-            var htmlLines = new HashSet<int>();
+            var htmlLines = new BitArray(LineCount);
             foreach (HtmlBlock htmlBlock in _document.Descendants<HtmlBlock>())
             {
                 var startLine = htmlBlock.Line;
                 var endLine = GetBlockEndLine(htmlBlock);
-                for (var line = startLine; line <= endLine; line++)
+                for (var line = startLine; line <= endLine && line < htmlLines.Length; line++)
                 {
-                    htmlLines.Add(line);
+                    htmlLines[line] = true;
                 }
             }
             return htmlLines;
@@ -288,9 +291,9 @@ namespace MarkdownLintVS.Linting
             return -1; // No front matter
         }
 
-        private HashSet<int> BuildTocCommentLinesCache()
+        private BitArray BuildTocCommentLinesCache()
         {
-            var tocLines = new HashSet<int>();
+            var tocLines = new BitArray(LineCount);
             var inTocComment = false;
 
             for (var i = 0; i < _lines.Length; i++)
@@ -300,11 +303,11 @@ namespace MarkdownLintVS.Linting
                 if (!inTocComment && _tocStartPattern.IsMatch(line))
                 {
                     inTocComment = true;
-                    tocLines.Add(i);
+                    tocLines[i] = true;
                 }
                 else if (inTocComment)
                 {
-                    tocLines.Add(i);
+                    tocLines[i] = true;
                     if (_tocEndPattern.IsMatch(line))
                     {
                         inTocComment = false;
@@ -433,12 +436,12 @@ namespace MarkdownLintVS.Linting
 
         public bool IsLineInCodeBlock(int lineNumber)
         {
-            return _codeBlockLines.Contains(lineNumber);
+            return lineNumber >= 0 && lineNumber < _codeBlockLines.Length && _codeBlockLines[lineNumber];
         }
 
-        public bool FileExists(string path) => _fileExistenceCache.GetOrAdd(path, File.Exists);
+        public bool FileExists(string path) => _fileExistenceCache.Value.GetOrAdd(path, File.Exists);
 
-        public bool DirectoryExists(string path) => _directoryExistenceCache.GetOrAdd(path, Directory.Exists);
+        public bool DirectoryExists(string path) => _directoryExistenceCache.Value.GetOrAdd(path, Directory.Exists);
 
         /// <summary>
         /// Gets the code language for a line if it's inside a fenced code block.
@@ -446,14 +449,16 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         public string GetCodeBlockLanguage(int lineNumber)
         {
-            return lineNumber >= 0 && lineNumber < _codeBlockLanguages.Length
-                ? _codeBlockLanguages[lineNumber]
+            return lineNumber >= 0 && lineNumber < LineCount
+                ? _codeBlockLanguages.Value[lineNumber]
                 : null;
         }
 
         public bool IsLineInHtmlBlock(int lineNumber)
         {
-            return _htmlBlockLines.Contains(lineNumber);
+            return lineNumber >= 0
+                && lineNumber < LineCount
+                && _htmlBlockLines.Value[lineNumber];
         }
 
         /// <summary>
@@ -462,7 +467,9 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         public bool IsLineInTocComment(int lineNumber)
         {
-            return _tocCommentLines.Contains(lineNumber);
+            return lineNumber >= 0
+                && lineNumber < LineCount
+                && _tocCommentLines.Value[lineNumber];
         }
 
         public bool IsLineInFrontMatter(int lineNumber)
