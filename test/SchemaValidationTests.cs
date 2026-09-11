@@ -38,7 +38,7 @@ public sealed class SchemaValidationTests
                 Assert.IsTrue(entry.ContainsKey(field), $"Property at index {i} ('{(entry.ContainsKey("name") ? entry["name"] : "unknown")}') is missing required field '{field}'.");
             }
 
-            string? name = entry["name"]?.ToString();
+            string name = entry["name"]?.ToString() ?? string.Empty;
             Assert.IsFalse(string.IsNullOrWhiteSpace(name), $"Property at index {i} has an empty or null 'name'.");
             Assert.IsTrue(names.Add(name), $"Duplicate property name found: '{name}'.");
         }

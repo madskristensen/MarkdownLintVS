@@ -93,31 +93,8 @@ jobs:
         }
 
         [xml]$coverage = Get-Content $coverageFile.FullName
-        $linesCovered = [int]$coverage.coverage.'lines-covered'
-        $linesValid = [int]$coverage.coverage.'lines-valid'
-        $linesMissed = $linesValid - $linesCovered
         $lineCoverage = [double]$coverage.coverage.'line-rate'
-        $sourceFiles = @($coverage.SelectNodes('//class') |
-          ForEach-Object { $_.filename } |
-          Sort-Object -Unique).Count
-
-        @"
-        | Metric | Value |
-        | --- | ---: |
-        | Line coverage | $($lineCoverage.ToString('P2')) |
-        | Lines covered | $($linesCovered.ToString('N0')) |
-        | Lines missed | $($linesMissed.ToString('N0')) |
-        | Total lines measured | $($linesValid.ToString('N0')) |
-        | Source files measured | $($sourceFiles.ToString('N0')) |
-        "@ >> $env:GITHUB_STEP_SUMMARY
-
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v7
-      if: ${{ !cancelled() }}
-      with:
-        name: code-coverage
-        path: TestResults/**/*.cobertura.xml
-        if-no-files-found: error
+        "Code coverage: **$($lineCoverage.ToString('P2'))**" >> $env:GITHUB_STEP_SUMMARY
 
     - name: Upload artifact
       uses: actions/upload-artifact@v7
