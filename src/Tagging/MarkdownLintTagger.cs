@@ -279,14 +279,36 @@ namespace MarkdownLintVS.Tagging
                 results = _currentResults;
             }
 
-            foreach (LintResult result in results)
+            int index = UpperBoundByStart(results, point.Position) - 1;
+            for (; index >= 0; index--)
             {
+                LintResult result = results[index];
                 SnapshotSpan? span = result.GetTranslatedSpan(point.Snapshot);
                 if (span.HasValue && span.Value.Length > 0 && span.Value.Contains(point))
                 {
                     yield return result;
                 }
             }
+        }
+
+        private static int UpperBoundByStart(IReadOnlyList<LintResult> results, int position)
+        {
+            var low = 0;
+            var high = results.Count;
+            while (low < high)
+            {
+                int middle = low + ((high - low) / 2);
+                if (results[middle].Start <= position)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            return low;
         }
 
         private string GetErrorType(Linting.DiagnosticSeverity severity)
