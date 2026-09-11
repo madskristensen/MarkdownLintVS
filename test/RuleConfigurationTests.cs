@@ -347,6 +347,54 @@ public sealed class RuleConfigurationTests
         }
     }
 
+    [TestMethod]
+    public void WhenRawCodingConventionsProvided_ThenMarkdownRulesAreConfigured()
+    {
+        var conventions = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["indent_size"] = "4",
+            ["md_no_trailing_spaces"] = "false",
+            ["md_heading_style"] = "atx:error"
+        };
+
+        Dictionary<string, RuleConfiguration> configurations =
+            MarkdownLintAnalyzer.GetRuleConfigurations(conventions);
+
+        Assert.IsFalse(configurations["no_trailing_spaces"].Enabled);
+        Assert.AreEqual("atx", configurations["heading_style"].Value);
+        Assert.AreEqual(DiagnosticSeverity.Error, configurations["heading_style"].Severity);
+        Assert.AreEqual(4, configurations["heading_style"].EditorConfigIndentSize);
+    }
+
+    [TestMethod]
+    public void WhenRawCodingConventionsChange_ThenNextAnalysisUsesNewRules()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown = "# Title\n\nText with trailing spaces   \n\tText with a tab\n";
+        var conventions = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["md_no_trailing_spaces"] = "false"
+        };
+
+        var firstViolations = analyzer.Analyze(
+            markdown,
+            "test.md",
+            conventions,
+            TestContext.CancellationToken).ToList();
+        Assert.IsFalse(firstViolations.Any(violation => violation.Rule.Id == "MD009"));
+        Assert.IsTrue(firstViolations.Any(violation => violation.Rule.Id == "MD010"));
+
+        conventions["md_no_hard_tabs"] = "false";
+
+        var secondViolations = analyzer.Analyze(
+            markdown,
+            "test.md",
+            conventions,
+            TestContext.CancellationToken).ToList();
+        Assert.IsFalse(secondViolations.Any(violation => violation.Rule.Id == "MD009"));
+        Assert.IsFalse(secondViolations.Any(violation => violation.Rule.Id == "MD010"));
+    }
+
     public TestContext TestContext { get; set; }
 
     #endregion

@@ -42,6 +42,7 @@ namespace MarkdownLintVS.Tagging
     {
         private readonly ITextBuffer _buffer;
         private readonly MarkdownAnalysisCache _analysisCache;
+        private readonly IEditorOptions _editorOptions;
         private readonly string _filePath;
         private ITextSnapshot _currentSnapshot;
         private List<LintResult> _currentResults;
@@ -57,14 +58,22 @@ namespace MarkdownLintVS.Tagging
             _currentSnapshot = buffer.CurrentSnapshot;
             _currentResults = [];
             _filePath = GetFilePath();
+            _editorOptions = _analysisCache.GetEditorOptions(_buffer);
 
             _buffer.Changed += OnBufferChanged;
+            _editorOptions.OptionChanged += OnEditorOptionChanged;
             RuleOptions.Saved += OnRuleOptionsSaved;
             GeneralOptions.Saved += OnGeneralOptionsSaved;
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
 
             // Initial analysis - immediate, no debounce for fast feedback on file open
             _analysisCache.AnalyzeImmediate(_buffer, _filePath);
+        }
+
+        private void OnEditorOptionChanged(object sender, EditorOptionChangedEventArgs e)
+        {
+            if (e.OptionId == DefaultOptions.RawCodingConventionsSnapshotOptionName)
+                Reanalyze();
         }
 
         internal void Reanalyze()
@@ -341,6 +350,7 @@ namespace MarkdownLintVS.Tagging
             if (!_isDisposed)
             {
                 _buffer.Changed -= OnBufferChanged;
+                _editorOptions.OptionChanged -= OnEditorOptionChanged;
                 RuleOptions.Saved -= OnRuleOptionsSaved;
                 GeneralOptions.Saved -= OnGeneralOptionsSaved;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;

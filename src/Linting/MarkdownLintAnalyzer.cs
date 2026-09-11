@@ -142,6 +142,22 @@ namespace MarkdownLintVS.Linting
             return RunRulesInParallel(_rules, analysis, configurations, cancellationToken, GetConfigurationForRule);
         }
 
+        internal IEnumerable<LintViolation> Analyze(
+            string text,
+            string filePath,
+            IReadOnlyDictionary<string, object> codingConventions,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(text))
+                return [];
+
+            var analysis = new MarkdownDocumentAnalysis(text, filePath);
+            Dictionary<string, RuleConfiguration> configurations = GetRuleConfigurations(codingConventions);
+            SetRootPathOnAnalysis(analysis, configurations);
+
+            return RunRulesInParallel(_rules, analysis, configurations, cancellationToken, GetConfigurationForRule);
+        }
+
         /// <summary>
         /// Static method to analyze a markdown document using provided configurations.
         /// Used by LintFolderCommand for parallel processing.
@@ -296,6 +312,40 @@ namespace MarkdownLintVS.Linting
                 // Log EditorConfig parsing errors for debugging
                 System.Diagnostics.Debug.WriteLine($"EditorConfig parsing error for {directoryPath}: {ex.Message}");
             }
+
+            return configurations;
+        }
+
+        internal static Dictionary<string, RuleConfiguration> GetRuleConfigurations(
+            IReadOnlyDictionary<string, object> codingConventions)
+        {
+            var configurations = new Dictionary<string, RuleConfiguration>(StringComparer.OrdinalIgnoreCase);
+            if (codingConventions == null)
+                return configurations;
+
+            int? editorConfigIndentSize = null;
+            if (codingConventions.TryGetValue("indent_size", out object indentSizeValue) &&
+                int.TryParse(Convert.ToString(indentSizeValue, System.Globalization.CultureInfo.InvariantCulture), out var indentSize))
+            {
+                editorConfigIndentSize = indentSize;
+            }
+
+            foreach (KeyValuePair<string, object> property in codingConventions)
+            {
+                if (!property.Key.StartsWith("md_", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var ruleName = property.Key.Substring("md_".Length);
+                RuleConfiguration config = Instance.ParseRuleConfiguration(
+                    Convert.ToString(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                config.EditorConfigIndentSize = editorConfigIndentSize;
+                configurations[ruleName] = config;
+            }
+
+            configurations["__editorconfig_indent_size__"] = new RuleConfiguration
+            {
+                EditorConfigIndentSize = editorConfigIndentSize
+            };
 
             return configurations;
         }

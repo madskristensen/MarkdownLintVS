@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using MarkdownLintVS.Options;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor;
 
 namespace MarkdownLintVS.Linting
 {
@@ -32,6 +33,7 @@ namespace MarkdownLintVS.Linting
     {
         private static readonly object _propertyKey = typeof(MarkdownAnalysisCache);
         private static readonly object _pendingAnalysisKey = typeof(MarkdownAnalysisCache).FullName + ".PendingAnalysis";
+        private readonly IEditorOptionsFactoryService _editorOptionsFactory;
 
         /// <summary>
         /// Delay in milliseconds before analyzing after the last keystroke.
@@ -42,6 +44,14 @@ namespace MarkdownLintVS.Linting
         /// Event raised when analysis results are updated for a buffer.
         /// </summary>
         public event EventHandler<AnalysisUpdatedEventArgs> AnalysisUpdated;
+
+        [ImportingConstructor]
+        public MarkdownAnalysisCache(IEditorOptionsFactoryService editorOptionsFactory)
+        {
+            _editorOptionsFactory = editorOptionsFactory;
+        }
+
+        internal IEditorOptions GetEditorOptions(ITextBuffer buffer) => _editorOptionsFactory.GetOptions(buffer);
 
         /// <summary>
         /// Gets cached violations for a buffer without blocking. Returns cached results even if stale,
@@ -206,7 +216,13 @@ namespace MarkdownLintVS.Linting
                 List<LintViolation> violations;
                 if (GeneralOptions.Instance.LintingEnabled)
                 {
-                    violations = [.. MarkdownLintAnalyzer.Instance.Analyze(text, filePath, cancellationToken)];
+                    IReadOnlyDictionary<string, object> codingConventions = GetEditorOptions(buffer)
+                        .GetOptionValue(DefaultOptions.RawCodingConventionsSnapshotOptionId);
+                    violations = [.. MarkdownLintAnalyzer.Instance.Analyze(
+                        text,
+                        filePath,
+                        codingConventions,
+                        cancellationToken)];
                 }
                 else
                 {

@@ -235,6 +235,9 @@ namespace MarkdownLintVS.ErrorList
                 var errorList = new List<MarkdownLintError>();
                 foreach ((var FilePath, var Line, var StartColumn, var RuleId, var Message, DiagnosticSeverity Severity) in errors)
                 {
+                    if (!ErrorListDeduplication.ShouldIncludeFolderLintError(FilePath, _snapshots.Keys))
+                        continue;
+
                     RuleInfo ruleInfo = RuleRegistry.GetRule(RuleId);
                     errorList.Add(new MarkdownLintError(
                         FilePath,
@@ -283,6 +286,9 @@ namespace MarkdownLintVS.ErrorList
             TableEntriesSnapshot addedSnapshot;
             lock (_snapshots)
             {
+                if (!ErrorListDeduplication.ShouldIncludeFolderLintError(filePath, _snapshots.Keys))
+                    return;
+
                 // Get existing errors or create new list.
                 List<MarkdownLintError> errors = _folderLintSnapshot == null
                     ? []

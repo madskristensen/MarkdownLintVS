@@ -8,6 +8,8 @@ using MarkdownLintVS.ErrorList;
 using MarkdownLintVS.Linting;
 using MarkdownLintVS.Linting.Rules;
 using MarkdownLintVS.Options;
+using Microsoft.VisualStudio.ComponentModelHost;
+using Microsoft.VisualStudio.Text.CodingConventions;
 
 namespace MarkdownLintVS.Commands
 {
@@ -124,8 +126,14 @@ namespace MarkdownLintVS.Commands
             // Get rule configurations once
             Dictionary<string, RuleConfiguration> ruleConfigs = RuleOptionsProvider.Instance.GetRuleConfigurations();
 
-            // Cache EditorConfig settings by directory to avoid repeated parsing
-            var editorConfigCache = new ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>>(StringComparer.OrdinalIgnoreCase);
+            IComponentModel componentModel = await VS.GetServiceAsync<SComponentModel, IComponentModel>();
+#pragma warning disable CS0618 // ICodingConventionsManager is the VS editor's applied-conventions API
+            ICodingConventionsManager codingConventionsManager = componentModel?.GetService<ICodingConventionsManager>();
+            ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>> editorConfigByFile =
+                await GetCodingConventionsAsync(files, codingConventionsManager, cancellationToken);
+#pragma warning restore CS0618
+            var fallbackEditorConfigByDirectory =
+                new ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>>(StringComparer.OrdinalIgnoreCase);
 
             var flushTask = dataSource != null
                 ? FlushFolderLintBatchesAsync(dataSource, batchQueue, producerSignal, () => producerComplete, folderLintBatchSize, cancellationToken)
@@ -149,11 +157,14 @@ namespace MarkdownLintVS.Commands
                             var text = File.ReadAllText(filePath);
                             var analysis = new MarkdownDocumentAnalysis(text, filePath);
 
-                            // Get EditorConfig settings from cache or parse and cache
-                            var fileDir = Path.GetDirectoryName(filePath);
-                            Dictionary<string, RuleConfiguration> editorConfigSettings = editorConfigCache.GetOrAdd(
-                                fileDir,
-                                dir => MarkdownLintAnalyzer.GetEditorConfigSettings(dir));
+                            Dictionary<string, RuleConfiguration> editorConfigSettings;
+                            if (!editorConfigByFile.TryGetValue(filePath, out editorConfigSettings))
+                            {
+                                var fileDir = Path.GetDirectoryName(filePath);
+                                editorConfigSettings = fallbackEditorConfigByDirectory.GetOrAdd(
+                                    fileDir,
+                                    dir => MarkdownLintAnalyzer.GetEditorConfigSettings(dir));
+                            }
 
                             IEnumerable<LintViolation> violations = MarkdownLintAnalyzer.Analyze(
                                 analysis,
@@ -216,6 +227,42 @@ namespace MarkdownLintVS.Commands
 
             return (totalViolations, filesWithViolations.Count);
         }
+
+#pragma warning disable CS0618 // ICodingConventionsManager is the VS editor's applied-conventions API
+        private static async Task<ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>>> GetCodingConventionsAsync(
+            IReadOnlyList<string> files,
+            ICodingConventionsManager codingConventionsManager,
+            CancellationToken cancellationToken)
+        {
+            var configurations = new ConcurrentDictionary<string, Dictionary<string, RuleConfiguration>>(
+                StringComparer.OrdinalIgnoreCase);
+            if (codingConventionsManager == null)
+                return configurations;
+
+            using var gate = new SemaphoreSlim(Math.Max(1, Environment.ProcessorCount));
+            IEnumerable<Task> tasks = files.Select(async filePath =>
+            {
+                await gate.WaitAsync(cancellationToken);
+                try
+                {
+                    using ICodingConventionContext context =
+                        await codingConventionsManager.GetConventionContextAsync(filePath, cancellationToken);
+                    if (context?.CurrentConventions != null)
+                    {
+                        configurations[filePath] = MarkdownLintAnalyzer.GetRuleConfigurations(
+                            context.CurrentConventions.AllRawConventions);
+                    }
+                }
+                finally
+                {
+                    gate.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+            return configurations;
+        }
+#pragma warning restore CS0618
 
         private static async Task FlushFolderLintBatchesAsync(
             MarkdownLintTableDataSource dataSource,
