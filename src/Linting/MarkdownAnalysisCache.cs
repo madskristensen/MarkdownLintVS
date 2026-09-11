@@ -96,12 +96,10 @@ namespace MarkdownLintVS.Linting
             // Cancel any pending debounced analysis
             CancelPendingAnalysis(buffer);
 
-            var text = snapshot.GetText();
-
-            // Run analysis on a background thread without debounce delay
+            // Capture text and run analysis on a background thread without debounce delay.
             var pendingAnalysis = new PendingAnalysis(new CancellationTokenSource(), snapshot.Version.VersionNumber, isDebounced: false);
             buffer.Properties[_pendingAnalysisKey] = pendingAnalysis;
-            PerformAnalysisNowAsync(buffer, filePath, pendingAnalysis, pendingAnalysis.CancellationTokenSource.Token, snapshot, text).FireAndForget();
+            PerformAnalysisNowAsync(buffer, filePath, pendingAnalysis, pendingAnalysis.CancellationTokenSource.Token, snapshot).FireAndForget();
         }
 
         /// <summary>
@@ -117,13 +115,12 @@ namespace MarkdownLintVS.Linting
             ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var pendingAnalysis = new PendingAnalysis(cts, snapshot.Version.VersionNumber, isDebounced: true);
             buffer.Properties[_pendingAnalysisKey] = pendingAnalysis;
-            var text = snapshot.GetText();
 
-            // Pass the token, not the CTS, to avoid accessing disposed CTS
-            PerformAnalysisAsync(buffer, filePath, pendingAnalysis, cts.Token, snapshot, text).FireAndForget();
+            // Pass the token, not the CTS, to avoid accessing disposed CTS.
+            PerformAnalysisAsync(buffer, filePath, pendingAnalysis, cts.Token, snapshot).FireAndForget();
         }
 
-        private async Task PerformAnalysisAsync(ITextBuffer buffer, string filePath, PendingAnalysis pendingAnalysis, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
+        private async Task PerformAnalysisAsync(ITextBuffer buffer, string filePath, PendingAnalysis pendingAnalysis, CancellationToken cancellationToken, ITextSnapshot snapshot)
         {
             try
             {
@@ -131,7 +128,11 @@ namespace MarkdownLintVS.Linting
 
                 if (!cancellationToken.IsCancellationRequested)
                 {
-                    PerformAnalysis(buffer, snapshot, text, filePath, pendingAnalysis, cancellationToken);
+                    await Task.Run(() =>
+                    {
+                        string text = snapshot.GetText();
+                        PerformAnalysis(buffer, snapshot, text, filePath, pendingAnalysis, cancellationToken);
+                    }, cancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -148,12 +149,16 @@ namespace MarkdownLintVS.Linting
             }
         }
 
-        private async Task PerformAnalysisNowAsync(ITextBuffer buffer, string filePath, PendingAnalysis pendingAnalysis, CancellationToken cancellationToken, ITextSnapshot snapshot, string text)
+        private async Task PerformAnalysisNowAsync(ITextBuffer buffer, string filePath, PendingAnalysis pendingAnalysis, CancellationToken cancellationToken, ITextSnapshot snapshot)
         {
             try
             {
-                // Yield to background thread immediately (no debounce delay)
-                await Task.Run(() => PerformAnalysis(buffer, snapshot, text, filePath, pendingAnalysis, cancellationToken), cancellationToken);
+                // Capture text and analyze on a background thread immediately (no debounce delay).
+                await Task.Run(() =>
+                {
+                    string text = snapshot.GetText();
+                    PerformAnalysis(buffer, snapshot, text, filePath, pendingAnalysis, cancellationToken);
+                }, cancellationToken);
             }
             catch (OperationCanceledException)
             {
