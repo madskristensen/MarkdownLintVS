@@ -394,13 +394,21 @@ namespace MarkdownLintVS.ErrorList
     /// <summary>
     /// Snapshot of error entries for a file.
     /// </summary>
-    internal class TableEntriesSnapshot(string filePath, List<MarkdownLintError> errors) : ITableEntriesSnapshot
+    internal class TableEntriesSnapshot : ITableEntriesSnapshot
     {
-        public string FilePath { get; } = filePath;
-        public int VersionNumber { get; } = 1;
-        public int Count => errors.Count;
+        private readonly IReadOnlyList<MarkdownLintError> _errors;
 
-        public IEnumerable<MarkdownLintError> GetErrors() => errors;
+        public TableEntriesSnapshot(string filePath, IEnumerable<MarkdownLintError> errors)
+        {
+            FilePath = filePath;
+            _errors = errors?.ToArray() ?? [];
+        }
+
+        public string FilePath { get; }
+        public int VersionNumber { get; } = 1;
+        public int Count => _errors.Count;
+
+        public IEnumerable<MarkdownLintError> GetErrors() => _errors;
 
         public int IndexOf(int currentIndex, ITableEntriesSnapshot newerSnapshot)
         {
@@ -409,13 +417,13 @@ namespace MarkdownLintVS.ErrorList
 
         public bool TryGetValue(int index, string keyName, out object content)
         {
-            if (index < 0 || index >= errors.Count)
+            if (index < 0 || index >= _errors.Count)
             {
                 content = null;
                 return false;
             }
 
-            MarkdownLintError error = errors[index];
+            MarkdownLintError error = _errors[index];
 
             switch (keyName)
             {
