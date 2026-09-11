@@ -85,7 +85,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ github.event.repository.name }}.vsix
-        path: src\bin\${{ env.Configuration }}\MarkdownLintVS.vsix
+        path: src\bin\${{ env.Configuration }}\net48\MarkdownLintVS.vsix
         if-no-files-found: error
 
   publish:
