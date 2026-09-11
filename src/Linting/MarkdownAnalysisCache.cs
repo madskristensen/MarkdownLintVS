@@ -90,6 +90,40 @@ namespace MarkdownLintVS.Linting
         }
 
         /// <summary>
+        /// Gets violations only when they belong to the current snapshot. Stale locations must not
+        /// be used for operations that edit the document, such as suggested actions.
+        /// </summary>
+        public IReadOnlyList<LintViolation> GetCurrentOrAnalyze(ITextBuffer buffer, string filePath)
+        {
+            if (!GeneralOptions.Instance.LintingEnabled)
+            {
+                return [];
+            }
+
+            ITextSnapshot snapshot = buffer.CurrentSnapshot;
+            if (buffer.Properties.TryGetProperty(_propertyKey, out CachedAnalysisResult cached))
+            {
+                IReadOnlyList<LintViolation> current = GetViolationsForSnapshot(
+                    cached,
+                    snapshot.Version.VersionNumber);
+                if (current.Count > 0 || cached.SnapshotVersion == snapshot.Version.VersionNumber)
+                {
+                    return current;
+                }
+            }
+
+            AnalyzeImmediate(buffer, filePath);
+            return [];
+        }
+
+        internal static IReadOnlyList<LintViolation> GetViolationsForSnapshot(
+            CachedAnalysisResult cached,
+            int snapshotVersion)
+        {
+            return cached?.SnapshotVersion == snapshotVersion ? cached.Violations : [];
+        }
+
+        /// <summary>
         /// Triggers analysis without debounce delay on a background thread.
         /// Use this for initial file open or when options change. The snapshot and text are
         /// captured on the calling thread, then analysis runs off the UI thread and notifies

@@ -170,7 +170,7 @@ namespace MarkdownLintVS.CodeFixes
 
         private IEnumerable<LintViolation> GetViolationsAtRange(SnapshotSpan range)
         {
-            IReadOnlyList<LintViolation> violations = analysisCache.GetOrAnalyze(buffer, filePath);
+            IReadOnlyList<LintViolation> violations = analysisCache.GetCurrentOrAnalyze(buffer, filePath);
 
             foreach (LintViolation violation in violations)
             {
