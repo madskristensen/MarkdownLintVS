@@ -108,11 +108,16 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         public void InvalidateAndAnalyze(ITextBuffer buffer, string filePath)
         {
+            ITextSnapshot snapshot = buffer.CurrentSnapshot;
+            if (HasPendingAnalysisForSnapshot(buffer, snapshot.Version.VersionNumber))
+            {
+                return;
+            }
+
             // Cancel any pending analysis for this buffer
             CancelPendingAnalysis(buffer);
 
             var cts = new CancellationTokenSource();
-            ITextSnapshot snapshot = buffer.CurrentSnapshot;
             var pendingAnalysis = new PendingAnalysis(cts, snapshot.Version.VersionNumber, isDebounced: true);
             buffer.Properties[_pendingAnalysisKey] = pendingAnalysis;
 
@@ -243,6 +248,12 @@ namespace MarkdownLintVS.Linting
                     pendingAnalysis.CancellationTokenSource.Dispose();
                 }
             }
+        }
+
+        private static bool HasPendingAnalysisForSnapshot(ITextBuffer buffer, int snapshotVersion)
+        {
+            return buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis pendingAnalysis)
+                && pendingAnalysis.SnapshotVersion == snapshotVersion;
         }
 
         private static bool HasPendingImmediateAnalysisForSnapshot(ITextBuffer buffer, int snapshotVersion)
