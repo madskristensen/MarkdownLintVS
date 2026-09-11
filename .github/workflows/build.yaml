@@ -73,6 +73,15 @@ jobs:
         --logger "trx;LogFileName=test-results.trx"
         --collect "Code Coverage;Format=Cobertura"
 
+    - name: Report test results
+      uses: dorny/test-reporter@v3
+      if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      with:
+        name: Test Results
+        path: TestResults/**/*.trx
+        reporter: dotnet-trx
+        fail-on-error: true
+
     - name: Add coverage summary
       if: ${{ !cancelled() }}
       shell: pwsh
@@ -84,25 +93,23 @@ jobs:
         }
 
         [xml]$coverage = Get-Content $coverageFile.FullName
+        $linesCovered = [int]$coverage.coverage.'lines-covered'
+        $linesValid = [int]$coverage.coverage.'lines-valid'
+        $linesMissed = $linesValid - $linesCovered
         $lineCoverage = [double]$coverage.coverage.'line-rate'
-        $branchCoverage = [double]$coverage.coverage.'branch-rate'
+        $sourceFiles = @($coverage.SelectNodes('//class') |
+          ForEach-Object { $_.filename } |
+          Sort-Object -Unique).Count
+
         @"
-        ## Code coverage
-
-        | Metric | Coverage |
+        | Metric | Value |
         | --- | ---: |
-        | Lines | $($lineCoverage.ToString('P2')) |
-        | Branches | $($branchCoverage.ToString('P2')) |
+        | Line coverage | $($lineCoverage.ToString('P2')) |
+        | Lines covered | $($linesCovered.ToString('N0')) |
+        | Lines missed | $($linesMissed.ToString('N0')) |
+        | Total lines measured | $($linesValid.ToString('N0')) |
+        | Source files measured | $($sourceFiles.ToString('N0')) |
         "@ >> $env:GITHUB_STEP_SUMMARY
-
-    - name: Report test results
-      uses: dorny/test-reporter@v3
-      if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-      with:
-        name: Test Results
-        path: TestResults/**/*.trx
-        reporter: dotnet-trx
-        fail-on-error: true
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v7
