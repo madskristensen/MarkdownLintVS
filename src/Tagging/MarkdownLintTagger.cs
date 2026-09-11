@@ -67,6 +67,11 @@ namespace MarkdownLintVS.Tagging
             _analysisCache.AnalyzeImmediate(_buffer, _filePath);
         }
 
+        internal void Reanalyze()
+        {
+            _analysisCache.Reanalyze(_buffer, _filePath);
+        }
+
         private void OnRuleOptionsSaved(RuleOptions options)
         {
             // Revalidate immediately when options change - no debounce needed

@@ -103,7 +103,17 @@ namespace MarkdownLintVS.Linting
         }
 
         /// <summary>
-        /// Triggers debounced analysis on a background thread. Waits for a pause in typing before analyzing to reduce
+        /// Forces a fresh analysis when external configuration changes without changing the buffer snapshot.
+        /// </summary>
+        public void Reanalyze(ITextBuffer buffer, string filePath)
+        {
+            CancelPendingAnalysis(buffer);
+            _ = buffer.Properties.RemoveProperty(_propertyKey);
+            AnalyzeImmediate(buffer, filePath);
+        }
+
+        /// <summary>
+        /// Triggers debounced analysis on a background thread.
         /// CPU usage. Use this when the buffer content changes during editing.
         /// </summary>
         public void InvalidateAndAnalyze(ITextBuffer buffer, string filePath)

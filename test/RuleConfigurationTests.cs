@@ -311,6 +311,42 @@ public sealed class RuleConfigurationTests
         Assert.HasCount(violations1.Count, violations2);
     }
 
+    [TestMethod]
+    public void WhenEditorConfigChangesAfterCacheClear_ThenNewRuleIsRead()
+    {
+        var rootPath = Directory.CreateDirectory(Path.Combine(
+            Path.GetTempPath(),
+            "MarkdownLintTests",
+            Guid.NewGuid().ToString("N"))).FullName;
+
+        try
+        {
+            var markdownPath = Path.Combine(rootPath, "test.md");
+            var editorConfigPath = Path.Combine(rootPath, ".editorconfig");
+            var markdown = "# Title\n\nText with trailing spaces   \n\tText with a tab\n";
+            File.WriteAllText(markdownPath, markdown);
+            File.WriteAllText(editorConfigPath, "[*.md]\nmd_no_trailing_spaces = false\n");
+
+            var analyzer = new MarkdownLintAnalyzer();
+            var firstViolations = analyzer.Analyze(markdown, markdownPath, TestContext.CancellationToken).ToList();
+            Assert.IsFalse(firstViolations.Any(violation => violation.Rule.Id == "MD009"));
+            Assert.IsTrue(firstViolations.Any(violation => violation.Rule.Id == "MD010"));
+
+            File.WriteAllText(
+                editorConfigPath,
+                "[*.md]\nmd_no_trailing_spaces = false\nmd_no_hard_tabs = false\n");
+            analyzer.ClearEditorConfigCache();
+
+            var secondViolations = analyzer.Analyze(markdown, markdownPath, TestContext.CancellationToken).ToList();
+            Assert.IsFalse(secondViolations.Any(violation => violation.Rule.Id == "MD009"));
+            Assert.IsFalse(secondViolations.Any(violation => violation.Rule.Id == "MD010"));
+        }
+        finally
+        {
+            Directory.Delete(rootPath, recursive: true);
+        }
+    }
+
     public TestContext TestContext { get; set; }
 
     #endregion

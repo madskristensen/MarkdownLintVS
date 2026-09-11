@@ -21,7 +21,6 @@ namespace MarkdownLintVS.Linting
         public static MarkdownLintAnalyzer Instance => _instance.Value;
 
         private readonly List<IMarkdownRule> _rules;
-        private readonly EditorConfigParser _editorConfigParser;
 
         /// <summary>
         /// TTL cache for EditorConfig configurations. Avoids re-parsing .editorconfig
@@ -35,7 +34,6 @@ namespace MarkdownLintVS.Linting
         public MarkdownLintAnalyzer()
         {
             _rules = CreateRules();
-            _editorConfigParser = new EditorConfigParser();
         }
 
         /// <summary>
@@ -268,7 +266,7 @@ namespace MarkdownLintVS.Linting
             {
                 // Create a dummy file path in the directory to parse EditorConfig
                 var dummyFilePath = Path.Combine(directoryPath, "dummy.md");
-                FileConfiguration fileConfig = Instance._editorConfigParser.Parse(dummyFilePath);
+                FileConfiguration fileConfig = new EditorConfigParser().Parse(dummyFilePath);
 
                 // Extract the standard EditorConfig indent_size property for use as a fallback
                 if (fileConfig.IndentSize?.NumberOfColumns != null)
@@ -399,7 +397,7 @@ namespace MarkdownLintVS.Linting
 
             try
             {
-                FileConfiguration fileConfig = _editorConfigParser.Parse(filePath);
+                FileConfiguration fileConfig = new EditorConfigParser().Parse(filePath);
 
                 // Extract the standard EditorConfig indent_size property for use as a fallback
                 if (fileConfig.IndentSize?.NumberOfColumns != null)
