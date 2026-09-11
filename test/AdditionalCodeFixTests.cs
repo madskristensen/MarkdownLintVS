@@ -50,7 +50,7 @@ public sealed class AdditionalCodeFixTests
         Assert.AreEqual(string.Empty, violation.ReplacementText);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("[label][]", "collapsed", "shortcut", "[label]")]
     [DataRow("[label]", "shortcut", "full", "[label][label]")]
     [DataRow("[label][label]", "full", "collapsed", "[label][]")]
