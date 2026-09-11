@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Threading;
 using MarkdownLintVS.Linting;
 
 namespace MarkdownLintVS.Test;
@@ -35,6 +36,42 @@ public sealed class MarkdownFileScannerTests
         var results = scanner.ScanForMarkdownFiles();
 
         Assert.IsEmpty(results);
+    }
+
+    [TestMethod]
+    public void WhenNestedIgnoreFileThenPatternsAreRelativeAndOverrideParentRules()
+    {
+        var root = CreateTempRoot();
+        var nested = Directory.CreateDirectory(Path.Combine(root, "docs")).FullName;
+        var sibling = Directory.CreateDirectory(Path.Combine(root, "other")).FullName;
+        File.WriteAllText(Path.Combine(root, ".markdownlintignore"), "*.md");
+        File.WriteAllText(Path.Combine(nested, ".markdownlintignore"), "!keep.md");
+        File.WriteAllText(Path.Combine(nested, "keep.md"), "# keep");
+        File.WriteAllText(Path.Combine(nested, "drop.md"), "# drop");
+        File.WriteAllText(Path.Combine(sibling, "keep.md"), "# sibling");
+
+        var results = new MarkdownFileScanner(root).ScanForMarkdownFiles();
+
+        Assert.HasCount(1, results);
+        Assert.AreEqual(Path.Combine(nested, "keep.md"), results[0]);
+    }
+
+    [TestMethod]
+    public async Task AsyncScan_WhenAlreadyCancelledThenThrows()
+    {
+        var scanner = new MarkdownFileScanner(CreateTempRoot());
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(
+            () => scanner.ScanForMarkdownFilesAsync(source.Token));
+    }
+
+    [TestMethod]
+    public void ReparsePointDirectoriesAreNotTraversed()
+    {
+        Assert.IsFalse(MarkdownFileScanner.ShouldTraverseDirectory(FileAttributes.Directory | FileAttributes.ReparsePoint));
+        Assert.IsTrue(MarkdownFileScanner.ShouldTraverseDirectory(FileAttributes.Directory));
     }
 
     private static string CreateTempRoot()

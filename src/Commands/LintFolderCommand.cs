@@ -79,9 +79,8 @@ namespace MarkdownLintVS.Commands
 
             try
             {
-                // Scan for files
                 var scanner = new MarkdownFileScanner(folderPath);
-                IReadOnlyList<string> files = scanner.ScanForMarkdownFiles();
+                IReadOnlyList<string> files = await scanner.ScanForMarkdownFilesAsync();
 
                 if (files.Count == 0)
                 {

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using MarkdownLintVS.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 
@@ -25,7 +27,6 @@ namespace MarkdownLintVS.Linting
         private const string _ignoreFileName = ".markdownlintignore";
 
         private readonly HashSet<string> _ignoredFolderNames;
-        private readonly List<IgnoreRule> _ignoreRules;
         private readonly string _rootDirectory;
 
         /// <summary>
@@ -50,41 +51,57 @@ namespace MarkdownLintVS.Linting
 
             _ignoredFolderNames = new HashSet<string>(ignoredFolders, StringComparer.OrdinalIgnoreCase);
 
-            // Initialize the glob matcher with patterns from .markdownlintignore
-            _ignoreRules = CreateIgnoreRules(rootDirectory);
         }
 
         /// <summary>
         /// Scans the root directory for Markdown files, excluding ignored paths.
         /// </summary>
         /// <returns>List of absolute paths to Markdown files.</returns>
-        public IReadOnlyList<string> ScanForMarkdownFiles()
+        public IReadOnlyList<string> ScanForMarkdownFiles(CancellationToken cancellationToken = default)
         {
             var markdownFiles = new List<string>();
 
-            ScanDirectory(_rootDirectory, markdownFiles);
+            ScanDirectory(_rootDirectory, [], markdownFiles, cancellationToken);
 
             return markdownFiles;
         }
 
-        private void ScanDirectory(string directory, List<string> results)
+        /// <summary>
+        /// Scans for Markdown files on a background thread.
+        /// </summary>
+        public Task<IReadOnlyList<string>> ScanForMarkdownFilesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => ScanForMarkdownFiles(cancellationToken), cancellationToken);
+        }
+
+        private void ScanDirectory(
+            string directory,
+            IReadOnlyList<IgnoreRule> inheritedRules,
+            List<string> results,
+            CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // Check if this directory should be ignored by folder name
                 var dirName = Path.GetFileName(directory);
                 if (_ignoredFolderNames.Contains(dirName))
                     return;
 
+                IReadOnlyList<IgnoreRule> rules = AddIgnoreRules(directory, inheritedRules);
+
                 // Get all markdown files in this directory
                 foreach (var file in Directory.EnumerateFiles(directory))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     var extension = Path.GetExtension(file);
                     if (IsMarkdownExtension(extension))
                     {
                         // Check if file matches ignore patterns
                         var relativePath = GetRelativePath(_rootDirectory, file);
-                        if (!IsIgnored(relativePath))
+                        if (!IsIgnored(relativePath, rules))
                         {
                             results.Add(file);
                         }
@@ -94,8 +111,16 @@ namespace MarkdownLintVS.Linting
                 // Recursively scan subdirectories
                 foreach (var subDir in Directory.EnumerateDirectories(directory))
                 {
-                    ScanDirectory(subDir, results);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (ShouldTraverseDirectory(new DirectoryInfo(subDir).Attributes))
+                    {
+                        ScanDirectory(subDir, rules, results, cancellationToken);
+                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (UnauthorizedAccessException)
             {
@@ -105,6 +130,10 @@ namespace MarkdownLintVS.Linting
             {
                 // Skip directories that no longer exist
             }
+            catch (IOException)
+            {
+                // Skip directories that become unavailable during discovery.
+            }
         }
 
         private bool IsMarkdownExtension(string extension)
@@ -112,16 +141,16 @@ namespace MarkdownLintVS.Linting
             return _markdownExtensions.Contains(extension);
         }
 
-        private bool IsIgnored(string relativePath)
+        private static bool IsIgnored(string relativePath, IReadOnlyList<IgnoreRule> rules)
         {
-            if (_ignoreRules == null || _ignoreRules.Count == 0)
+            if (rules.Count == 0)
                 return false;
 
             // Normalize path separators for the matcher
             var normalizedPath = relativePath.Replace('\\', '/');
 
             var isIgnored = false;
-            foreach (IgnoreRule rule in _ignoreRules)
+            foreach (IgnoreRule rule in rules)
             {
                 PatternMatchingResult result = rule.Matcher.Match(normalizedPath);
                 if (result.HasMatches)
@@ -133,14 +162,24 @@ namespace MarkdownLintVS.Linting
             return isIgnored;
         }
 
-        private static List<IgnoreRule> CreateIgnoreRules(string rootDirectory)
+        private IReadOnlyList<IgnoreRule> AddIgnoreRules(
+            string directory,
+            IReadOnlyList<IgnoreRule> inheritedRules)
         {
-            var ignoreFilePath = Path.Combine(rootDirectory, _ignoreFileName);
+            var ignoreFilePath = Path.Combine(directory, _ignoreFileName);
 
             if (!File.Exists(ignoreFilePath))
-                return [];
+                return inheritedRules;
 
-            var rules = new List<IgnoreRule>();
+            var rules = new List<IgnoreRule>(inheritedRules);
+            string relativeDirectory = string.Equals(
+                Path.GetFullPath(_rootDirectory).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase)
+                    ? string.Empty
+                    : GetRelativePath(_rootDirectory, directory)
+                        .Replace('\\', '/')
+                        .Trim('/');
             var lines = File.ReadAllLines(ignoreFilePath);
 
             foreach (var line in lines)
@@ -159,14 +198,14 @@ namespace MarkdownLintVS.Linting
                 }
 
                 var matcher = new Matcher();
-                matcher.AddInclude(NormalizeGlobPattern(pattern));
+                matcher.AddInclude(NormalizeGlobPattern(pattern, relativeDirectory));
                 rules.Add(new IgnoreRule(matcher, isNegation));
             }
 
             return rules;
         }
 
-        private static string NormalizeGlobPattern(string pattern)
+        private static string NormalizeGlobPattern(string pattern, string relativeDirectory)
         {
             // Normalize path separators
             pattern = pattern.Replace('\\', '/');
@@ -189,7 +228,14 @@ namespace MarkdownLintVS.Linting
                 pattern = "**/" + pattern;
             }
 
-            return pattern;
+            return string.IsNullOrEmpty(relativeDirectory)
+                ? pattern
+                : relativeDirectory + "/" + pattern;
+        }
+
+        internal static bool ShouldTraverseDirectory(FileAttributes attributes)
+        {
+            return (attributes & FileAttributes.ReparsePoint) == 0;
         }
 
         private static string GetRelativePath(string basePath, string fullPath)
