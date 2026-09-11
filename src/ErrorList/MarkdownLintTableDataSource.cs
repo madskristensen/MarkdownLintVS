@@ -74,24 +74,26 @@ namespace MarkdownLintVS.ErrorList
         public IDisposable Subscribe(ITableDataSink sink)
         {
             var manager = new SinkManager(this, sink);
+            List<TableEntriesSnapshot> snapshots;
+
+            lock (_snapshots)
+            {
+                snapshots = [.. _snapshots.Values];
+                if (_folderLintSnapshot != null)
+                {
+                    snapshots.Add(_folderLintSnapshot);
+                }
+            }
 
             lock (_managers)
             {
                 _managers.Add(manager);
             }
 
-            // Send existing snapshots to new sink
-            lock (_snapshots)
+            // Send existing snapshots without holding either storage lock.
+            foreach (TableEntriesSnapshot snapshot in snapshots)
             {
-                foreach (TableEntriesSnapshot snapshot in _snapshots.Values)
-                {
-                    sink.AddSnapshot(snapshot);
-                }
-
-                if (_folderLintSnapshot != null)
-                {
-                    sink.AddSnapshot(_folderLintSnapshot);
-                }
+                sink.AddSnapshot(snapshot);
             }
 
             return manager;
@@ -106,24 +108,29 @@ namespace MarkdownLintVS.ErrorList
 
             var errors = violations.Select(v => new MarkdownLintError(v, filePath)).ToList();
 
+            var removedSnapshots = new List<TableEntriesSnapshot>();
+            var addedSnapshots = new List<TableEntriesSnapshot>();
+
             lock (_snapshots)
             {
                 if (_snapshots.TryGetValue(filePath, out TableEntriesSnapshot oldSnapshot))
                 {
                     _snapshots.Remove(filePath);
-                    NotifySinks(sink => sink.RemoveSnapshot(oldSnapshot));
+                    removedSnapshots.Add(oldSnapshot);
                 }
 
                 if (errors.Count > 0)
                 {
                     var snapshot = new TableEntriesSnapshot(filePath, errors);
                     _snapshots[filePath] = snapshot;
-                    NotifySinks(sink => sink.AddSnapshot(snapshot));
+                    addedSnapshots.Add(snapshot);
                 }
 
-                // Remove any folder lint errors for this file to avoid duplicates
-                RemoveFolderLintErrorsForFile(filePath);
+                // Remove any folder lint errors for this file to avoid duplicates.
+                RemoveFolderLintErrorsForFile(filePath, removedSnapshots, addedSnapshots);
             }
+
+            NotifySnapshots(removedSnapshots, addedSnapshots);
         }
 
         public void ClearErrors(string filePath)
@@ -132,34 +139,39 @@ namespace MarkdownLintVS.ErrorList
             {
                 return;
             }
+            TableEntriesSnapshot snapshot = null;
             lock (_snapshots)
             {
-                if (_snapshots.TryGetValue(filePath, out TableEntriesSnapshot snapshot))
+                if (_snapshots.TryGetValue(filePath, out snapshot))
                 {
                     _snapshots.Remove(filePath);
-                    NotifySinks(sink => sink.RemoveSnapshot(snapshot));
                 }
+            }
+
+            if (snapshot != null)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(snapshot));
             }
         }
 
         public void ClearAllErrors()
         {
+            List<TableEntriesSnapshot> removedSnapshots;
             lock (_snapshots)
             {
-                foreach (TableEntriesSnapshot snapshot in _snapshots.Values)
-                {
-                    NotifySinks(sink => sink.RemoveSnapshot(snapshot));
-                }
+                removedSnapshots = [.. _snapshots.Values];
                 _snapshots.Clear();
 
                 if (_folderLintSnapshot != null)
                 {
-                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    removedSnapshots.Add(_folderLintSnapshot);
                     _folderLintSnapshot = null;
                 }
 
                 _folderLintErrors.Clear();
             }
+
+            NotifySnapshots(removedSnapshots, []);
         }
 
         /// <summary>
@@ -167,15 +179,21 @@ namespace MarkdownLintVS.ErrorList
         /// </summary>
         public void ClearFolderLintErrors()
         {
+            TableEntriesSnapshot removedSnapshot = null;
             lock (_snapshots)
             {
                 if (_folderLintSnapshot != null)
                 {
-                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    removedSnapshot = _folderLintSnapshot;
                     _folderLintSnapshot = null;
                 }
 
                 _folderLintErrors.Clear();
+            }
+
+            if (removedSnapshot != null)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(removedSnapshot));
             }
         }
 
@@ -185,15 +203,21 @@ namespace MarkdownLintVS.ErrorList
         /// </summary>
         public void AddFolderLintErrors(IEnumerable<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)> errors)
         {
+            TableEntriesSnapshot removedSnapshot = null;
             lock (_snapshots)
             {
                 if (_folderLintSnapshot != null)
                 {
-                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                    removedSnapshot = _folderLintSnapshot;
                     _folderLintSnapshot = null;
                 }
 
                 _folderLintErrors.Clear();
+            }
+
+            if (removedSnapshot != null)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(removedSnapshot));
             }
 
             AppendFolderLintErrors(errors);
@@ -204,6 +228,8 @@ namespace MarkdownLintVS.ErrorList
         /// </summary>
         public void AppendFolderLintErrors(IEnumerable<(string FilePath, int Line, int StartColumn, string RuleId, string Message, DiagnosticSeverity Severity)> errors)
         {
+            TableEntriesSnapshot removedSnapshot = null;
+            TableEntriesSnapshot addedSnapshot = null;
             lock (_snapshots)
             {
                 var errorList = new List<MarkdownLintError>();
@@ -223,15 +249,21 @@ namespace MarkdownLintVS.ErrorList
 
                 if (errorList.Count > 0)
                 {
-                    if (_folderLintSnapshot != null)
-                    {
-                        NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
-                    }
-
+                    removedSnapshot = _folderLintSnapshot;
                     _folderLintErrors.AddRange(errorList);
                     _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", _folderLintErrors);
-                    NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
+                    addedSnapshot = _folderLintSnapshot;
                 }
+            }
+
+            if (removedSnapshot != null)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(removedSnapshot));
+            }
+
+            if (addedSnapshot != null)
+            {
+                NotifySinks(sink => sink.AddSnapshot(addedSnapshot));
             }
         }
 
@@ -247,38 +279,41 @@ namespace MarkdownLintVS.ErrorList
             string message,
             DiagnosticSeverity severity)
         {
+            TableEntriesSnapshot removedSnapshot;
+            TableEntriesSnapshot addedSnapshot;
             lock (_snapshots)
             {
-                // Get existing errors or create new list
-                List<MarkdownLintError> errors;
-                if (_folderLintSnapshot != null)
-                {
-                    // Remove old snapshot, we'll create a new one
-                    NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
-                    errors = [.. _folderLintSnapshot.GetErrors()];
-                }
-                else
-                {
-                    errors = [];
-                }
+                // Get existing errors or create new list.
+                List<MarkdownLintError> errors = _folderLintSnapshot == null
+                    ? []
+                    : [.. _folderLintSnapshot.GetErrors()];
 
-                // Add new error
+                removedSnapshot = _folderLintSnapshot;
                 RuleInfo ruleInfo = Linting.RuleRegistry.GetRule(ruleId);
                 errors.Add(new MarkdownLintError(filePath, line, startColumn, ruleId, message, ruleInfo?.Description, ruleInfo?.DocumentationUrl, severity));
 
-                // Create and add new snapshot
                 _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", errors);
-                NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
+                addedSnapshot = _folderLintSnapshot;
             }
+
+            if (removedSnapshot != null)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(removedSnapshot));
+            }
+
+            NotifySinks(sink => sink.AddSnapshot(addedSnapshot));
         }
 
         /// <summary>
         /// Removes folder lint errors for a specific file.
         /// Called when a file is opened and linted individually to avoid duplicates.
         /// </summary>
-        private void RemoveFolderLintErrorsForFile(string filePath)
+        private void RemoveFolderLintErrorsForFile(
+            string filePath,
+            List<TableEntriesSnapshot> removedSnapshots,
+            List<TableEntriesSnapshot> addedSnapshots)
         {
-            // Must be called within lock(_snapshots)
+            // Must be called within lock(_snapshots).
             if (_folderLintSnapshot == null)
                 return;
 
@@ -289,14 +324,14 @@ namespace MarkdownLintVS.ErrorList
             // Only update if we actually removed something
             if (filteredErrors.Count < _folderLintErrors.Count)
             {
-                NotifySinks(sink => sink.RemoveSnapshot(_folderLintSnapshot));
+                removedSnapshots.Add(_folderLintSnapshot);
                 _folderLintErrors.Clear();
                 _folderLintErrors.AddRange(filteredErrors);
 
                 if (_folderLintErrors.Count > 0)
                 {
                     _folderLintSnapshot = new TableEntriesSnapshot(_folderLintPrefix + "Results", _folderLintErrors);
-                    NotifySinks(sink => sink.AddSnapshot(_folderLintSnapshot));
+                    addedSnapshots.Add(_folderLintSnapshot);
                 }
                 else
                 {
@@ -305,14 +340,32 @@ namespace MarkdownLintVS.ErrorList
             }
         }
 
+        private void NotifySnapshots(
+            IEnumerable<TableEntriesSnapshot> removedSnapshots,
+            IEnumerable<TableEntriesSnapshot> addedSnapshots)
+        {
+            foreach (TableEntriesSnapshot snapshot in removedSnapshots)
+            {
+                NotifySinks(sink => sink.RemoveSnapshot(snapshot));
+            }
+
+            foreach (TableEntriesSnapshot snapshot in addedSnapshots)
+            {
+                NotifySinks(sink => sink.AddSnapshot(snapshot));
+            }
+        }
+
         private void NotifySinks(Action<ITableDataSink> action)
         {
+            SinkManager[] managers;
             lock (_managers)
             {
-                foreach (SinkManager manager in _managers)
-                {
-                    action(manager.Sink);
-                }
+                managers = [.. _managers];
+            }
+
+            foreach (SinkManager manager in managers)
+            {
+                action(manager.Sink);
             }
         }
 
