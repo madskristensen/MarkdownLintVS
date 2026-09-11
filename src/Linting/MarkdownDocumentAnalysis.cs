@@ -46,6 +46,7 @@ namespace MarkdownLintVS.Linting
         // Precomputed caches for O(1) lookups
         private readonly int[] _lineStartOffsets;
         private readonly HashSet<int> _codeBlockLines;
+        private readonly string?[] _codeBlockLanguages;
         private readonly HashSet<int> _htmlBlockLines;
         private readonly int _frontMatterEndLine;
         private readonly HashSet<int> _tocCommentLines;
@@ -118,6 +119,7 @@ namespace MarkdownLintVS.Linting
 
             // Precompute expensive lookups once
             _codeBlockLines = BuildCodeBlockLinesCache();
+            _codeBlockLanguages = BuildCodeBlockLanguagesCache();
             _htmlBlockLines = BuildHtmlBlockLinesCache();
             _frontMatterEndLine = ComputeFrontMatterEndLine();
             _tocCommentLines = BuildTocCommentLinesCache();
@@ -232,6 +234,23 @@ namespace MarkdownLintVS.Linting
                 }
             }
             return codeLines;
+        }
+
+        private string?[] BuildCodeBlockLanguagesCache()
+        {
+            var languages = new string?[LineCount];
+            foreach (FencedCodeBlock codeBlock in GetFencedCodeBlocks())
+            {
+                var startLine = codeBlock.Line;
+                var endLine = GetBlockEndLine(codeBlock);
+                var language = codeBlock.Info?.ToLowerInvariant() ?? string.Empty;
+                for (var line = startLine; line <= endLine && line < languages.Length; line++)
+                {
+                    languages[line] = language;
+                }
+            }
+
+            return languages;
         }
 
         private HashSet<int> BuildHtmlBlockLinesCache()
@@ -419,17 +438,9 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         public string GetCodeBlockLanguage(int lineNumber)
         {
-            foreach (FencedCodeBlock codeBlock in GetFencedCodeBlocks())
-            {
-                var startLine = codeBlock.Line;
-                var endLine = GetBlockEndLine(codeBlock);
-
-                if (lineNumber >= startLine && lineNumber <= endLine)
-                {
-                    return codeBlock.Info?.ToLowerInvariant() ?? string.Empty;
-                }
-            }
-            return null;
+            return lineNumber >= 0 && lineNumber < _codeBlockLanguages.Length
+                ? _codeBlockLanguages[lineNumber]
+                : null;
         }
 
         public bool IsLineInHtmlBlock(int lineNumber)
