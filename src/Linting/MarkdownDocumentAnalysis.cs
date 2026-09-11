@@ -225,7 +225,7 @@ namespace MarkdownLintVS.Linting
             foreach (CodeBlock codeBlock in _document.Descendants<CodeBlock>())
             {
                 var startLine = codeBlock.Line;
-                var endLine = GetLineFromOffset(codeBlock.Span.End);
+                var endLine = GetBlockEndLine(codeBlock);
                 for (var line = startLine; line <= endLine; line++)
                 {
                     codeLines.Add(line);
@@ -240,7 +240,7 @@ namespace MarkdownLintVS.Linting
             foreach (HtmlBlock htmlBlock in _document.Descendants<HtmlBlock>())
             {
                 var startLine = htmlBlock.Line;
-                var endLine = GetLineFromOffset(htmlBlock.Span.End);
+                var endLine = GetBlockEndLine(htmlBlock);
                 for (var line = startLine; line <= endLine; line++)
                 {
                     htmlLines.Add(line);
@@ -478,10 +478,19 @@ namespace MarkdownLintVS.Linting
 
         public int GetBlockEndLine(Block block)
         {
-            if (block.Span.End < 0)
-                return block.Line;
+            if (block == null || block.Span.End < 0)
+                return block?.Line ?? 0;
 
-            return GetLineFromOffset(block.Span.End);
+            // Markdig spans may be inclusive or end at the first offset after the block.
+            // Looking at the preceding character handles both forms without leaking into
+            // the following line.
+            var endOffset = Math.Min(block.Span.End, _text.Length);
+            if (endOffset > block.Span.Start)
+            {
+                endOffset--;
+            }
+
+            return GetLineFromOffset(endOffset);
         }
 
         public (int Line, int Column) GetPositionFromOffset(int offset)
