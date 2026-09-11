@@ -169,6 +169,26 @@ public sealed class MarkdownLintAnalyzerTests
         Assert.AreEqual(violation.Rule.Id, violation.GetErrorCode());
     }
 
+    [TestMethod]
+    public void WhenDisabledByDefaultRuleEnabledInOptionsThenConfigurationIsEnabled()
+    {
+        RuleInfo rule = RuleRegistry.GetRule("MD013");
+
+        RuleConfiguration configuration = MarkdownLintAnalyzer.CreateOptionsConfiguration(rule, enabledFromOptions: true);
+
+        Assert.IsTrue(configuration.Enabled);
+    }
+
+    [TestMethod]
+    public void WhenRuleDisabledInOptionsThenConfigurationIsDisabled()
+    {
+        RuleInfo rule = RuleRegistry.GetRule("MD001");
+
+        RuleConfiguration configuration = MarkdownLintAnalyzer.CreateOptionsConfiguration(rule, enabledFromOptions: false);
+
+        Assert.IsFalse(configuration.Enabled);
+    }
+
     #region ParseRuleConfiguration Tests
 
     [TestMethod]

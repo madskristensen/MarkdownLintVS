@@ -593,9 +593,17 @@ namespace MarkdownLintVS.Linting
             // No .editorconfig setting found - use options page as fallback
             var enabledFromOptions = Options.RuleOptionsProvider.IsRuleEnabled(rule.Id);
 
+            return CreateOptionsConfiguration(rule, enabledFromOptions, editorConfigIndentSize);
+        }
+
+        internal static RuleConfiguration CreateOptionsConfiguration(
+            RuleInfo rule,
+            bool enabledFromOptions,
+            int? editorConfigIndentSize = null)
+        {
             return new RuleConfiguration
             {
-                Enabled = enabledFromOptions && rule.EnabledByDefault,
+                Enabled = enabledFromOptions,
                 Severity = rule.DefaultSeverity,
                 EditorConfigIndentSize = editorConfigIndentSize
             };
