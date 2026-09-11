@@ -12,8 +12,21 @@ namespace MarkdownLintVS.CodeFixes.Actions
 
         public override void ApplyFix(ITextEdit edit)
         {
-            ITextSnapshotLine line = Snapshot.GetLineFromPosition(Span.Start);
-            edit.Delete(line.Start, line.LengthIncludingLineBreak);
+            ITextSnapshotLine firstExtraLine = Snapshot.GetLineFromPosition(Span.Start);
+            ITextSnapshotLine lastExtraLine = firstExtraLine;
+
+            for (int lineNumber = firstExtraLine.LineNumber + 1; lineNumber < Snapshot.LineCount; lineNumber++)
+            {
+                ITextSnapshotLine line = Snapshot.GetLineFromLineNumber(lineNumber);
+                if (!string.IsNullOrWhiteSpace(line.GetText()))
+                    break;
+
+                lastExtraLine = line;
+            }
+
+            edit.Delete(
+                firstExtraLine.Start,
+                lastExtraLine.EndIncludingLineBreak - firstExtraLine.Start);
         }
 
         protected override string GetFixedText()

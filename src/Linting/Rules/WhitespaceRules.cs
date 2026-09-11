@@ -234,34 +234,64 @@ namespace MarkdownLintVS.Linting.Rules
             CancellationToken cancellationToken = default)
         {
             var maximum = configuration.GetIntParameter("maximum", 1);
+            var blankRunStart = -1;
             var consecutiveBlanks = 0;
 
             for (var i = 0; i < analysis.LineCount; i++)
             {
                 if (analysis.IsLineInCodeBlock(i) || analysis.IsLineInFrontMatter(i))
                 {
+                    if (consecutiveBlanks > maximum)
+                    {
+                        yield return CreateBlankRunViolation(analysis, blankRunStart, consecutiveBlanks, maximum, severity);
+                    }
+
+                    blankRunStart = -1;
                     consecutiveBlanks = 0;
                     continue;
                 }
 
                 if (analysis.IsBlankLine(i))
                 {
-                    consecutiveBlanks++;
-                    if (consecutiveBlanks > maximum)
+                    if (consecutiveBlanks == 0)
                     {
-                        yield return CreateLineViolation(
-                            i,
-                            analysis.GetLine(i),
-                            $"Multiple consecutive blank lines ({consecutiveBlanks} found, maximum {maximum} allowed)",
-                            severity,
-                            "Remove extra blank lines");
+                        blankRunStart = i;
                     }
+
+                    consecutiveBlanks++;
                 }
                 else
                 {
+                    if (consecutiveBlanks > maximum)
+                    {
+                        yield return CreateBlankRunViolation(analysis, blankRunStart, consecutiveBlanks, maximum, severity);
+                    }
+
+                    blankRunStart = -1;
                     consecutiveBlanks = 0;
                 }
             }
+
+            if (consecutiveBlanks > maximum)
+            {
+                yield return CreateBlankRunViolation(analysis, blankRunStart, consecutiveBlanks, maximum, severity);
+            }
+        }
+
+        private LintViolation CreateBlankRunViolation(
+            MarkdownDocumentAnalysis analysis,
+            int blankRunStart,
+            int blankCount,
+            int maximum,
+            DiagnosticSeverity severity)
+        {
+            int firstExtraLine = blankRunStart + maximum;
+            return CreateLineViolation(
+                firstExtraLine,
+                analysis.GetLine(firstExtraLine),
+                $"Multiple consecutive blank lines ({blankCount} found, maximum {maximum} allowed)",
+                severity,
+                "Remove extra blank lines");
         }
     }
 

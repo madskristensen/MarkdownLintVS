@@ -529,8 +529,23 @@ public sealed class WhitespaceRuleTests
 
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
-        Assert.HasCount(2, violations);  // Reports on 2nd and 3rd blank line
+        Assert.HasCount(1, violations);
+        Assert.AreEqual(2, violations[0].LineNumber);
+        Assert.Contains("3 found", violations[0].Message);
         Assert.Contains("maximum 1", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD012_WhenLongBlankRunThenReportsOnlyFirstExtraLine()
+    {
+        var rule = new MD012_NoMultipleBlanks();
+        var analysis = new MarkdownDocumentAnalysis("A\n\n\n\n\nB");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual(2, violations[0].LineNumber);
+        Assert.Contains("4 found", violations[0].Message);
     }
 
     [TestMethod]
