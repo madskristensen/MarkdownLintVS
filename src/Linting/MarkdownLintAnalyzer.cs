@@ -238,8 +238,10 @@ namespace MarkdownLintVS.Linting
                 }
             }
 
-            bool useParallelRules = parallelRules &&
-                (analysis.Text.Length >= _parallelAnalysisTextLengthThreshold || enabledRules.Count >= _parallelAnalysisRuleCountThreshold);
+            bool useParallelRules = ShouldRunRulesInParallel(
+                analysis.Text.Length,
+                enabledRules.Count,
+                parallelRules);
 
             if (useParallelRules)
             {
@@ -264,6 +266,16 @@ namespace MarkdownLintVS.Linting
 
             // Sort by line number then column for deterministic output
             return [.. results.OrderBy(v => v.LineNumber).ThenBy(v => v.ColumnStart)];
+        }
+
+        internal static bool ShouldRunRulesInParallel(
+            int textLength,
+            int enabledRuleCount,
+            bool parallelRules = true)
+        {
+            return parallelRules &&
+                textLength >= _parallelAnalysisTextLengthThreshold &&
+                enabledRuleCount >= _parallelAnalysisRuleCountThreshold;
         }
 
         /// <summary>

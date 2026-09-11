@@ -189,6 +189,41 @@ public sealed class MarkdownLintAnalyzerTests
         Assert.IsFalse(configuration.Enabled);
     }
 
+    [TestMethod]
+    public void WhenDocumentIsSmallThenRulesRunSequentially()
+    {
+        bool result = MarkdownLintAnalyzer.ShouldRunRulesInParallel(textLength: 100, enabledRuleCount: 50);
+
+        Assert.IsFalse(result);
+    }
+
+    [TestMethod]
+    public void WhenFewRulesAreEnabledThenRulesRunSequentially()
+    {
+        bool result = MarkdownLintAnalyzer.ShouldRunRulesInParallel(textLength: 10_000, enabledRuleCount: 2);
+
+        Assert.IsFalse(result);
+    }
+
+    [TestMethod]
+    public void WhenDocumentAndRuleSetAreLargeThenRulesRunInParallel()
+    {
+        bool result = MarkdownLintAnalyzer.ShouldRunRulesInParallel(textLength: 10_000, enabledRuleCount: 50);
+
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod]
+    public void WhenParallelRulesAreDisabledThenRulesRunSequentially()
+    {
+        bool result = MarkdownLintAnalyzer.ShouldRunRulesInParallel(
+            textLength: 10_000,
+            enabledRuleCount: 50,
+            parallelRules: false);
+
+        Assert.IsFalse(result);
+    }
+
     #region ParseRuleConfiguration Tests
 
     [TestMethod]
