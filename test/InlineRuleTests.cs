@@ -232,7 +232,7 @@ public sealed class InlineRuleTests
         var rule = new MD035_HrStyle();
         var config = new RuleConfiguration();
         config.Parameters["style"] = "***";
-        var analysis = new MarkdownDocumentAnalysis("---\n\nText\n\n---");
+        var analysis = new MarkdownDocumentAnalysis("Intro\n\n---\n\nText\n\n---");
 
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 

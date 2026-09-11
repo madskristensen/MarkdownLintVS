@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Markdig;
+using Markdig.Extensions.AutoIdentifiers;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+using MarkdownLintVS.Linting.Extensions;
 
 namespace MarkdownLintVS.Linting
 {
@@ -25,10 +27,16 @@ namespace MarkdownLintVS.Linting
             @"<!--\s*/\s*TOC\s*-->",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        // Shared pipeline instance - thread-safe for parsing (configuration is immutable)
+        // Shared pipeline instance - thread-safe for parsing (configuration is immutable).
+        // Keep this aligned with Markdown Editor v2, except for editor-only pragma lines
+        // and precise source locations, which are not needed by the lint rules.
         private static readonly MarkdownPipeline _sharedPipeline = new MarkdownPipelineBuilder()
+            .UseNormalizedHeadingIdentifiers()
+            .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
             .UseAdvancedExtensions()
-            .UsePreciseSourceLocation()
+            .UseTocToken()
+            .UseYamlFrontMatter()
+            .UseEmojiAndSmiley(enableSmileys: false)
             .Build();
 
         private readonly string _text;
