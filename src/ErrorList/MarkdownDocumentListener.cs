@@ -28,9 +28,18 @@ namespace MarkdownLintVS.ErrorList
             if (textView.Roles.Contains(DifferenceViewerRoles.DiffTextViewRole))
                 return;
 
-            var filePath = GetFilePath(textView);
-            var handler = new DocumentHandler(textView, TableDataSource, AnalysisCache, filePath);
-            textView.Closed += (s, e) => handler.Dispose();
+            ITextBuffer buffer = textView.TextBuffer;
+            DocumentHandler handler = buffer.Properties.GetOrCreateSingletonProperty(
+                typeof(DocumentHandler),
+                () => new DocumentHandler(buffer, TableDataSource, AnalysisCache, GetFilePath(textView)));
+            handler.AddView();
+            textView.Closed += OnTextViewClosed;
+
+            void OnTextViewClosed(object sender, EventArgs e)
+            {
+                textView.Closed -= OnTextViewClosed;
+                handler.RemoveView();
+            }
         }
 
         private string GetFilePath(ITextView textView)
@@ -50,19 +59,20 @@ namespace MarkdownLintVS.ErrorList
     /// </summary>
     internal class DocumentHandler : IDisposable
     {
-        private readonly ITextView _textView;
+        private readonly ITextBuffer _buffer;
         private readonly MarkdownLintTableDataSource _tableDataSource;
         private readonly MarkdownAnalysisCache _analysisCache;
         private readonly string _filePath;
+        private readonly ViewReferenceCounter _viewReferences = new();
         private bool _disposed;
 
         public DocumentHandler(
-            ITextView textView,
+            ITextBuffer buffer,
             MarkdownLintTableDataSource tableDataSource,
             MarkdownAnalysisCache analysisCache,
             string filePath)
         {
-            _textView = textView;
+            _buffer = buffer;
             _tableDataSource = tableDataSource;
             _analysisCache = analysisCache;
             _filePath = filePath;
@@ -72,9 +82,19 @@ namespace MarkdownLintVS.ErrorList
             _analysisCache.AnalysisUpdated += OnAnalysisUpdated;
         }
 
+        public void AddView() => _viewReferences.Add();
+
+        public void RemoveView()
+        {
+            if (_viewReferences.Remove())
+            {
+                Dispose();
+            }
+        }
+
         private void OnAnalysisUpdated(object sender, AnalysisUpdatedEventArgs e)
         {
-            if (e.Buffer != _textView.TextBuffer)
+            if (e.Buffer != _buffer)
                 return;
 
             // Update error list with new results
@@ -91,7 +111,28 @@ namespace MarkdownLintVS.ErrorList
                 _disposed = true;
                 _analysisCache.AnalysisUpdated -= OnAnalysisUpdated;
                 _tableDataSource?.ClearErrors(_filePath);
+                _ = _buffer.Properties.RemoveProperty(typeof(DocumentHandler));
             }
+        }
+    }
+
+    internal sealed class ViewReferenceCounter
+    {
+        private int _count;
+
+        internal int Count => _count;
+
+        internal void Add() => _count++;
+
+        internal bool Remove()
+        {
+            if (_count == 0)
+            {
+                return false;
+            }
+
+            _count--;
+            return _count == 0;
         }
     }
 }
