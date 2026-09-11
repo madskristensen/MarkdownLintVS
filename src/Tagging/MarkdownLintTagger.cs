@@ -106,20 +106,20 @@ namespace MarkdownLintVS.Tagging
                 .Select(v => new LintResult(v, snapshot))
                 .OrderBy(r => r.Start)
                 .ToList();
-            var shouldRaiseTagsChanged = false;
+            SnapshotSpan? affectedSpan = null;
 
             lock (_lock)
             {
                 if (snapshot.Version.VersionNumber >= _currentSnapshot.Version.VersionNumber)
                 {
+                    affectedSpan = GetAffectedSpan(snapshot, _currentResults, results);
                     _currentResults = results;
-                    shouldRaiseTagsChanged = true;
                 }
             }
 
-            if (shouldRaiseTagsChanged)
+            if (affectedSpan.HasValue)
             {
-                RaiseTagsChanged();
+                RaiseTagsChanged(affectedSpan);
             }
         }
 
@@ -142,11 +142,11 @@ namespace MarkdownLintVS.Tagging
             }
         }
 
-        private void RaiseTagsChanged()
+        private void RaiseTagsChanged(SnapshotSpan? affectedSpan = null)
         {
             if (ThreadHelper.CheckAccess())
             {
-                RaiseTagsChangedOnMainThread();
+                RaiseTagsChangedOnMainThread(affectedSpan);
                 return;
             }
 #pragma warning disable VSSDK007 // ThreadHelper.JoinableTaskFactory.RunAsync fire-and-forget is intentional for event-driven refresh
@@ -154,12 +154,12 @@ namespace MarkdownLintVS.Tagging
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                RaiseTagsChangedOnMainThread();
+                RaiseTagsChangedOnMainThread(affectedSpan);
             }).FireAndForget();
         }
 #pragma warning restore VSSDK007
 
-        private void RaiseTagsChangedOnMainThread()
+        private void RaiseTagsChangedOnMainThread(SnapshotSpan? affectedSpan)
         {
             if (_isDisposed)
             {
@@ -167,8 +167,38 @@ namespace MarkdownLintVS.Tagging
             }
 
             ITextSnapshot snapshot = _buffer.CurrentSnapshot;
+            SnapshotSpan span = affectedSpan.HasValue && affectedSpan.Value.Snapshot == snapshot
+                ? affectedSpan.Value
+                : new SnapshotSpan(snapshot, 0, snapshot.Length);
             EventHandler<SnapshotSpanEventArgs> tagsChanged = TagsChanged;
-            tagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+            tagsChanged?.Invoke(this, new SnapshotSpanEventArgs(span));
+        }
+
+        private static SnapshotSpan? GetAffectedSpan(
+            ITextSnapshot snapshot,
+            IReadOnlyList<LintResult> oldResults,
+            IReadOnlyList<LintResult> newResults)
+        {
+            var start = int.MaxValue;
+            var end = 0;
+            var hasResults = false;
+
+            foreach (LintResult result in oldResults.Concat(newResults))
+            {
+                SnapshotSpan? span = result.GetTranslatedSpan(snapshot);
+                if (!span.HasValue)
+                {
+                    return new SnapshotSpan(snapshot, 0, snapshot.Length);
+                }
+
+                hasResults = true;
+                start = Math.Min(start, span.Value.Start.Position);
+                end = Math.Max(end, span.Value.End.Position);
+            }
+
+            return hasResults
+                ? new SnapshotSpan(snapshot, start, Math.Max(0, end - start))
+                : null;
         }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
@@ -179,7 +209,7 @@ namespace MarkdownLintVS.Tagging
             List<LintResult> results;
             lock (_lock)
             {
-                results = [.. _currentResults];
+                results = _currentResults;
             }
 
             ITextSnapshot currentSnapshot = spans[0].Snapshot;
@@ -246,7 +276,7 @@ namespace MarkdownLintVS.Tagging
             List<LintResult> results;
             lock (_lock)
             {
-                results = [.. _currentResults];
+                results = _currentResults;
             }
 
             foreach (LintResult result in results)
