@@ -8,6 +8,47 @@ public sealed class LinkRuleTests
 {
     private static RuleConfiguration DefaultConfig => new();
 
+    #region MD054 - Link and Image Style
+
+    [TestMethod]
+    public void MD054_WhenMixedStylesThenReportsViolation()
+    {
+        var rule = new MD054_LinkImageStyle();
+        var config = new RuleConfiguration { Value = "consistent" };
+        var analysis = new MarkdownDocumentAnalysis("[inline](https://example.com)\n\n[reference][ref]\n\n[ref]: https://example.com");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD054", violations[0].Rule.Id);
+    }
+
+    [TestMethod]
+    public void MD054_WhenConfiguredStyleMatchesThenNoViolations()
+    {
+        var rule = new MD054_LinkImageStyle();
+        var config = new RuleConfiguration { Value = "inline" };
+        var analysis = new MarkdownDocumentAnalysis("[one](https://example.com)\n[two](https://example.org)");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD054_WhenCodeBlockContainsLinksThenNoViolations()
+    {
+        var rule = new MD054_LinkImageStyle();
+        var config = new RuleConfiguration { Value = "inline" };
+        var analysis = new MarkdownDocumentAnalysis("```\n[reference][ref]\n```\n\n[ref]: https://example.com");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    #endregion
+
     #region MD049 - Emphasis Style
 
     [TestMethod]

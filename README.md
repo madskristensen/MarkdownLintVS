@@ -3,7 +3,9 @@
 [![Build](https://github.com/madskristensen/MarkdownLintVS/actions/workflows/build.yaml/badge.svg)](https://github.com/madskristensen/MarkdownLintVS/actions/workflows/build.yaml)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/madskristensen)
 
-A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules (MD001-MD062).
+A powerful Visual Studio extension that brings real-time Markdown linting to your editor, based on the popular [markdownlint](https://github.com/DavidAnson/markdownlint) rules, with extension-specific checks for local file and image links.
+
+> **💡 Recommended pairing:** Use [Markdown Editor v2](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownEditor2) for syntax-aware editing and live preview, and use Markdown Lint for validation, diagnostics, and automatic fixes. The two extensions are designed to work together.
 
 ## Features
 
@@ -17,7 +19,7 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
 ✅ **Context menu** - Quick access to enable/disable linting and settings  
-✅ **50+ rules** - Comprehensive coverage based on markdownlint standards (MD001-MD062)  
+✅ **50+ rules** - Comprehensive coverage of the supported markdownlint rules, plus local file and image link checks  
 ✅ **Works with any Markdown editor** - Including the built-in Markdown editor and most Markdown extensions
 
 ## Installation
@@ -198,8 +200,6 @@ md_no_trailing_spaces = false
 | `md_fenced_code_language`             | MD040 | Fenced code blocks should have a language specified                      |
 | `md_first_line_heading`               | MD041 | First line in a file should be a top-level heading (disabled by default) |
 | `md_no_empty_links`                   | MD042 | No empty links                                                           |
-| `md_required_headings`                | MD043 | Required heading structure (disabled by default)                         |
-| `md_proper_names`                     | MD044 | Proper names should have correct capitalization (disabled by default)    |
 | `md_no_alt_text`                      | MD045 | Images should have alternate text (alt text)                             |
 | `md_code_block_style`                 | MD046 | Code block style (fenced, indented, consistent)                          |
 | `md_single_trailing_newline`          | MD047 | Files should end with a single newline character                         |

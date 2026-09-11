@@ -109,6 +109,8 @@ namespace MarkdownLintVS.Linting
                 new MD051_LinkFragments(),
                 new MD052_ReferenceLinksImages(),
                 new MD053_LinkImageReferenceDefinitions(),
+                new MD054_LinkImageStyle(),
+                new MD059_DescriptiveLinkText(),
 
                 // File link rules
                 new MD061_FileLinkExists(),
@@ -118,6 +120,7 @@ namespace MarkdownLintVS.Linting
                 new MD055_TablePipeStyle(),
                 new MD056_TableColumnCount(),
                 new MD058_BlanksAroundTables(),
+                new MD060_TableColumnStyle(),
             ];
         }
 

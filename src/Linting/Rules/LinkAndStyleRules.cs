@@ -511,12 +511,110 @@ namespace MarkdownLintVS.Linting.Rules
     }
 
     /// <summary>
-    /// MD059: Link text should be descriptive.
-    /// Flags links with generic text like "click here", "read more", "here", etc.
+    /// MD054: Link and image style should be consistent.
     /// </summary>
-    public class MD059_DescriptiveLinkText : MarkdownRuleBase
+    public class MD054_LinkImageStyle : MarkdownRuleBase
     {
-        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD059");
+        private static readonly RuleInfo _info = RuleRegistry.GetRule("MD054");
+        public override RuleInfo Info => _info;
+
+        private static readonly Regex _autolinkPattern = new(
+            @"<(?:(?:https?|ftp|mailto):[^>\s]+|[^>\s@]+@[^>\s@]+)>",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex _inlinePattern = new(
+            @"!?\[[^\]]*\]\((?:\\.|[^\\)])*\)",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _fullReferencePattern = new(
+            @"!?\[[^\]]*\]\[[^\]]+\]",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _collapsedReferencePattern = new(
+            @"!?\[([^\]]+)\]\[\]",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _shortcutReferencePattern = new(
+            @"!?\[([^\]]+)\](?!\s*(?:\[|\(|:))",
+            RegexOptions.Compiled);
+
+        public override IEnumerable<LintViolation> Analyze(
+            MarkdownDocumentAnalysis analysis,
+            RuleConfiguration configuration,
+            DiagnosticSeverity severity,
+            CancellationToken cancellationToken = default)
+        {
+            var style = configuration.GetStringParameter("style", "consistent").ToLowerInvariant();
+            if (style == "false")
+                yield break;
+
+            var definedLabels = analysis.GetLinkReferenceDefinitions()
+                .Where(d => d.Label != null)
+                .Select(d => d.Label.ToLowerInvariant())
+                .ToHashSet();
+            var matches = new List<(int LineNumber, Match Match, string Style)>();
+
+            for (var lineNumber = 0; lineNumber < analysis.LineCount; lineNumber++)
+            {
+                if (analysis.IsLineInCodeBlock(lineNumber) || analysis.IsLineInFrontMatter(lineNumber))
+                    continue;
+
+                var line = analysis.GetLine(lineNumber);
+                matches.AddRange(_autolinkPattern.Matches(line).Cast<Match>()
+                    .Select(match => (lineNumber, match, "autolink")));
+                matches.AddRange(_inlinePattern.Matches(line).Cast<Match>()
+                    .Select(match => (lineNumber, match, "inline")));
+                matches.AddRange(_fullReferencePattern.Matches(line).Cast<Match>()
+                    .Select(match => (lineNumber, match, "full")));
+                matches.AddRange(_collapsedReferencePattern.Matches(line).Cast<Match>()
+                    .Select(match => (lineNumber, match, "collapsed")));
+
+                foreach (Match match in _shortcutReferencePattern.Matches(line))
+                {
+                    var end = match.Index + match.Length;
+                    while (end < line.Length && char.IsWhiteSpace(line[end]))
+                        end++;
+
+                    if ((match.Index > 0 && line[match.Index - 1] == ']') ||
+                        (end < line.Length && (line[end] == '(' || line[end] == '[' || line[end] == ':')))
+                        continue;
+
+                    if (definedLabels.Contains(match.Groups[1].Value.ToLowerInvariant()))
+                        matches.Add((lineNumber, match, "shortcut"));
+                }
+            }
+
+            string detectedStyle = null;
+            foreach ((int lineNumber, Match match, string currentStyle) in matches.OrderBy(item => item.LineNumber).ThenBy(item => item.Match.Index))
+            {
+                if (style == "consistent")
+                {
+                    detectedStyle ??= currentStyle;
+                    if (currentStyle == detectedStyle)
+                        continue;
+                }
+                else if (currentStyle == style)
+                {
+                    continue;
+                }
+
+                yield return CreateViolation(
+                    lineNumber,
+                    match.Index,
+                    match.Index + match.Length,
+                    $"Link and image style should be {style}",
+                    severity);
+            }
+        }
+    }
+
+     /// <summary>
+     /// MD059: Link text should be descriptive.
+     /// Flags links with generic text like "click here", "read more", "here", etc.
+     /// </summary>
+     public class MD059_DescriptiveLinkText : MarkdownRuleBase
+     {
+         private static readonly RuleInfo _info = RuleRegistry.GetRule("MD059");
         public override RuleInfo Info => _info;
 
         // Non-descriptive link text patterns (case-insensitive)

@@ -40,6 +40,21 @@ public sealed class AnalyzerTestabilityTests
         CollectionAssert.Contains(ruleIds, "MD047"); // Final newline
     }
 
+    [TestMethod]
+    public void Analyzer_RulesCollection_IsSynchronizedWithRuleRegistry()
+    {
+        var analyzerRuleIds = MarkdownLintAnalyzer.Instance.Rules
+            .Select(rule => rule.Info.Id)
+            .OrderBy(id => id)
+            .ToList();
+        var registryRuleIds = RuleRegistry.AllRules
+            .Select(rule => rule.Id)
+            .OrderBy(id => id)
+            .ToList();
+
+        CollectionAssert.AreEqual(registryRuleIds, analyzerRuleIds);
+    }
+
     /// <summary>
     /// Demonstrates that we can test analysis without VS dependencies.
     /// </summary>
