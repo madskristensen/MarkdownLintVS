@@ -77,7 +77,7 @@ namespace MarkdownLintVS.Tagging
         {
             if (!options.LintingEnabled)
             {
-                ClearCurrentResults(_buffer.CurrentSnapshot);
+                ClearCurrentResults();
             }
 
             // Revalidate immediately when linting is enabled/disabled
@@ -86,7 +86,10 @@ namespace MarkdownLintVS.Tagging
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
         {
-            _currentSnapshot = e.After;
+            lock (_lock)
+            {
+                _currentSnapshot = e.After;
+            }
 
             // Keep existing results while debounced analysis runs. Tracking spans translate stale
             // squiggles to the edited snapshot, and the next analysis replaces or clears them.
@@ -116,11 +119,11 @@ namespace MarkdownLintVS.Tagging
 
             if (shouldRaiseTagsChanged)
             {
-                RaiseTagsChanged(snapshot);
+                RaiseTagsChanged();
             }
         }
 
-        private void ClearCurrentResults(ITextSnapshot snapshot)
+        private void ClearCurrentResults()
         {
             var shouldRaiseTagsChanged = false;
 
@@ -135,15 +138,15 @@ namespace MarkdownLintVS.Tagging
 
             if (shouldRaiseTagsChanged)
             {
-                RaiseTagsChanged(snapshot);
+                RaiseTagsChanged();
             }
         }
 
-        private void RaiseTagsChanged(ITextSnapshot snapshot)
+        private void RaiseTagsChanged()
         {
             if (ThreadHelper.CheckAccess())
             {
-                RaiseTagsChangedOnMainThread(snapshot);
+                RaiseTagsChangedOnMainThread();
                 return;
             }
 #pragma warning disable VSSDK007 // ThreadHelper.JoinableTaskFactory.RunAsync fire-and-forget is intentional for event-driven refresh
@@ -151,18 +154,19 @@ namespace MarkdownLintVS.Tagging
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                RaiseTagsChangedOnMainThread(snapshot);
+                RaiseTagsChangedOnMainThread();
             }).FireAndForget();
         }
 #pragma warning restore VSSDK007
 
-        private void RaiseTagsChangedOnMainThread(ITextSnapshot snapshot)
+        private void RaiseTagsChangedOnMainThread()
         {
             if (_isDisposed)
             {
                 return;
             }
 
+            ITextSnapshot snapshot = _buffer.CurrentSnapshot;
             EventHandler<SnapshotSpanEventArgs> tagsChanged = TagsChanged;
             tagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
         }
