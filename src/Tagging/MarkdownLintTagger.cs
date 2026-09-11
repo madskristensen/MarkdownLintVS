@@ -146,7 +146,7 @@ namespace MarkdownLintVS.Tagging
                 RaiseTagsChangedOnMainThread(snapshot);
                 return;
             }
-
+#pragma warning disable VSSDK007 // ThreadHelper.JoinableTaskFactory.RunAsync fire-and-forget is intentional for event-driven refresh
             ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -154,6 +154,7 @@ namespace MarkdownLintVS.Tagging
                 RaiseTagsChangedOnMainThread(snapshot);
             }).FireAndForget();
         }
+#pragma warning restore VSSDK007
 
         private void RaiseTagsChangedOnMainThread(ITextSnapshot snapshot)
         {
