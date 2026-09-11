@@ -48,7 +48,7 @@ namespace MarkdownLintVS.Linting
         // Precomputed caches for O(1) lookups
         private readonly int[] _lineStartOffsets;
         private readonly HashSet<int> _codeBlockLines;
-        private readonly string?[] _codeBlockLanguages;
+        private readonly string[] _codeBlockLanguages;
         private readonly HashSet<int> _htmlBlockLines;
         private readonly int _frontMatterEndLine;
         private readonly HashSet<int> _tocCommentLines;
@@ -240,9 +240,9 @@ namespace MarkdownLintVS.Linting
             return codeLines;
         }
 
-        private string?[] BuildCodeBlockLanguagesCache()
+        private string[] BuildCodeBlockLanguagesCache()
         {
-            var languages = new string?[LineCount];
+            var languages = new string[LineCount];
             foreach (FencedCodeBlock codeBlock in GetFencedCodeBlocks())
             {
                 var startLine = codeBlock.Line;
