@@ -83,6 +83,18 @@ namespace MarkdownLintVS.Options
         [DefaultValue(false)]
         public bool MD041 { get; set; } = false;
 
+        [Category("1. Headings")]
+        [DisplayName("MD043 - required-headings")]
+        [Description("Required heading structure")]
+        [DefaultValue(false)]
+        public bool MD043 { get; set; } = false;
+
+        [Category("1. Headings")]
+        [DisplayName("MD044 - proper-names")]
+        [Description("Proper names should have the correct capitalization")]
+        [DefaultValue(false)]
+        public bool MD044 { get; set; } = false;
+
         // ===== List Rules =====
 
         [Category("2. Lists")]

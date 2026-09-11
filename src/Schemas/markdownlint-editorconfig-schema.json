@@ -326,18 +326,18 @@
     },
     {
       "name": "md_required_headings",
-      "description": "MD043 - Required heading structure",
-      "values": [ true, false ],
-      "defaultValue": [ false ],
+      "description": "MD043 - Required heading structure (semicolon-separated, for example: # Title; ## Overview; ## *)",
+      "values": [],
+      "defaultValue": [],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md043.md"
     },
     {
       "name": "md_proper_names",
-      "description": "MD044 - Proper names should have correct capitalization",
-      "values": [ true, false ],
-      "defaultValue": [ false ],
+      "description": "MD044 - Proper names should have correct capitalization (comma-separated)",
+      "values": [],
+      "defaultValue": [],
       "severity": true,
       "defaultSeverity": "warning",
       "documentationLink": "https://github.com/DavidAnson/markdownlint/blob/main/doc/md044.md"

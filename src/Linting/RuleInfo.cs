@@ -61,7 +61,8 @@ namespace MarkdownLintVS.Linting
         int columnEnd,
         string message,
         DiagnosticSeverity severity,
-        string fixDescription = null)
+        string fixDescription = null,
+        string replacementText = null)
     {
         public RuleInfo Rule { get; } = rule ?? throw new ArgumentNullException(nameof(rule));
         public int LineNumber { get; } = lineNumber;
@@ -70,6 +71,7 @@ namespace MarkdownLintVS.Linting
         public string Message { get; } = message ?? throw new ArgumentNullException(nameof(message));
         public DiagnosticSeverity Severity { get; } = severity;
         public string FixDescription { get; } = fixDescription;
+        public string ReplacementText { get; } = replacementText;
 
         public string GetErrorCode() => Rule.Id;
     }

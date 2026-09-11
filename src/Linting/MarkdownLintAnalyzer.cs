@@ -98,6 +98,8 @@ namespace MarkdownLintVS.Linting
                 new MD040_FencedCodeLanguage(),
                 new MD041_FirstLineHeading(),
                 new MD042_NoEmptyLinks(),
+                new MD043_RequiredHeadings(),
+                new MD044_ProperNames(),
                 new MD045_NoAltText(),
                 new MD046_CodeBlockStyle(),
                 new MD047_SingleTrailingNewline(),

@@ -22,7 +22,8 @@ namespace MarkdownLintVS.Linting.Rules
             int columnEnd,
             string message,
             DiagnosticSeverity severity,
-            string fixDescription = null)
+            string fixDescription = null,
+            string replacementText = null)
         {
             return new LintViolation(
                 Info,
@@ -31,7 +32,8 @@ namespace MarkdownLintVS.Linting.Rules
                 columnEnd,
                 message,
                 severity,
-                fixDescription);
+                fixDescription,
+                replacementText);
         }
 
         protected LintViolation CreateLineViolation(
