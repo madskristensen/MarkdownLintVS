@@ -561,16 +561,23 @@ namespace MarkdownLintVS.Linting.Rules
 
                 var line = analysis.GetLine(lineNumber);
                 matches.AddRange(_autolinkPattern.Matches(line).Cast<Match>()
+                    .Where(match => !IsInlineCodeMatch(analysis, lineNumber, match))
                     .Select(match => (lineNumber, match, "autolink")));
                 matches.AddRange(_inlinePattern.Matches(line).Cast<Match>()
+                    .Where(match => !IsInlineCodeMatch(analysis, lineNumber, match))
                     .Select(match => (lineNumber, match, "inline")));
                 matches.AddRange(_fullReferencePattern.Matches(line).Cast<Match>()
+                    .Where(match => !IsInlineCodeMatch(analysis, lineNumber, match))
                     .Select(match => (lineNumber, match, "full")));
                 matches.AddRange(_collapsedReferencePattern.Matches(line).Cast<Match>()
+                    .Where(match => !IsInlineCodeMatch(analysis, lineNumber, match))
                     .Select(match => (lineNumber, match, "collapsed")));
 
                 foreach (Match match in _shortcutReferencePattern.Matches(line))
                 {
+                    if (IsInlineCodeMatch(analysis, lineNumber, match))
+                        continue;
+
                     var end = match.Index + match.Length;
                     while (end < line.Length && char.IsWhiteSpace(line[end]))
                         end++;
@@ -605,6 +612,12 @@ namespace MarkdownLintVS.Linting.Rules
                     $"Link and image style should be {style}",
                     severity);
             }
+        }
+
+        private static bool IsInlineCodeMatch(MarkdownDocumentAnalysis analysis, int lineNumber, Match match)
+        {
+            return analysis.IsPositionInInlineCode(lineNumber, match.Index) ||
+                (match.Length > 0 && analysis.IsPositionInInlineCode(lineNumber, match.Index + match.Length - 1));
         }
     }
 

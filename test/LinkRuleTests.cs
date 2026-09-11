@@ -47,6 +47,18 @@ public sealed class LinkRuleTests
         Assert.IsEmpty(violations);
     }
 
+    [TestMethod]
+    public void MD054_WhenInlineCodeContainsReferenceSyntaxThenNoViolations()
+    {
+        var rule = new MD054_LinkImageStyle();
+        var config = new RuleConfiguration { Value = "inline" };
+        var analysis = new MarkdownDocumentAnalysis("Use `[reference][ref]` in examples.\n\n[ref]: https://example.com");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
     #endregion
 
     #region MD049 - Emphasis Style
