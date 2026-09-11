@@ -131,7 +131,7 @@ namespace MarkdownLintVS.Linting
 
                 if (!cancellationToken.IsCancellationRequested)
                 {
-                    PerformAnalysis(buffer, snapshot, text, filePath, cancellationToken);
+                    PerformAnalysis(buffer, snapshot, text, filePath, pendingAnalysis, cancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -153,7 +153,7 @@ namespace MarkdownLintVS.Linting
             try
             {
                 // Yield to background thread immediately (no debounce delay)
-                await Task.Run(() => PerformAnalysis(buffer, snapshot, text, filePath, cancellationToken), cancellationToken);
+                await Task.Run(() => PerformAnalysis(buffer, snapshot, text, filePath, pendingAnalysis, cancellationToken), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -172,7 +172,13 @@ namespace MarkdownLintVS.Linting
         /// <summary>
         /// Performs the actual analysis and updates the cache.
         /// </summary>
-        private void PerformAnalysis(ITextBuffer buffer, ITextSnapshot snapshot, string text, string filePath, CancellationToken cancellationToken = default)
+        private void PerformAnalysis(
+            ITextBuffer buffer,
+            ITextSnapshot snapshot,
+            string text,
+            string filePath,
+            PendingAnalysis pendingAnalysis,
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -187,8 +193,15 @@ namespace MarkdownLintVS.Linting
                     violations = [];
                 }
 
-                var result = new CachedAnalysisResult(snapshot.Version.VersionNumber, violations);
+                if (cancellationToken.IsCancellationRequested ||
+                    buffer.CurrentSnapshot.Version.VersionNumber != snapshot.Version.VersionNumber ||
+                    !buffer.Properties.TryGetProperty(_pendingAnalysisKey, out PendingAnalysis currentPending) ||
+                    !ReferenceEquals(currentPending, pendingAnalysis))
+                {
+                    return;
+                }
 
+                var result = new CachedAnalysisResult(snapshot.Version.VersionNumber, violations);
                 buffer.Properties[_propertyKey] = result;
 
                 AnalysisUpdated?.Invoke(this, new AnalysisUpdatedEventArgs(buffer, snapshot, violations, filePath));
