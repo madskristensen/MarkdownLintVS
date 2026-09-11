@@ -15,6 +15,7 @@ A powerful Visual Studio extension that brings real-time Markdown linting to you
 ✅ **Fix All support** - Fix all violations of a rule or all auto-fixable issues at once  
 ✅ **Inline suppression** - Suppress rules with `<!-- markdownlint-disable-line -->` comments  
 ✅ **Format Document** - Auto-fix all issues via Format Document (`Ctrl+K, Ctrl+D`)  
+✅ **Fix on Save** - Automatically apply safe fixes whenever a Markdown document is saved  
 ✅ **Lint Folder/Solution** - Lint all Markdown files in a folder, project, or solution  
 ✅ **EditorConfig support** - Configure rules per-project using `.editorconfig` files  
 ✅ **Options page** - Toggle rules on/off via Tools → Options → Markdown Lint → Rules  
@@ -61,11 +62,15 @@ Results appear in the **Error List** window, with clickable entries to navigate 
 
 **Ignored folders:** By default, common folders like `node_modules`, `vendor`, `.git`, `bin`, and `obj` are automatically ignored. You can customize this list in **Tools → Options → Markdown Lint → General → Ignored Folders**.
 
-**`.markdownlintignore` support:** Create a `.markdownlintignore` file in your project root to exclude additional files or patterns (uses `.gitignore` syntax).
+**`.markdownlintignore` support:** Create `.markdownlintignore` files at the project root or in nested folders to exclude additional files or patterns (uses `.gitignore` syntax). Nested patterns are relative to their containing folder and can override inherited rules.
 
 ### Format Document
 
 Use **Format Document** (`Ctrl+K, Ctrl+D`) or **Format Selection** (`Ctrl+K, Ctrl+F`) to automatically fix all auto-fixable violations. The first time you use this feature, you'll be prompted to enable or disable automatic fixing on format commands. You can change this setting later in **Tools → Options → Markdown Lint → General**.
+
+### Fix on Save
+
+When **Fix on Save Behavior** is enabled, saving a Markdown document applies all safe auto-fixes before the file is written. The default **Ask** setting prompts on the first save; choose **On** to keep fixing on save or **Off** to save without changes. You can change the choice at any time in **Tools → Options → Markdown Lint → General**.
 
 ## Configuration
 
@@ -84,6 +89,7 @@ Go to **Tools → Options → Markdown Lint → General** to configure:
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | Linting Enabled          | Enable or disable all markdown linting                                                                                          |
 | Format Document Behavior | Control auto-fixing on Format Document/Selection (Ask, On, Off)                                                                 |
+| Fix on Save Behavior     | Control auto-fixing when saving Markdown documents (Ask, On, Off)                                                               |
 | Ignored Folders          | Comma-separated list of folders to ignore when linting (default: `node_modules, vendor, .git, bin, obj, packages, TestResults`) |
 
 ### Rules Options
@@ -92,7 +98,7 @@ Go to **Tools → Options → Markdown Lint → Rules** to access all rule setti
 
 | Category         | Rules                                          |
 | ---------------- | ---------------------------------------------- |
-| 1. Headings      | MD001, MD003, MD018-MD026, MD041               |
+| 1. Headings      | MD001, MD003, MD018-MD026, MD041, MD043, MD044 |
 | 2. Lists         | MD004, MD005, MD007, MD029, MD030, MD032       |
 | 3. Whitespace    | MD009, MD010, MD012, MD013, MD047              |
 | 4. Code Blocks   | MD014, MD031, MD040, MD046, MD048              |
@@ -200,9 +206,11 @@ md_no_trailing_spaces = false
 | `md_fenced_code_language`             | MD040 | Fenced code blocks should have a language specified                      |
 | `md_first_line_heading`               | MD041 | First line in a file should be a top-level heading (disabled by default) |
 | `md_no_empty_links`                   | MD042 | No empty links                                                           |
+| `md_required_headings`                | MD043 | Required heading structure (disabled by default)                         |
+| `md_proper_names`                     | MD044 | Proper names should have the correct capitalization (disabled by default) |
 | `md_no_alt_text`                      | MD045 | Images should have alternate text (alt text)                             |
 | `md_code_block_style`                 | MD046 | Code block style (fenced, indented, consistent)                          |
-| `md_single_trailing_newline`          | MD047 | Files should end with a single newline character                         |
+| `md_single_trailing_newline`          | MD047 | Files should end with a single newline character (disabled by default)   |
 | `md_code_fence_style`                 | MD048 | Code fence style (backtick, tilde, consistent)                           |
 | `md_emphasis_style`                   | MD049 | Emphasis style (asterisk, underscore, consistent)                        |
 | `md_strong_style`                     | MD050 | Strong style (asterisk, underscore, consistent)                          |
@@ -215,8 +223,8 @@ md_no_trailing_spaces = false
 | `md_blanks_around_tables`             | MD058 | Tables should be surrounded by blank lines                               |
 | `md_descriptive_link_text`            | MD059 | Link text should be descriptive                                          |
 | `md_table_column_style`               | MD060 | Table column style should be consistent                                  |
-| `md_file_links_exist`                 | MD061 | Local file links should exist (disabled by default)                      |
-| `md_image_links_exist`                | MD062 | Local image links should exist (disabled by default)                     |
+| `md_file_links_exist`                 | MD061 | Local file links should exist                                            |
+| `md_image_links_exist`                | MD062 | Local image links should exist                                           |
 | `md_root_path`                        | -     | Root path for resolving root-relative links (e.g., `/images/logo.png`)   |
 
 </details>
@@ -232,6 +240,7 @@ The extension provides intelligent quick fixes (`Ctrl+.`) for many common issues
 | Rule                    | Quick Fix                               |
 | ----------------------- | --------------------------------------- |
 | MD004                   | Change list marker style                |
+| MD005/MD007             | Correct list indentation                |
 | MD009                   | Remove trailing whitespace              |
 | MD010                   | Replace tabs with spaces                |
 | MD011                   | Fix reversed link syntax                |
@@ -252,11 +261,15 @@ The extension provides intelligent quick fixes (`Ctrl+.`) for many common issues
 | MD038                   | Remove spaces in code spans             |
 | MD039                   | Remove spaces in link text              |
 | MD040                   | Add language identifier to code blocks  |
+| MD044                   | Correct proper-name capitalization      |
 | MD045                   | Add alt text placeholder to images      |
 | MD047                   | Add/remove trailing newline             |
 | MD048                   | Change code fence style                 |
 | MD049                   | Change emphasis style                   |
 | MD050                   | Change strong/bold style                |
+| MD051                   | Normalize a matching heading fragment   |
+| MD053                   | Remove an unused reference definition   |
+| MD054                   | Convert safely between link styles      |
 | MD055                   | Add leading and trailing pipes          |
 | MD056                   | Fix table delimiter row                 |
 
