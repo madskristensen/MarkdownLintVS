@@ -29,6 +29,8 @@ namespace MarkdownLintVS.Linting
         /// </summary>
         private readonly ConcurrentDictionary<string, CachedEditorConfig> _editorConfigCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly TimeSpan _cacheTtl = TimeSpan.FromSeconds(30);
+        private const int _parallelAnalysisTextLengthThreshold = 4096;
+        private const int _parallelAnalysisRuleCountThreshold = 8;
 
         public MarkdownLintAnalyzer()
         {
@@ -222,7 +224,10 @@ namespace MarkdownLintVS.Linting
                 }
             }
 
-            if (parallelRules)
+            bool useParallelRules = parallelRules &&
+                (analysis.Text.Length >= _parallelAnalysisTextLengthThreshold || enabledRules.Count >= _parallelAnalysisRuleCountThreshold);
+
+            if (useParallelRules)
             {
                 Parallel.ForEach(enabledRules,
                     new ParallelOptions
