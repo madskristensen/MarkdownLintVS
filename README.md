@@ -96,17 +96,17 @@ Go to **Tools → Options → Markdown Lint → General** to configure:
 
 Go to **Tools → Options → Markdown Lint → Rules** to access all rule settings organized by category:
 
-| Category         | Rules                                          |
-| ---------------- | ---------------------------------------------- |
-| 1. Headings      | MD001, MD003, MD018-MD026, MD041, MD043, MD044 |
-| 2. Lists         | MD004, MD005, MD007, MD029, MD030, MD032       |
-| 3. Whitespace    | MD009, MD010, MD012, MD013, MD047              |
-| 4. Code Blocks   | MD014, MD031, MD040, MD046, MD048              |
+| Category         | Rules                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| 1. Headings      | MD001, MD003, MD018-MD026, MD041, MD043, MD044               |
+| 2. Lists         | MD004, MD005, MD007, MD029, MD030, MD032                     |
+| 3. Whitespace    | MD009, MD010, MD012, MD013, MD047                            |
+| 4. Code Blocks   | MD014, MD031, MD040, MD046, MD048                            |
 | 5. Links         | MD011, MD034, MD039, MD042, MD045, MD051-MD054, MD061, MD062 |
-| 6. Inline        | MD033, MD035-MD038, MD049, MD050               |
-| 7. Blockquotes   | MD027, MD028                                   |
-| 8. Tables        | MD055, MD056, MD058, MD060                     |
-| 9. Accessibility | MD059                                          |
+| 6. Inline        | MD033, MD035-MD038, MD049, MD050                             |
+| 7. Blockquotes   | MD027, MD028                                                 |
+| 8. Tables        | MD055, MD056, MD058, MD060                                   |
+| 9. Accessibility | MD059                                                        |
 
 Changes take effect immediately when you click OK or Apply - all open markdown files are automatically revalidated.
 
@@ -168,64 +168,64 @@ md_no_trailing_spaces = false
 <summary>Click to expand the full list of supported rules</summary>
 <br>
 
-| EditorConfig Property                 | Rule  | Description                                                              |
-| ------------------------------------- | ----- | ------------------------------------------------------------------------ |
-| `md_heading_increment`                | MD001 | Heading levels should only increment by one level at a time              |
-| `md_heading_style`                    | MD003 | Heading style (atx, atx_closed, setext, consistent)                      |
-| `md_ul_style`                         | MD004 | Unordered list style (asterisk, plus, dash, consistent)                  |
-| `md_list_indent`                      | MD005 | Inconsistent indentation for list items at the same level                |
-| `md_ul_indent`                        | MD007 | Unordered list indentation (default: 2 spaces)                           |
-| `md_no_trailing_spaces`               | MD009 | Trailing spaces not allowed                                              |
-| `md_no_hard_tabs`                     | MD010 | Hard tabs not allowed                                                    |
-| `md_no_reversed_links`                | MD011 | Reversed link syntax                                                     |
-| `md_no_multiple_blanks`               | MD012 | Multiple consecutive blank lines                                         |
-| `md_line_length`                      | MD013 | Line length (default: 80 characters, disabled by default)                |
-| `md_commands_show_output`             | MD014 | Dollar signs used before commands without showing output                 |
-| `md_no_missing_space_atx`             | MD018 | No space after hash on atx style heading                                 |
-| `md_no_multiple_space_atx`            | MD019 | Multiple spaces after hash on atx style heading                          |
-| `md_no_missing_space_closed_atx`      | MD020 | No space inside hashes on closed atx style heading                       |
-| `md_no_multiple_space_closed_atx`     | MD021 | Multiple spaces inside hashes on closed atx style heading                |
-| `md_blanks_around_headings`           | MD022 | Headings should be surrounded by blank lines                             |
-| `md_heading_start_left`               | MD023 | Headings must start at the beginning of the line                         |
-| `md_no_duplicate_heading`             | MD024 | Multiple headings with the same content                                  |
-| `md_single_title`                     | MD025 | Multiple top-level headings in the same document                         |
-| `md_no_trailing_punctuation`          | MD026 | Trailing punctuation in heading                                          |
-| `md_no_multiple_space_blockquote`     | MD027 | Multiple spaces after blockquote symbol                                  |
-| `md_no_blanks_blockquote`             | MD028 | Blank line inside blockquote                                             |
-| `md_ol_prefix`                        | MD029 | Ordered list item prefix (one, ordered, one_or_ordered, zero)            |
-| `md_list_marker_space`                | MD030 | Spaces after list markers                                                |
-| `md_blanks_around_fences`             | MD031 | Fenced code blocks should be surrounded by blank lines                   |
-| `md_blanks_around_lists`              | MD032 | Lists should be surrounded by blank lines                                |
-| `md_no_inline_html`                   | MD033 | Inline HTML not allowed (disabled by default)                            |
-| `md_no_bare_urls`                     | MD034 | Bare URL used                                                            |
-| `md_hr_style`                         | MD035 | Horizontal rule style (consistent, ---, ***, ___)                        |
-| `md_no_emphasis_as_heading`           | MD036 | Emphasis used instead of a heading (disabled by default)                 |
-| `md_no_space_in_emphasis`             | MD037 | Spaces inside emphasis markers                                           |
-| `md_no_space_in_code`                 | MD038 | Spaces inside code span elements                                         |
-| `md_no_space_in_links`                | MD039 | Spaces inside link text                                                  |
-| `md_fenced_code_language`             | MD040 | Fenced code blocks should have a language specified                      |
-| `md_first_line_heading`               | MD041 | First line in a file should be a top-level heading (disabled by default) |
-| `md_no_empty_links`                   | MD042 | No empty links                                                           |
-| `md_required_headings`                | MD043 | Required heading structure (disabled by default)                         |
+| EditorConfig Property                 | Rule  | Description                                                               |
+| ------------------------------------- | ----- | ------------------------------------------------------------------------- |
+| `md_heading_increment`                | MD001 | Heading levels should only increment by one level at a time               |
+| `md_heading_style`                    | MD003 | Heading style (atx, atx_closed, setext, consistent)                       |
+| `md_ul_style`                         | MD004 | Unordered list style (asterisk, plus, dash, consistent)                   |
+| `md_list_indent`                      | MD005 | Inconsistent indentation for list items at the same level                 |
+| `md_ul_indent`                        | MD007 | Unordered list indentation (default: 2 spaces)                            |
+| `md_no_trailing_spaces`               | MD009 | Trailing spaces not allowed                                               |
+| `md_no_hard_tabs`                     | MD010 | Hard tabs not allowed                                                     |
+| `md_no_reversed_links`                | MD011 | Reversed link syntax                                                      |
+| `md_no_multiple_blanks`               | MD012 | Multiple consecutive blank lines                                          |
+| `md_line_length`                      | MD013 | Line length (default: 80 characters, disabled by default)                 |
+| `md_commands_show_output`             | MD014 | Dollar signs used before commands without showing output                  |
+| `md_no_missing_space_atx`             | MD018 | No space after hash on atx style heading                                  |
+| `md_no_multiple_space_atx`            | MD019 | Multiple spaces after hash on atx style heading                           |
+| `md_no_missing_space_closed_atx`      | MD020 | No space inside hashes on closed atx style heading                        |
+| `md_no_multiple_space_closed_atx`     | MD021 | Multiple spaces inside hashes on closed atx style heading                 |
+| `md_blanks_around_headings`           | MD022 | Headings should be surrounded by blank lines                              |
+| `md_heading_start_left`               | MD023 | Headings must start at the beginning of the line                          |
+| `md_no_duplicate_heading`             | MD024 | Multiple headings with the same content                                   |
+| `md_single_title`                     | MD025 | Multiple top-level headings in the same document                          |
+| `md_no_trailing_punctuation`          | MD026 | Trailing punctuation in heading                                           |
+| `md_no_multiple_space_blockquote`     | MD027 | Multiple spaces after blockquote symbol                                   |
+| `md_no_blanks_blockquote`             | MD028 | Blank line inside blockquote                                              |
+| `md_ol_prefix`                        | MD029 | Ordered list item prefix (one, ordered, one_or_ordered, zero)             |
+| `md_list_marker_space`                | MD030 | Spaces after list markers                                                 |
+| `md_blanks_around_fences`             | MD031 | Fenced code blocks should be surrounded by blank lines                    |
+| `md_blanks_around_lists`              | MD032 | Lists should be surrounded by blank lines                                 |
+| `md_no_inline_html`                   | MD033 | Inline HTML not allowed (disabled by default)                             |
+| `md_no_bare_urls`                     | MD034 | Bare URL used                                                             |
+| `md_hr_style`                         | MD035 | Horizontal rule style (consistent, ---, ***, ___)                         |
+| `md_no_emphasis_as_heading`           | MD036 | Emphasis used instead of a heading (disabled by default)                  |
+| `md_no_space_in_emphasis`             | MD037 | Spaces inside emphasis markers                                            |
+| `md_no_space_in_code`                 | MD038 | Spaces inside code span elements                                          |
+| `md_no_space_in_links`                | MD039 | Spaces inside link text                                                   |
+| `md_fenced_code_language`             | MD040 | Fenced code blocks should have a language specified                       |
+| `md_first_line_heading`               | MD041 | First line in a file should be a top-level heading (disabled by default)  |
+| `md_no_empty_links`                   | MD042 | No empty links                                                            |
+| `md_required_headings`                | MD043 | Required heading structure (disabled by default)                          |
 | `md_proper_names`                     | MD044 | Proper names should have the correct capitalization (disabled by default) |
-| `md_no_alt_text`                      | MD045 | Images should have alternate text (alt text)                             |
-| `md_code_block_style`                 | MD046 | Code block style (fenced, indented, consistent)                          |
-| `md_single_trailing_newline`          | MD047 | Files should end with a single newline character (disabled by default)   |
-| `md_code_fence_style`                 | MD048 | Code fence style (backtick, tilde, consistent)                           |
-| `md_emphasis_style`                   | MD049 | Emphasis style (asterisk, underscore, consistent)                        |
-| `md_strong_style`                     | MD050 | Strong style (asterisk, underscore, consistent)                          |
-| `md_link_fragments`                   | MD051 | Link fragments should be valid                                           |
-| `md_reference_links_images`           | MD052 | Reference links and images should use a label that is defined            |
-| `md_link_image_reference_definitions` | MD053 | Link and image reference definitions should be needed                    |
-| `md_link_image_style`                 | MD054 | Link and image style                                                     |
-| `md_table_pipe_style`                 | MD055 | Table pipe style (leading_and_trailing, consistent)                      |
-| `md_table_column_count`               | MD056 | Table column count should be consistent                                  |
-| `md_blanks_around_tables`             | MD058 | Tables should be surrounded by blank lines                               |
-| `md_descriptive_link_text`            | MD059 | Link text should be descriptive                                          |
-| `md_table_column_style`               | MD060 | Table column style should be consistent                                  |
-| `md_file_links_exist`                 | MD061 | Local file links should exist                                            |
-| `md_image_links_exist`                | MD062 | Local image links should exist                                           |
-| `md_root_path`                        | -     | Root path for resolving root-relative links (e.g., `/images/logo.png`)   |
+| `md_no_alt_text`                      | MD045 | Images should have alternate text (alt text)                              |
+| `md_code_block_style`                 | MD046 | Code block style (fenced, indented, consistent)                           |
+| `md_single_trailing_newline`          | MD047 | Files should end with a single newline character (disabled by default)    |
+| `md_code_fence_style`                 | MD048 | Code fence style (backtick, tilde, consistent)                            |
+| `md_emphasis_style`                   | MD049 | Emphasis style (asterisk, underscore, consistent)                         |
+| `md_strong_style`                     | MD050 | Strong style (asterisk, underscore, consistent)                           |
+| `md_link_fragments`                   | MD051 | Link fragments should be valid                                            |
+| `md_reference_links_images`           | MD052 | Reference links and images should use a label that is defined             |
+| `md_link_image_reference_definitions` | MD053 | Link and image reference definitions should be needed                     |
+| `md_link_image_style`                 | MD054 | Link and image style                                                      |
+| `md_table_pipe_style`                 | MD055 | Table pipe style (leading_and_trailing, consistent)                       |
+| `md_table_column_count`               | MD056 | Table column count should be consistent                                   |
+| `md_blanks_around_tables`             | MD058 | Tables should be surrounded by blank lines                                |
+| `md_descriptive_link_text`            | MD059 | Link text should be descriptive                                           |
+| `md_table_column_style`               | MD060 | Table column style should be consistent                                   |
+| `md_file_links_exist`                 | MD061 | Local file links should exist                                             |
+| `md_image_links_exist`                | MD062 | Local image links should exist                                            |
+| `md_root_path`                        | -     | Root path for resolving root-relative links (e.g., `/images/logo.png`)    |
 
 </details>
 
@@ -323,13 +323,13 @@ When typing suppression comments, IntelliSense provides:
 
 ### Supported Directives
 
-| Directive | Description |
-| --------- | ----------- |
-| `disable-line` | Suppress rules on the current line |
-| `disable-next-line` | Suppress rules on the next line |
-| `disable` / `enable` | Suppress rules for a block of lines |
-| `disable-file` | Suppress rules for the entire file |
-| `capture` / `restore` | Save and restore suppression state |
+| Directive             | Description                         |
+| --------------------- | ----------------------------------- |
+| `disable-line`        | Suppress rules on the current line  |
+| `disable-next-line`   | Suppress rules on the next line     |
+| `disable` / `enable`  | Suppress rules for a block of lines |
+| `disable-file`        | Suppress rules for the entire file  |
+| `capture` / `restore` | Save and restore suppression state  |
 
 ## Contributing
 
