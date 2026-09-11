@@ -270,12 +270,28 @@ namespace MarkdownLintVS.Linting.Rules
                     if (!string.IsNullOrEmpty(fragment) && !headingIds.Contains(fragment))
                     {
                         (var Line, var Column) = analysis.GetPositionFromOffset(link.Span.Start);
+                        string normalizedFragment = CreateHeadingId(Uri.UnescapeDataString(fragment));
+                        string replacement = null;
+                        if (headingIds.Contains(normalizedFragment))
+                        {
+                            string replacementUrl = link.Url.Substring(0, link.Url.Length - fragment.Length) + normalizedFragment;
+                            string originalLink = analysis.Text.Substring(link.Span.Start, link.Span.Length);
+                            int urlStart = originalLink.LastIndexOf(link.Url, StringComparison.Ordinal);
+                            if (urlStart >= 0)
+                            {
+                                replacement = originalLink.Substring(0, urlStart)
+                                    + replacementUrl
+                                    + originalLink.Substring(urlStart + link.Url.Length);
+                            }
+                        }
                         yield return CreateViolation(
                             Line,
                             Column,
                             Column + link.Span.Length,
                             $"Link fragment '#{fragment}' does not match any heading or anchor",
-                            severity);
+                            severity,
+                            replacement == null ? null : $"Change fragment to '#{normalizedFragment}'",
+                            replacement);
                     }
                 }
             }
@@ -460,10 +476,12 @@ namespace MarkdownLintVS.Linting.Rules
 
             // Collect all used labels
             var usedLabels = new HashSet<string>();
+            var definitions = analysis.GetLinkReferenceDefinitions().ToList();
+            var definitionLines = definitions.Select(definition => definition.Line).ToHashSet();
 
             for (var i = 0; i < analysis.LineCount; i++)
             {
-                if (analysis.IsLineInCodeBlock(i))
+                if (analysis.IsLineInCodeBlock(i) || definitionLines.Contains(i))
                     continue;
 
                 var line = analysis.GetLine(i);
@@ -482,7 +500,7 @@ namespace MarkdownLintVS.Linting.Rules
             }
 
             // Check definitions
-            foreach (LinkReferenceDefinition definition in analysis.GetLinkReferenceDefinitions())
+            foreach (LinkReferenceDefinition definition in definitions)
             {
                 if (definition.Label == null)
                     continue;
@@ -504,7 +522,8 @@ namespace MarkdownLintVS.Linting.Rules
                         analysis.GetLine(definition.Line),
                         $"Link reference definition '{label}' is not used",
                         severity,
-                        "Remove unused definition");
+                        "Remove unused definition",
+                        string.Empty);
                 }
             }
         }
@@ -605,13 +624,86 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
                 }
 
+                string targetStyle = style == "consistent" ? detectedStyle : style;
+                string replacement = TryConvertStyle(match.Value, currentStyle, targetStyle);
                 yield return CreateViolation(
                     lineNumber,
                     match.Index,
                     match.Index + match.Length,
-                    $"Link and image style should be {style}",
-                    severity);
+                    $"Link and image style should be {targetStyle}",
+                    severity,
+                    replacement == null ? null : $"Convert to {targetStyle} style",
+                    replacement);
             }
+        }
+
+        internal static string TryConvertStyle(string text, string currentStyle, string targetStyle)
+        {
+            bool isImage = text.StartsWith("!", StringComparison.Ordinal);
+            string prefix = isImage ? "!" : "";
+            string value = isImage ? text.Substring(1) : text;
+
+            if (currentStyle == "autolink" && targetStyle == "inline")
+            {
+                string url = value.Substring(1, value.Length - 2);
+                return $"[{url}]({url})";
+            }
+
+            Match inline = _inlinePattern.Match(text);
+            if (currentStyle == "inline" && targetStyle == "autolink" && inline.Success)
+            {
+                if (isImage)
+                    return null;
+
+                int separator = value.IndexOf("](", StringComparison.Ordinal);
+                if (separator > 0)
+                {
+                    string label = value.Substring(1, separator - 1);
+                    string url = value.Substring(separator + 2, value.Length - separator - 3);
+                    return string.Equals(label, url, StringComparison.Ordinal) ? $"<{url}>" : null;
+                }
+            }
+
+            Match full = _fullReferencePattern.Match(text);
+            if (currentStyle == "full" && full.Success)
+            {
+                int separator = value.IndexOf("][", StringComparison.Ordinal);
+                string label = value.Substring(1, separator - 1);
+                string reference = value.Substring(separator + 2, value.Length - separator - 3);
+                if (!string.Equals(label, reference, StringComparison.OrdinalIgnoreCase))
+                    return null;
+
+                return targetStyle switch
+                {
+                    "collapsed" => $"{prefix}[{label}][]",
+                    "shortcut" => $"{prefix}[{label}]",
+                    _ => null,
+                };
+            }
+
+            if (currentStyle == "collapsed")
+            {
+                string label = value.Substring(1, value.Length - 4);
+                return targetStyle switch
+                {
+                    "full" => $"{prefix}[{label}][{label}]",
+                    "shortcut" => $"{prefix}[{label}]",
+                    _ => null,
+                };
+            }
+
+            if (currentStyle == "shortcut")
+            {
+                string label = value.Substring(1, value.Length - 2);
+                return targetStyle switch
+                {
+                    "full" => $"{prefix}[{label}][{label}]",
+                    "collapsed" => $"{prefix}[{label}][]",
+                    _ => null,
+                };
+            }
+
+            return null;
         }
 
         private static bool IsInlineCodeMatch(MarkdownDocumentAnalysis analysis, int lineNumber, Match match)
@@ -748,4 +840,3 @@ namespace MarkdownLintVS.Linting.Rules
         }
     }
 }
-

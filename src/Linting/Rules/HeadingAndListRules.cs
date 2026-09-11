@@ -379,7 +379,9 @@ namespace MarkdownLintVS.Linting.Rules
                                 listItem.Line,
                                 line,
                                 $"Inconsistent indentation for list items at the same level (expected {expectedIndent}, found {indent})",
-                                severity);
+                                severity,
+                                $"Indent list item by {expectedIndent} spaces",
+                                ReplaceLeadingWhitespace(line, expectedIndent));
                         }
                     }
                     else
@@ -417,6 +419,11 @@ namespace MarkdownLintVS.Linting.Rules
                 else break;
             }
             return indent;
+        }
+
+        private static string ReplaceLeadingWhitespace(string line, int spaces)
+        {
+            return new string(' ', spaces) + line.TrimStart(' ', '\t');
         }
 
         /// <summary>
@@ -532,7 +539,9 @@ namespace MarkdownLintVS.Linting.Rules
                             listItem.Line,
                             line,
                             $"Unordered list indentation should be {expected} spaces (found {actualIndent})",
-                            severity);
+                            severity,
+                            $"Indent list item by {expected} spaces",
+                            new string(' ', expected) + line.TrimStart(' ', '\t'));
                     }
 
                     foreach (Block child in listItem)
