@@ -51,7 +51,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 // Check if the local file exists
-                if (!LocalFileExists(url, baseDirectory, rootPath))
+                if (!LocalFileExists(analysis, url, baseDirectory, rootPath))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
                     var cleanUrl = GetPathWithoutFragment(url);
@@ -88,7 +88,7 @@ namespace MarkdownLintVS.Linting.Rules
         /// <param name="url">The URL/path from the link.</param>
         /// <param name="baseDirectory">The directory containing the markdown file.</param>
         /// <param name="rootPath">Optional root path for resolving root-relative paths (starting with /).</param>
-        private static bool LocalFileExists(string url, string baseDirectory, string rootPath)
+        private static bool LocalFileExists(MarkdownDocumentAnalysis analysis, string url, string baseDirectory, string rootPath)
         {
             try
             {
@@ -135,11 +135,11 @@ namespace MarkdownLintVS.Linting.Rules
                 }
 
                 // Check if it's a file or directory
-                if (File.Exists(fullPath) || Directory.Exists(fullPath))
+                if (analysis.FileExists(fullPath) || analysis.DirectoryExists(fullPath))
                     return true;
 
                 return string.Equals(Path.GetExtension(fullPath), ".html", StringComparison.OrdinalIgnoreCase) &&
-                       File.Exists(Path.ChangeExtension(fullPath, ".md"));
+                       analysis.FileExists(Path.ChangeExtension(fullPath, ".md"));
             }
             catch
             {
@@ -193,7 +193,7 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 // Check if the local file exists
-                if (!LocalFileExists(url, baseDirectory, rootPath))
+                if (!LocalFileExists(analysis, url, baseDirectory, rootPath))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
 
@@ -221,7 +221,7 @@ namespace MarkdownLintVS.Linting.Rules
         /// <param name="url">The URL/path from the image link.</param>
         /// <param name="baseDirectory">The directory containing the markdown file.</param>
         /// <param name="rootPath">Optional root path for resolving root-relative paths (starting with /).</param>
-        private static bool LocalFileExists(string url, string baseDirectory, string rootPath)
+        private static bool LocalFileExists(MarkdownDocumentAnalysis analysis, string url, string baseDirectory, string rootPath)
         {
             try
             {
@@ -260,7 +260,7 @@ namespace MarkdownLintVS.Linting.Rules
                     fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
                 }
 
-                return File.Exists(fullPath);
+                return analysis.FileExists(fullPath);
             }
             catch
             {

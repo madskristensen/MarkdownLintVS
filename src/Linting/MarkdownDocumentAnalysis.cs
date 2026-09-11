@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.AutoIdentifiers;
@@ -52,6 +54,8 @@ namespace MarkdownLintVS.Linting
         private readonly HashSet<int> _tocCommentLines;
         private readonly SuppressionMap _suppressionMap;
         private readonly string _frontMatterRootPath;
+        private readonly ConcurrentDictionary<string, bool> _fileExistenceCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, bool> _directoryExistenceCache = new(StringComparer.OrdinalIgnoreCase);
 
         public string Text => _text;
         public string[] Lines => _lines;
@@ -431,6 +435,10 @@ namespace MarkdownLintVS.Linting
         {
             return _codeBlockLines.Contains(lineNumber);
         }
+
+        public bool FileExists(string path) => _fileExistenceCache.GetOrAdd(path, File.Exists);
+
+        public bool DirectoryExists(string path) => _directoryExistenceCache.GetOrAdd(path, Directory.Exists);
 
         /// <summary>
         /// Gets the code language for a line if it's inside a fenced code block.
