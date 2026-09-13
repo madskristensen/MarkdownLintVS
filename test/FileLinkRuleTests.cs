@@ -126,6 +126,36 @@ public sealed class FileLinkRuleTests
     }
 
     [TestMethod]
+    public void MD061_WhenRootRelativeHtmlLinkMatchesJekyllCollectionThenNoViolations()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var documentDirectory = Path.Combine(root, "docs", "platforms");
+        var collectionDirectory = Path.Combine(root, "docs", "_articles");
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(documentDirectory);
+        Directory.CreateDirectory(collectionDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(collectionDirectory, "hubitat-vs-smartthings-family-house.md"),
+                "# Comparison");
+            var rule = new MD061_FileLinkExists();
+            var analysis = new MarkdownDocumentAnalysis(
+                "[comparison](/articles/hubitat-vs-smartthings-family-house.html)",
+                Path.Combine(documentDirectory, "hubitat.md"));
+
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+            Assert.IsEmpty(violations);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [TestMethod]
     public void MD061_WhenImageLinkThenNoViolations()
     {
         // MD061 should skip image links (those are handled by MD062)

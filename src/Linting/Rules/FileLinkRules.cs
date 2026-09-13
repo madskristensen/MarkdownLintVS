@@ -56,7 +56,8 @@ namespace MarkdownLintVS.Linting.Rules
                     baseDirectory,
                     analysis.RootPath,
                     allowDirectory: true,
-                    allowMarkdownSibling: true))
+                    allowMarkdownSibling: true,
+                    allowJekyllCollection: true))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
                     var cleanUrl = GetPathWithoutFragment(url);
@@ -136,7 +137,8 @@ namespace MarkdownLintVS.Linting.Rules
                     baseDirectory,
                     analysis.RootPath,
                     allowDirectory: false,
-                    allowMarkdownSibling: false))
+                    allowMarkdownSibling: false,
+                    allowJekyllCollection: false))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
 
@@ -169,7 +171,8 @@ namespace MarkdownLintVS.Linting.Rules
             string baseDirectory,
             string configuredRoot,
             bool allowDirectory,
-            bool allowMarkdownSibling)
+            bool allowMarkdownSibling,
+            bool allowJekyllCollection)
         {
             try
             {
@@ -188,22 +191,26 @@ namespace MarkdownLintVS.Linting.Rules
                         string root = Path.GetFullPath(Path.IsPathRooted(configuredRoot)
                             ? configuredRoot
                             : Path.Combine(baseDirectory, configuredRoot));
-                        return CandidateExists(
+                        return RootRelativeCandidateExists(
                             analysis,
-                            Path.Combine(root, relativePath),
+                            root,
+                            relativePath,
                             allowDirectory,
-                            allowMarkdownSibling);
+                            allowMarkdownSibling,
+                            allowJekyllCollection);
                     }
 
                     string searchRoot = FindSearchRoot(baseDirectory);
                     DirectoryInfo directory = new(Path.GetFullPath(baseDirectory));
                     while (directory != null && IsPathWithinRoot(directory.FullName, searchRoot))
                     {
-                        if (CandidateExists(
+                        if (RootRelativeCandidateExists(
                             analysis,
-                            Path.Combine(directory.FullName, relativePath),
+                            directory.FullName,
+                            relativePath,
                             allowDirectory,
-                            allowMarkdownSibling))
+                            allowMarkdownSibling,
+                            allowJekyllCollection))
                         {
                             return true;
                         }
@@ -263,6 +270,40 @@ namespace MarkdownLintVS.Linting.Rules
                 Path.GetFileNameWithoutExtension(fullPath) ?? string.Empty);
 
             return _markdownExtensions.Any(extension => analysis.FileExists(basePath + extension));
+        }
+
+        private static bool RootRelativeCandidateExists(
+            MarkdownDocumentAnalysis analysis,
+            string root,
+            string relativePath,
+            bool allowDirectory,
+            bool allowMarkdownSibling,
+            bool allowJekyllCollection)
+        {
+            if (CandidateExists(
+                analysis,
+                Path.Combine(root, relativePath),
+                allowDirectory,
+                allowMarkdownSibling))
+            {
+                return true;
+            }
+
+            if (!allowJekyllCollection)
+                return false;
+
+            int separatorIndex = relativePath.IndexOf(Path.DirectorySeparatorChar);
+            if (separatorIndex <= 0 || relativePath[0] == '_')
+                return false;
+
+            string collectionPath = "_" + relativePath.Substring(0, separatorIndex) +
+                                    relativePath.Substring(separatorIndex);
+
+            return CandidateExists(
+                analysis,
+                Path.Combine(root, collectionPath),
+                allowDirectory,
+                allowMarkdownSibling);
         }
 
         private static string FindSearchRoot(string documentDirectory)
