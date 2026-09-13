@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.IO;
+using System.Linq;
 using Markdig.Syntax.Inlines;
 
 namespace MarkdownLintVS.Linting.Rules
@@ -9,7 +10,7 @@ namespace MarkdownLintVS.Linting.Rules
     /// <summary>
     /// MD061: File links should reference existing files.
     /// Validates that relative links to local files point to files that actually exist.
-    /// Supports root-relative paths (starting with /) when root_path is configured.
+    /// Supports root-relative paths by using a configured root or searching parent directories.
     /// </summary>
     public class MD061_FileLinkExists : MarkdownRuleBase
     {
@@ -28,8 +29,6 @@ namespace MarkdownLintVS.Linting.Rules
             var baseDirectory = Path.GetDirectoryName(analysis.FilePath);
             if (string.IsNullOrEmpty(baseDirectory))
                 yield break;
-
-            var rootPath = analysis.RootPath;
 
             foreach (LinkInline link in analysis.GetLinks())
             {
@@ -51,7 +50,13 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 // Check if the local file exists
-                if (!LocalFileExists(analysis, url, baseDirectory, rootPath))
+                if (!LocalPathResolver.Exists(
+                    analysis,
+                    url,
+                    baseDirectory,
+                    analysis.RootPath,
+                    allowDirectory: true,
+                    allowMarkdownSibling: true))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
                     var cleanUrl = GetPathWithoutFragment(url);
@@ -81,78 +86,12 @@ namespace MarkdownLintVS.Linting.Rules
             var fragmentIndex = url.IndexOf('#');
             return fragmentIndex >= 0 ? url.Substring(0, fragmentIndex) : url;
         }
-
-        /// <summary>
-        /// Checks if a local file exists, using the same path resolution logic as MarkdownEditor2022.
-        /// </summary>
-        /// <param name="url">The URL/path from the link.</param>
-        /// <param name="baseDirectory">The directory containing the markdown file.</param>
-        /// <param name="rootPath">Optional root path for resolving root-relative paths (starting with /).</param>
-        private static bool LocalFileExists(MarkdownDocumentAnalysis analysis, string url, string baseDirectory, string rootPath)
-        {
-            try
-            {
-                // Remove fragment
-                var path = GetPathWithoutFragment(url);
-
-                // If only a fragment (e.g., "#section"), it references the current file
-                if (string.IsNullOrEmpty(path))
-                    return true;
-
-                // URL decode the path
-                path = Uri.UnescapeDataString(path);
-
-                // Remove query string if present
-                var queryIndex = path.IndexOf('?');
-                if (queryIndex >= 0)
-                    path = path.Substring(0, queryIndex);
-
-                string fullPath;
-
-                // Check if this is a root-relative path (starts with /)
-                if (path.StartsWith("/", StringComparison.Ordinal))
-                {
-                    // Root-relative paths require a root_path to be configured
-                    if (string.IsNullOrEmpty(rootPath))
-                    {
-                        // No root path configured - cannot resolve root-relative paths
-                        // Fall back to treating it as relative to base directory
-                        fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path.TrimStart('/')));
-                    }
-                    else
-                    {
-                        // Remove leading slash and normalize path separators
-                        var pathWithoutLeadingSlash = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-
-                        // Resolve against the root path
-                        fullPath = Path.GetFullPath(Path.Combine(rootPath, pathWithoutLeadingSlash));
-                    }
-                }
-                else
-                {
-                    // Regular relative path - resolve against base directory
-                    fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
-                }
-
-                // Check if it's a file or directory
-                if (analysis.FileExists(fullPath) || analysis.DirectoryExists(fullPath))
-                    return true;
-
-                return string.Equals(Path.GetExtension(fullPath), ".html", StringComparison.OrdinalIgnoreCase) &&
-                       analysis.FileExists(Path.ChangeExtension(fullPath, ".md"));
-            }
-            catch
-            {
-                // If path is malformed, consider it as non-existent
-                return false;
-            }
-        }
     }
 
     /// <summary>
     /// MD062: Image links should reference existing files.
     /// Validates that relative image links point to files that actually exist.
-    /// Supports root-relative paths (starting with /) when root_path is configured.
+    /// Supports root-relative paths by using a configured root or searching parent directories.
     /// </summary>
     public class MD062_ImageLinkExists : MarkdownRuleBase
     {
@@ -171,8 +110,6 @@ namespace MarkdownLintVS.Linting.Rules
             var baseDirectory = Path.GetDirectoryName(analysis.FilePath);
             if (string.IsNullOrEmpty(baseDirectory))
                 yield break;
-
-            var rootPath = analysis.RootPath;
 
             foreach (LinkInline link in analysis.GetLinks())
             {
@@ -193,7 +130,13 @@ namespace MarkdownLintVS.Linting.Rules
                     continue;
 
                 // Check if the local file exists
-                if (!LocalFileExists(analysis, url, baseDirectory, rootPath))
+                if (!LocalPathResolver.Exists(
+                    analysis,
+                    url,
+                    baseDirectory,
+                    analysis.RootPath,
+                    allowDirectory: false,
+                    allowMarkdownSibling: false))
                 {
                     (var line, var column) = analysis.GetPositionFromOffset(link.Span.Start);
 
@@ -214,59 +157,143 @@ namespace MarkdownLintVS.Linting.Rules
                    url.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase) ||
                    url.StartsWith("//", StringComparison.Ordinal);
         }
+    }
 
-        /// <summary>
-        /// Checks if a local image file exists, using the same path resolution logic as MarkdownEditor2022.
-        /// </summary>
-        /// <param name="url">The URL/path from the image link.</param>
-        /// <param name="baseDirectory">The directory containing the markdown file.</param>
-        /// <param name="rootPath">Optional root path for resolving root-relative paths (starting with /).</param>
-        private static bool LocalFileExists(MarkdownDocumentAnalysis analysis, string url, string baseDirectory, string rootPath)
+    internal static class LocalPathResolver
+    {
+        private static readonly string[] _markdownExtensions = [".md", ".markdown", ".mdown", ".mkd", ".mdx"];
+
+        internal static bool Exists(
+            MarkdownDocumentAnalysis analysis,
+            string url,
+            string baseDirectory,
+            string configuredRoot,
+            bool allowDirectory,
+            bool allowMarkdownSibling)
         {
             try
             {
-                // URL decode the path
-                var path = Uri.UnescapeDataString(url);
+                string path = GetPathWithoutSuffix(url);
+                if (string.IsNullOrEmpty(path))
+                    return true;
 
-                // Remove query string if present
-                var queryIndex = path.IndexOf('?');
-                if (queryIndex >= 0)
-                    path = path.Substring(0, queryIndex);
-
-                string fullPath;
-
-                // Check if this is a root-relative path (starts with /)
-                if (path.StartsWith("/", StringComparison.Ordinal))
+                path = Uri.UnescapeDataString(path);
+                bool isRootRelative = path.StartsWith("/", StringComparison.Ordinal);
+                path = path.Replace('/', Path.DirectorySeparatorChar);
+                if (isRootRelative)
                 {
-                    // Root-relative paths require a root_path to be configured
-                    if (string.IsNullOrEmpty(rootPath))
+                    string relativePath = path.TrimStart(Path.DirectorySeparatorChar);
+                    if (!string.IsNullOrWhiteSpace(configuredRoot))
                     {
-                        // No root path configured - cannot resolve root-relative paths
-                        // Fall back to treating it as relative to base directory
-                        fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path.TrimStart('/')));
+                        string root = Path.GetFullPath(Path.IsPathRooted(configuredRoot)
+                            ? configuredRoot
+                            : Path.Combine(baseDirectory, configuredRoot));
+                        return CandidateExists(
+                            analysis,
+                            Path.Combine(root, relativePath),
+                            allowDirectory,
+                            allowMarkdownSibling);
                     }
-                    else
+
+                    string searchRoot = FindSearchRoot(baseDirectory);
+                    DirectoryInfo directory = new(Path.GetFullPath(baseDirectory));
+                    while (directory != null && IsPathWithinRoot(directory.FullName, searchRoot))
                     {
-                        // Remove leading slash and normalize path separators
-                        var pathWithoutLeadingSlash = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                        if (CandidateExists(
+                            analysis,
+                            Path.Combine(directory.FullName, relativePath),
+                            allowDirectory,
+                            allowMarkdownSibling))
+                        {
+                            return true;
+                        }
 
-                        // Resolve against the root path
-                        fullPath = Path.GetFullPath(Path.Combine(rootPath, pathWithoutLeadingSlash));
+                        directory = directory.Parent;
                     }
-                }
-                else
-                {
-                    // Regular relative path - resolve against base directory
-                    fullPath = Path.GetFullPath(Path.Combine(baseDirectory, path));
+
+                    return false;
                 }
 
-                return analysis.FileExists(fullPath);
+                return CandidateExists(
+                    analysis,
+                    Path.Combine(baseDirectory, path),
+                    allowDirectory,
+                    allowMarkdownSibling);
             }
-            catch
+            catch (Exception ex) when (
+                ex is ArgumentException ||
+                ex is IOException ||
+                ex is NotSupportedException ||
+                ex is UriFormatException ||
+                ex is UnauthorizedAccessException)
             {
-                // If path is malformed, consider it as non-existent
                 return false;
             }
+        }
+
+        private static string GetPathWithoutSuffix(string url)
+        {
+            int queryIndex = url.IndexOf('?');
+            int fragmentIndex = url.IndexOf('#');
+            int suffixIndex = queryIndex < 0
+                ? fragmentIndex
+                : fragmentIndex < 0 ? queryIndex : Math.Min(queryIndex, fragmentIndex);
+
+            return suffixIndex < 0 ? url : url.Substring(0, suffixIndex);
+        }
+
+        private static bool CandidateExists(
+            MarkdownDocumentAnalysis analysis,
+            string candidate,
+            bool allowDirectory,
+            bool allowMarkdownSibling)
+        {
+            string fullPath = Path.GetFullPath(candidate);
+            if (analysis.FileExists(fullPath) || allowDirectory && analysis.DirectoryExists(fullPath))
+                return true;
+
+            if (!allowMarkdownSibling ||
+                !string.Equals(Path.GetExtension(fullPath), ".html", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string basePath = Path.Combine(
+                Path.GetDirectoryName(fullPath) ?? string.Empty,
+                Path.GetFileNameWithoutExtension(fullPath) ?? string.Empty);
+
+            return _markdownExtensions.Any(extension => analysis.FileExists(basePath + extension));
+        }
+
+        private static string FindSearchRoot(string documentDirectory)
+        {
+            DirectoryInfo documentFolder = new(Path.GetFullPath(documentDirectory));
+            DirectoryInfo directory = documentFolder;
+
+            while (directory != null)
+            {
+                if (Directory.Exists(Path.Combine(directory.FullName, ".git")) ||
+                    directory.EnumerateFiles("*.sln").Any() ||
+                    directory.EnumerateFiles("*.slnx").Any() ||
+                    directory.EnumerateFiles("*.csproj").Any())
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            return documentFolder.Parent?.FullName ?? documentFolder.FullName;
+        }
+
+        private static bool IsPathWithinRoot(string path, string root)
+        {
+            string candidate = Path.GetFullPath(path);
+            string normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
+            string boundary = normalizedRoot + Path.DirectorySeparatorChar;
+
+            return candidate.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase) ||
+                   candidate.StartsWith(boundary, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

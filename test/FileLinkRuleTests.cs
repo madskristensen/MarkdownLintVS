@@ -98,6 +98,34 @@ public sealed class FileLinkRuleTests
     }
 
     [TestMethod]
+    public void MD061_WhenRootRelativeHtmlLinkMatchesMarkdownInParentThenNoViolations()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var documentDirectory = Path.Combine(root, "docs", "_articles");
+        var targetDirectory = Path.Combine(root, "docs", "getting-started");
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(documentDirectory);
+        Directory.CreateDirectory(targetDirectory);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(targetDirectory, "choose-the-right-platform.md"), "# Platform");
+            var rule = new MD061_FileLinkExists();
+            var analysis = new MarkdownDocumentAnalysis(
+                "[link](/getting-started/choose-the-right-platform.html)",
+                Path.Combine(documentDirectory, "source.md"));
+
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+            Assert.IsEmpty(violations);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [TestMethod]
     public void MD061_WhenImageLinkThenNoViolations()
     {
         // MD061 should skip image links (those are handled by MD062)
@@ -224,6 +252,34 @@ public sealed class FileLinkRuleTests
         var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
 
         Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD062_WhenRootRelativeImageExistsInParentThenNoViolations()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var documentDirectory = Path.Combine(root, "docs", "_articles");
+        var imageDirectory = Path.Combine(root, "docs", "images");
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(documentDirectory);
+        Directory.CreateDirectory(imageDirectory);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(imageDirectory, "diagram.png"), "image");
+            var rule = new MD062_ImageLinkExists();
+            var analysis = new MarkdownDocumentAnalysis(
+                "![diagram](/images/diagram.png)",
+                Path.Combine(documentDirectory, "source.md"));
+
+            var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+            Assert.IsEmpty(violations);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
     }
 
     #endregion
