@@ -11,35 +11,59 @@ public sealed class LinkRuleTests
     #region MD054 - Link and Image Style
 
     [TestMethod]
-    public void MD054_WhenMixedStylesThenReportsViolation()
+    public void MD054_WhenMixedStylesUseDefaultConfigurationThenNoViolations()
     {
         var rule = new MD054_LinkImageStyle();
-        var config = new RuleConfiguration { Value = "consistent" };
-        var analysis = new MarkdownDocumentAnalysis("[inline](https://example.com)\n\n[reference][ref]\n\n[ref]: https://example.com");
+        var analysis = new MarkdownDocumentAnalysis(
+            "<https://example.com>\n\n" +
+            "[inline](https://example.com)\n\n" +
+            "![image](image.png)\n\n" +
+            "[reference][ref]\n\n" +
+            "[ref][]\n\n" +
+            "[ref]\n\n" +
+            "[ref]: https://example.com");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD054_WhenInlineStyleIsDisabledThenReportsInlineLinksAndImages()
+    {
+        var rule = new MD054_LinkImageStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["inline"] = "false";
+        var analysis = new MarkdownDocumentAnalysis(
+            "[inline](https://example.com)\n\n![image](image.png)\n\n[reference][ref]\n\n[ref]: https://example.com");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(2, violations);
+        Assert.IsTrue(violations.All(violation => violation.Rule.Id == "MD054"));
+    }
+
+    [TestMethod]
+    public void MD054_WhenUrlInlineIsDisabledThenReportsOnlyMatchingAbsoluteUrls()
+    {
+        var rule = new MD054_LinkImageStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["url_inline"] = "false";
+        var analysis = new MarkdownDocumentAnalysis(
+            "[https://example.com](https://example.com)\n\n[Example](https://example.com)\n\n[relative](relative)");
 
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
 
         Assert.HasCount(1, violations);
-        Assert.AreEqual("MD054", violations[0].Rule.Id);
-    }
-
-    [TestMethod]
-    public void MD054_WhenConfiguredStyleMatchesThenNoViolations()
-    {
-        var rule = new MD054_LinkImageStyle();
-        var config = new RuleConfiguration { Value = "inline" };
-        var analysis = new MarkdownDocumentAnalysis("[one](https://example.com)\n[two](https://example.org)");
-
-        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
-
-        Assert.IsEmpty(violations);
+        Assert.AreEqual("<https://example.com>", violations[0].ReplacementText);
     }
 
     [TestMethod]
     public void MD054_WhenCodeBlockContainsLinksThenNoViolations()
     {
         var rule = new MD054_LinkImageStyle();
-        var config = new RuleConfiguration { Value = "inline" };
+        var config = new RuleConfiguration();
+        config.Parameters["full"] = "false";
         var analysis = new MarkdownDocumentAnalysis("```\n[reference][ref]\n```\n\n[ref]: https://example.com");
 
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
@@ -51,7 +75,8 @@ public sealed class LinkRuleTests
     public void MD054_WhenInlineCodeContainsReferenceSyntaxThenNoViolations()
     {
         var rule = new MD054_LinkImageStyle();
-        var config = new RuleConfiguration { Value = "inline" };
+        var config = new RuleConfiguration();
+        config.Parameters["full"] = "false";
         var analysis = new MarkdownDocumentAnalysis("Use `[reference][ref]` in examples.\n\n[ref]: https://example.com");
 
         var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();

@@ -50,12 +50,13 @@ public sealed class CodeFixOutputTests
     [TestMethod]
     public void MD054_FixConvertsSafeLinkStyle()
     {
-        var configuration = new RuleConfiguration { Value = "shortcut" };
+        var configuration = new RuleConfiguration();
+        configuration.Parameters["autolink"] = "false";
 
         AssertSingleFix(
             new MD054_LinkImageStyle(),
-            "[label]: /url\n\n[label][]",
-            "[label]: /url\n\n[label]",
+            "<https://example.com>",
+            "[https://example.com](https://example.com)",
             configuration);
     }
 

@@ -563,9 +563,19 @@ namespace MarkdownLintVS.Linting.Rules
             DiagnosticSeverity severity,
             CancellationToken cancellationToken = default)
         {
-            var style = configuration.GetStringParameter("style", "consistent").ToLowerInvariant();
-            if (style == "false")
-                yield break;
+            var allowedStyles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (configuration.GetBoolParameter("autolink", true))
+                allowedStyles.Add("autolink");
+            if (configuration.GetBoolParameter("collapsed", true))
+                allowedStyles.Add("collapsed");
+            if (configuration.GetBoolParameter("full", true))
+                allowedStyles.Add("full");
+            if (configuration.GetBoolParameter("inline", true))
+                allowedStyles.Add("inline");
+            if (configuration.GetBoolParameter("shortcut", true))
+                allowedStyles.Add("shortcut");
+
+            bool allowUrlInline = configuration.GetBoolParameter("url_inline", true);
 
             var definedLabels = analysis.GetLinkReferenceDefinitions()
                 .Where(d => d.Label != null)
@@ -610,31 +620,50 @@ namespace MarkdownLintVS.Linting.Rules
                 }
             }
 
-            string detectedStyle = null;
             foreach ((int lineNumber, Match match, string currentStyle) in matches.OrderBy(item => item.LineNumber).ThenBy(item => item.Match.Index))
             {
-                if (style == "consistent")
-                {
-                    detectedStyle ??= currentStyle;
-                    if (currentStyle == detectedStyle)
-                        continue;
-                }
-                else if (currentStyle == style)
-                {
+                bool disallowedInlineUrl = currentStyle == "inline" &&
+                    !allowUrlInline &&
+                    IsInlineUrl(match.Value);
+                if (allowedStyles.Contains(currentStyle) && !disallowedInlineUrl)
                     continue;
-                }
 
-                string targetStyle = style == "consistent" ? detectedStyle : style;
-                string replacement = TryConvertStyle(match.Value, currentStyle, targetStyle);
+                string targetStyle = disallowedInlineUrl
+                    ? "autolink"
+                    : allowedStyles.Contains("inline")
+                        ? "inline"
+                        : allowedStyles.Contains("autolink")
+                            ? "autolink"
+                            : null;
+                string replacement = targetStyle == null
+                    ? null
+                    : TryConvertStyle(match.Value, currentStyle, targetStyle);
                 yield return CreateViolation(
                     lineNumber,
                     match.Index,
                     match.Index + match.Length,
-                    $"Link and image style should be {targetStyle}",
+                    disallowedInlineUrl
+                        ? "URLs should not use inline link style"
+                        : $"Link and image style '{currentStyle}' is not allowed",
                     severity,
                     replacement == null ? null : $"Convert to {targetStyle} style",
                     replacement);
             }
+        }
+
+        private static bool IsInlineUrl(string text)
+        {
+            if (text.StartsWith("!", StringComparison.Ordinal))
+                return false;
+
+            int separator = text.IndexOf("](", StringComparison.Ordinal);
+            if (separator <= 1 || !text.EndsWith(")", StringComparison.Ordinal))
+                return false;
+
+            string label = text.Substring(1, separator - 1);
+            string destination = text.Substring(separator + 2, text.Length - separator - 3);
+            return string.Equals(label, destination, StringComparison.Ordinal) &&
+                Uri.TryCreate(destination, UriKind.Absolute, out _);
         }
 
         internal static string TryConvertStyle(string text, string currentStyle, string targetStyle)

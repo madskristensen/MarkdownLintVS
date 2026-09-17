@@ -425,7 +425,7 @@
     },
     {
       "name": "md_link_image_style",
-      "description": "MD054 - Link and image style (autolink, collapsed, full, inline, shortcut)",
+      "description": "MD054 - Link and image style (all styles allowed by default)",
       "values": [ true, false ],
       "defaultValue": [ true ],
       "severity": true,
