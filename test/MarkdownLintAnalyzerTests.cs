@@ -49,6 +49,53 @@ public sealed class MarkdownLintAnalyzerTests
     }
 
     [TestMethod]
+    public void WhenOrderedListContainsUnorderedSublistsThenNoListViolations()
+    {
+        var analyzer = new MarkdownLintAnalyzer();
+        var markdown =
+            "# Research method\n\n" +
+            "For each feature area:\n\n" +
+            "1. Establish current capabilities.\n" +
+            "2. Identify friction.\n" +
+            "3. Compare competing products.\n" +
+            "4. Search relevant tickets.\n" +
+            "5. Read public comments.\n" +
+            "6. Include useful signals.\n" +
+            "7. Look for repeated sentiment.\n" +
+            "8. Verify alleged gaps.\n" +
+            "9. Check implementation status across:\n" +
+            "   - Source repositories\n" +
+            "   - Source history and pull requests\n" +
+            "   - Azure DevOps work items\n" +
+            "   - GitHub issues and releases\n" +
+            "10. Search using multiple terms.\n" +
+            "11. Assign one of these findings:\n" +
+            "   - **Not currently found**\n" +
+            "   - **Already shipped**\n" +
+            "   - **Status could not be verified**\n" +
+            "12. Do not recommend duplicate work. Instead:\n" +
+            "   - Exclude addressed work.\n" +
+            "   - Reframe residual friction.\n" +
+            "   - Identify possible overlap.\n" +
+            "13. Treat an open issue as evidence of awareness.\n" +
+            "14. Treat old work carefully.\n" +
+            "15. Summarize private evidence carefully.\n" +
+            "16. Distinguish among:\n" +
+            "   - verified current gap\n" +
+            "   - shipped feature with residual friction\n" +
+            "   - implementation status not verified\n" +
+            "17. Record important evidence limitations.\n";
+
+        var violations = analyzer.Analyze(markdown, string.Empty)
+            .Where(v => v.Rule.Id is "MD004" or "MD005" or "MD007" or "MD029" or "MD030" or "MD032")
+            .ToList();
+
+        Assert.IsEmpty(
+            violations,
+            string.Join(Environment.NewLine, violations.Select(v => $"{v.Rule.Id} line {v.LineNumber + 1}: {v.Message}")));
+    }
+
+    [TestMethod]
     public void WhenHeadingSkipsLevelThenReportsViolation()
     {
         var analyzer = new MarkdownLintAnalyzer();

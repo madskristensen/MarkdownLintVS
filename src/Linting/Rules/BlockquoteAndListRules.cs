@@ -170,7 +170,7 @@ namespace MarkdownLintVS.Linting.Rules
                             if (style == "one_or_ordered" && firstItem)
                             {
                                 detectedStyle = number == 1 ? "one" : "ordered";
-                                expectedNumber = number;
+                                expectedNumber = detectedStyle == "ordered" ? number + 1 : number;
                             }
                             else if (style == "one")
                             {
@@ -390,8 +390,7 @@ namespace MarkdownLintVS.Linting.Rules
         {
             foreach (ListBlock list in analysis.GetLists())
             {
-                // Only check top-level lists
-                if (list.Parent is ListItemBlock)
+                if (analysis.IsNestedList(list))
                     continue;
 
                 var startLine = list.Line;
@@ -401,8 +400,10 @@ namespace MarkdownLintVS.Linting.Rules
                 if (analysis.IsLineInTocComment(startLine))
                     continue;
 
-                var needsBlankBefore = startLine > 0 && !analysis.IsBlankLine(startLine - 1);
-                var needsBlankAfter = endLine < analysis.LineCount - 1 && !analysis.IsBlankLine(endLine + 1);
+                var continuesPreviousList = startLine > 0 && analysis.IsListItemLine(startLine - 1);
+                var continuesOnNextLine = endLine < analysis.LineCount - 1 && analysis.IsListItemLine(endLine + 1);
+                var needsBlankBefore = startLine > 0 && !continuesPreviousList && !analysis.IsBlankLine(startLine - 1);
+                var needsBlankAfter = endLine < analysis.LineCount - 1 && !continuesOnNextLine && !analysis.IsBlankLine(endLine + 1);
 
                 // Don't require blank lines if adjacent line is a TOC comment boundary
                 if (needsBlankBefore && analysis.IsLineInTocComment(startLine - 1))

@@ -359,6 +359,17 @@ public sealed class ListRuleTests
     }
 
     [TestMethod]
+    public void MD029_WhenOrderedListFragmentStartsAboveOneThenContinuesSequence()
+    {
+        var rule = new MD029_OlPrefix();
+        var analysis = new MarkdownDocumentAnalysis("13. first\n14. second\n15. third");
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
     public void MD029_WhenAllOnesThenNoViolations()
     {
         var rule = new MD029_OlPrefix();

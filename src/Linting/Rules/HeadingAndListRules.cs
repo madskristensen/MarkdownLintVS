@@ -498,8 +498,11 @@ namespace MarkdownLintVS.Linting.Rules
             var startIndented = configuration.GetBoolParameter("start_indented", false);
             var startIndent = configuration.GetIntParameter("start_indent", indent);
 
-            // Only process top-level lists (not nested lists, which are handled recursively)
-            foreach (ListBlock list in analysis.GetLists().Where(l => l.BulletType != '1' && l.Parent is MarkdownDocument))
+            // Nested unordered lists under ordered lists are outside this rule's scope.
+            foreach (ListBlock list in analysis.GetLists().Where(l =>
+                l.BulletType != '1' &&
+                l.Parent is MarkdownDocument &&
+                !analysis.IsNestedUnderOrderedList(l)))
             {
                 foreach (LintViolation violation in AnalyzeList(list, analysis, severity, indent, startIndented, startIndent, 0))
                 {

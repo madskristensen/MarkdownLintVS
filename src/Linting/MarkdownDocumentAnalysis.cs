@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.AutoIdentifiers;
@@ -29,6 +30,9 @@ namespace MarkdownLintVS.Linting
         private static readonly Regex _tocEndPattern = new(
             @"<!--\s*/\s*TOC\s*-->",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex _listItemPattern = new(
+            @"^(?<indent>[ \t]*)(?:(?<ordered>\d+)[.)]|[*+-])\s+",
+            RegexOptions.Compiled);
 
         // Shared pipeline instance - thread-safe for parsing (configuration is immutable).
         // Keep this aligned with Markdown Editor v2, except for editor-only pragma lines
@@ -369,6 +373,76 @@ namespace MarkdownLintVS.Linting
         public IEnumerable<ListItemBlock> GetListItems()
         {
             return _document.Descendants<ListItemBlock>();
+        }
+
+        public bool IsNestedList(ListBlock list)
+        {
+            for (ContainerBlock parent = list.Parent; parent != null; parent = parent.Parent)
+            {
+                if (parent is ListItemBlock)
+                    return true;
+            }
+
+            ListItemBlock firstItem = list.OfType<ListItemBlock>().FirstOrDefault();
+            if (firstItem == null)
+                return false;
+
+            Match currentMatch = _listItemPattern.Match(GetLine(firstItem.Line));
+            if (!currentMatch.Success)
+                return false;
+
+            var currentIndent = GetIndentWidth(currentMatch.Groups["indent"].Value);
+            for (var lineNumber = firstItem.Line - 1; lineNumber >= 0 && !IsBlankLine(lineNumber); lineNumber--)
+            {
+                Match previousMatch = _listItemPattern.Match(GetLine(lineNumber));
+                if (previousMatch.Success &&
+                    GetIndentWidth(previousMatch.Groups["indent"].Value) < currentIndent)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool IsNestedUnderOrderedList(ListBlock list)
+        {
+            ListItemBlock firstItem = list.OfType<ListItemBlock>().FirstOrDefault();
+            if (firstItem == null)
+                return false;
+
+            Match currentMatch = _listItemPattern.Match(GetLine(firstItem.Line));
+            if (!currentMatch.Success)
+                return false;
+
+            var currentIndent = GetIndentWidth(currentMatch.Groups["indent"].Value);
+            for (var lineNumber = firstItem.Line - 1; lineNumber >= 0 && !IsBlankLine(lineNumber); lineNumber--)
+            {
+                Match previousMatch = _listItemPattern.Match(GetLine(lineNumber));
+                if (previousMatch.Success &&
+                    GetIndentWidth(previousMatch.Groups["indent"].Value) < currentIndent)
+                {
+                    return previousMatch.Groups["ordered"].Success;
+                }
+            }
+
+            return false;
+        }
+
+        public bool IsListItemLine(int lineNumber)
+        {
+            return _listItemPattern.IsMatch(GetLine(lineNumber));
+        }
+
+        private static int GetIndentWidth(string indent)
+        {
+            var width = 0;
+            foreach (var character in indent)
+            {
+                width += character == '\t' ? 4 : 1;
+            }
+
+            return width;
         }
 
         public IEnumerable<QuoteBlock> GetBlockQuotes()
