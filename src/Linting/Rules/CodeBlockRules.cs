@@ -1,3 +1,4 @@
+using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using System.Collections.Generic;
@@ -234,6 +235,10 @@ namespace MarkdownLintVS.Linting.Rules
 
             foreach (CodeBlock codeBlock in allCodeBlocks)
             {
+                // Markdig models YAML metadata as a CodeBlock, but it has no code style.
+                if (codeBlock is YamlFrontMatterBlock)
+                    continue;
+
                 var isFenced = fencedBlocks.Any(f => f.Span.Start == codeBlock.Span.Start);
                 var currentStyle = isFenced ? "fenced" : "indented";
 

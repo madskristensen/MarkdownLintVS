@@ -489,6 +489,136 @@ public sealed class CodeBlockRuleTests
     #region MD046 - Code Block Style
 
     [TestMethod]
+    public void MD046_WhenFrontMatterThenFencedXmlWithConsistentStyleThenNoViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var markdown =
+            "---\n" +
+            "title: Sample\n" +
+            "description: Example metadata\n" +
+            "---\n" +
+            "\n" +
+            "```xml\n" +
+            "<item name=\"sample\" />\n" +
+            "```\n";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD046_WhenFrontMatterThenFencedXmlWithFencedStyleEnforcedThenNoViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "fenced";
+        var markdown =
+            "---\n" +
+            "title: Sample\n" +
+            "description: Example metadata\n" +
+            "---\n" +
+            "\n" +
+            "```xml\n" +
+            "<item name=\"sample\" />\n" +
+            "```\n";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD046_WhenOnlyFrontMatterWithFencedStyleEnforcedThenNoViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "fenced";
+        var analysis = new MarkdownDocumentAnalysis("---\ntitle: Sample\ndescription: Example metadata\n---\n");
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.IsEmpty(violations);
+    }
+
+    [TestMethod]
+    public void MD046_WhenFrontMatterThenIndentedAndFencedThenReportsFencedViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var markdown =
+            "---\n" +
+            "title: Sample\n" +
+            "description: Example metadata\n" +
+            "---\n" +
+            "\n" +
+            "    indented code\n" +
+            "\n" +
+            "```xml\n" +
+            "<item name=\"sample\" />\n" +
+            "```\n";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD046", violations[0].Rule.Id);
+        Assert.AreEqual(7, violations[0].LineNumber); // Zero-based opening fence line.
+        Assert.AreEqual("Code block style should be consistent (expected indented)", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD046_WhenFrontMatterThenFencedAndIndentedThenReportsIndentedViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var markdown =
+            "---\n" +
+            "title: Sample\n" +
+            "description: Example metadata\n" +
+            "---\n" +
+            "\n" +
+            "```xml\n" +
+            "<item name=\"sample\" />\n" +
+            "```\n" +
+            "\n" +
+            "    indented code\n";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, DefaultConfig, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD046", violations[0].Rule.Id);
+        Assert.AreEqual(9, violations[0].LineNumber); // Zero-based actual indented code line.
+        Assert.AreEqual("Code block style should be consistent (expected fenced)", violations[0].Message);
+    }
+
+    [TestMethod]
+    public void MD046_WhenFrontMatterThenFencedWithIndentedStyleEnforcedThenReportsOnlyFencedViolation()
+    {
+        var rule = new MD046_CodeBlockStyle();
+        var config = new RuleConfiguration();
+        config.Parameters["style"] = "indented";
+        var markdown =
+            "---\n" +
+            "title: Sample\n" +
+            "description: Example metadata\n" +
+            "---\n" +
+            "\n" +
+            "```xml\n" +
+            "<item name=\"sample\" />\n" +
+            "```\n";
+        var analysis = new MarkdownDocumentAnalysis(markdown);
+
+        var violations = rule.Analyze(analysis, config, DiagnosticSeverity.Warning).ToList();
+
+        Assert.HasCount(1, violations);
+        Assert.AreEqual("MD046", violations[0].Rule.Id);
+        Assert.AreEqual(5, violations[0].LineNumber); // Zero-based opening fence line, not front matter.
+        Assert.AreEqual("Code block style should be indented", violations[0].Message);
+    }
+
+    [TestMethod]
     public void MD046_WhenConsistentFencedStyleThenNoViolation()
     {
         var rule = new MD046_CodeBlockStyle();

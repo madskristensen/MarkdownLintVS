@@ -233,6 +233,8 @@ md_no_trailing_spaces = false
 
 For detailed documentation on each rule, see the [markdownlint Rules Documentation](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md).
 
+MD046 checks the style of actual code blocks; YAML front matter is metadata and does not establish a code block style.
+
 ## Quick Fixes
 
 The extension provides intelligent quick fixes (`Ctrl+.`) for many common issues:
